@@ -1,7 +1,7 @@
 # PyCrucible
 #### "Run Python Apps Instantly, No Setup Required."
 
-A robust, cross-platform launcher for Python apps using UV.
+A robust, cross-platform builder and launcher for Python apps using UV.
 
 ## Overview
 
