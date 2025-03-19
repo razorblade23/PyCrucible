@@ -51,6 +51,8 @@ Package your Python app as a ZIP file or a directory. Your package should includ
 ### Run the builder:
 #### Usage
 `./pylauncher <source_directory> <uv_binary> <output_launcher>`
+
+#### Example
 `./pylauncher path/to/your_app path/to/uv_binary path/to/output_launcher`
 
 This will produce a binary to your specified location and name.
