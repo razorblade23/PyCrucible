@@ -1,7 +1,7 @@
-# PyLauncher
+# PyCrucible
 #### "Run Python Apps Instantly, No Setup Required."
 
-A robust, cross-platform launcher for Python apps using UV.
+A robust, cross-platform builder and launcher for Python apps using UV.
 
 ## Overview
 
@@ -58,3 +58,9 @@ Package your Python app as a ZIP file or a directory. Your package should includ
 This will produce a binary to your specified location and name.
 
 You just need to run the launcher which will take care of downloading and installing `python` and all the dependacies listed
+
+
+## Thanks to
+The idea is inspired by [Packaged] (https://packaged.live/)
+
+Thanks to all the briliant developers at [UV] (https://astral.sh/blog/uv)
