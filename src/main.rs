@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 use cli::Cli;
 use clap::Parser;
+use spinners::{Spinner, Spinners};
 
 use launcher::generator::LauncherGenerator;
 
@@ -50,7 +51,7 @@ fn collect_source_files(source_dir: &Path) -> io::Result<Vec<SourceFile>> {
 
 fn main() -> io::Result<()> {
     let cli = Cli::parse();
-
+    let mut sp = Spinner::new(Spinners::Dots9, "Collecting source files ...".into());
     let source_files = collect_source_files(&cli.source_dir)?;
     if source_files.is_empty() {
         eprintln!("No Python source files found in the specified directory");
@@ -62,6 +63,7 @@ fn main() -> io::Result<()> {
         eprintln!("No pyproject.toml found in the source directory");
         std::process::exit(1);
     }
+    sp.stop_and_persist("✔", "Source files collected".into());
 
     let config = BuilderConfig {
         source_files,

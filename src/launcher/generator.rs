@@ -1,6 +1,7 @@
 use std::fs;
 use std::io;
 use std::process::Command;
+use spinners::{Spinner, Spinners};
 
 use super::template::LAUNCHER_TEMPLATE;
 
@@ -14,8 +15,12 @@ impl LauncherGenerator {
     }
 
     pub fn generate_and_compile(&self) -> io::Result<()> {
+        let mut sp = Spinner::new(Spinners::Dots9, "Generating launcher source code ...".into());
         let source = self.generate_source();
+        sp.stop_and_persist("✔", "Launcher source code generated".into());
+
         self.write_and_compile_source(&source)
+        
     }
 
     fn generate_source_files_map(&self) -> String {
@@ -50,10 +55,9 @@ impl LauncherGenerator {
 
     fn write_and_compile_source(&self, source: &str) -> io::Result<()> {
         let generated_source_path = "launcher_generated.rs";
-        println!("[-]: Generating launcher source code");
         fs::write(generated_source_path, source)?;
-        println!("[+]: Generated launcher source code. Compiling, please wait");
-        println!("[-]: Compiling launcher binary");
+
+        let mut sp = Spinner::new(Spinners::Dots9, "Compiling launcher binary ...".into());
         // Add required crates for compilation
         let status = Command::new("rustc")
             .arg(generated_source_path)
@@ -69,9 +73,9 @@ impl LauncherGenerator {
         if !status.success() {
             eprintln!("Failed to compile the launcher binary.");
             std::process::exit(1);
+        } else {
+            sp.stop_and_persist("✔", format!("Launcher binary created at: {}", self.config.output_path).into());
         }
-
-        println!("[+]: Launcher binary created at: {}", self.config.output_path);
         Ok(())
     }
 }

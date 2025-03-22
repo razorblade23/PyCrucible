@@ -1,10 +1,10 @@
 use clap::Parser;
 use std::path::PathBuf;
 
-const about: &str = "Tool to generate python executable by melding UV and python source code in crusable of one binary";
+const ABOUT: &str = "Tool to generate python executable by melding UV and python source code in crucible of one binary";
 
 #[derive(Parser, Debug)]
-#[command(author, version, about = about, long_about = None)]
+#[command(author, version, about = ABOUT, long_about = None)]
 pub struct Cli {
     pub source_dir: PathBuf,
 
