@@ -5,15 +5,23 @@ A robust, cross-platform builder and launcher for Python apps using UV.
 
 ## Overview
 
-This tool runs a Python application with a help of UV binary. It extracts your package (ZIP or directory), loads an optional configuration from `installer.toml`, and uses `uv` to run your app in an ephemeral environment.
+This tool runs a Python application with a help of UV binary. It extracts your package (ZIP or directory), loads an optional configuration from `pycrucible.toml`, and uses `uv` to run your app in an ephemeral environment.
 
 ## Features
 
-- **Cross-Platform**: Supports Windows, macOS, and Linux. (only linux for now)
-- **Configurable**: Use `installer.toml` to set the app entry point, UV arguments, environment variables, and hooks. (not implemented)
-- **Hooks**: Run pre‑ and post‑execution scripts. (not implemented)
-- **Cleanup**: Optionally remove temporary files after execution. (not implemented)
-- **Tests**: Unit tests cover configuration, extraction, and hook execution. (not implemented)
+- **Cross-Platform**: 
+    - [ ] Windows support, macOS, and Linux. (only linux for now)
+    - [ ] macOS support
+    - [x] Linux support (tested on ubuntu)
+- **Configurable**: 
+    - [ ] Use `pycrucible.toml` to customize project details
+    - [ ] Use both `requirements.txt` or `pyproject.toml` manifest forms
+- **Hooks**:
+    - [ ] Run pre‑ and post‑execution scripts
+- **Cleanup**: 
+    - [ ] Optionally remove temporary files after execution
+- **Tests**:
+    - [ ] Unit tests cover configuration, extraction, and hook execution
 
 ## Project Structure
 
@@ -38,22 +46,32 @@ Ensure you have [Rust](https://www.rust-lang.org/) installed.
 cargo build --release
 ```
 
-The resulting binary will be in `target/release/pylauncher`.
+The resulting binary will be in `target/release/pycrucible`.
 
 ## Usage
 
 Package your Python app as a ZIP file or a directory. Your package should include at least:
-- An app/ directory with your Python application (with an entry point like __main__.py)
-- A `pyproject.toml` or `requirements.txt`(not implemented) file
-- (Optional) An installer.toml for configuration
-- (Optional) Hook scripts (e.g., in a scripts/ directory)
+- A directory with your Python application (with an entry point named __main__.py)
+- A `pyproject.toml` file and project initialized with `UV`
 
 ### Run the builder:
 #### Usage
-`./pylauncher <source_directory> <uv_binary> <output_launcher>`
+```
+$ pycrucible --help
+Tool to generate python executable by melding UV and python source code in crusable of one binary
 
-#### Example
-`./pylauncher path/to/your_app path/to/uv_binary path/to/output_launcher`
+Usage: pycrucible [OPTIONS] <SOURCE_DIR>
+
+Arguments:
+  <SOURCE_DIR>  
+
+Options:
+  -B, --uv-path <UV_PATH>          [default: ./uv]
+  -o, --output-path <OUTPUT_PATH>  [default: ./PyCrucible]
+      --profile <PROFILE>          [default: release] [possible values: debug, release]
+  -h, --help                       Print help
+  -V, --version                    Print version
+```
 
 This will produce a binary to your specified location and name.
 
@@ -61,6 +79,6 @@ You just need to run the launcher which will take care of downloading and instal
 
 
 ## Thanks to
-The idea is inspired by [Packaged] (https://packaged.live/)
+The idea is inspired by [Packaged](https://packaged.live/)
 
-Thanks to all the briliant developers at [UV] (https://astral.sh/blog/uv)
+Thanks to all the briliant developers at [UV](https://astral.sh/blog/uv)
