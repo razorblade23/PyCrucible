@@ -10,7 +10,7 @@ This tool runs a Python application with a help of UV binary. It extracts your p
 ## Features
 
 - **Cross-Platform**: 
-    - [ ] Windows support, macOS, and Linux. (only linux for now)
+    - [ ] Windows support
     - [ ] macOS support
     - [x] Linux support (tested on ubuntu)
 - **Configurable**: 
