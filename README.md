@@ -15,27 +15,16 @@ This tool runs a Python application with a help of UV binary. It extracts your p
     - [x] Linux support (tested on ubuntu)
 - **Configurable**: 
     - [ ] Use `pycrucible.toml` to customize project details
-    - [ ] Use both `requirements.txt` or `pyproject.toml` manifest forms
+    - [ ] Use standard `requirements.txt` manifest
+    - [x] Use UV initialized `pyproject.toml` manifest
+    - [x] Load the project as a directory
+    - [ ] Load the project as .zip archive
 - **Hooks**:
     - [ ] Run pre‑ and post‑execution scripts
 - **Cleanup**: 
     - [ ] Optionally remove temporary files after execution
 - **Tests**:
     - [ ] Unit tests cover configuration, extraction, and hook execution
-
-## Project Structure
-
-```
-pylauncher/
-├── Cargo.toml
-└── src/
-    ├── main.rs
-    └── launcher/
-        ├── generator.rs
-        ├── mod.rs
-        └── template.rs
- 
-```
 
 
 ## Building
