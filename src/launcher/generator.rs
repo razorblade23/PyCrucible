@@ -5,11 +5,11 @@ use std::process::Command;
 use super::template::LAUNCHER_TEMPLATE;
 
 pub struct LauncherGenerator {
-    config: crate::Config,
+    config: crate::BuilderConfig,
 }
 
 impl LauncherGenerator {
-    pub fn new(config: crate::Config) -> Self {
+    pub fn new(config: crate::BuilderConfig) -> Self {
         Self { config }
     }
 
