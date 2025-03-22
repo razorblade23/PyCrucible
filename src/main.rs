@@ -49,37 +49,6 @@ fn collect_source_files(source_dir: &Path) -> io::Result<Vec<SourceFile>> {
     Ok(files)
 }
 
-// fn parse_args() -> io::Result<Config> {
-//     let args: Vec<String> = env::args().collect();
-//     if args.len() != 4 {
-//         eprintln!(
-//             "Usage: {} <source_directory> <uv_binary> <output_launcher>",
-//             args[0]
-//         );
-//         std::process::exit(1);
-//     }
-
-//     let source_dir = Path::new(&args[1]);
-//     let source_files = collect_source_files(source_dir)?;
-//     if source_files.is_empty() {
-//         eprintln!("No Python source files found in the specified directory");
-//         std::process::exit(1);
-//     }
-
-//     let manifest_path = source_dir.join("pyproject.toml");
-//     if !manifest_path.exists() {
-//         eprintln!("No pyproject.toml found in the source directory");
-//         std::process::exit(1);
-//     }
-
-//     Ok(BuilderConfig {
-//         source_files,
-//         manifest: fs::read(manifest_path)?,
-//         uv_binary: fs::read(&args[2])?,
-//         output_path: args[3].clone(),
-//     })
-// }
-
 fn main() -> io::Result<()> {
     let cli = Cli::parse();
 
