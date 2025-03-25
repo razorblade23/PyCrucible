@@ -1,3 +1,4 @@
+use crate::launcher::config::load_project_config;
 use spinners::{Spinner, Spinners};
 use std::fs;
 use std::io::{self, Cursor, Write};
@@ -6,12 +7,12 @@ use zip::write::FileOptions;
 
 use super::template::LAUNCHER_TEMPLATE;
 
-pub struct LauncherGenerator {
-    config: crate::BuilderConfig,
+pub struct LauncherGenerator<'a> {
+    config: crate::BuilderConfig<'a>,
 }
 
-impl LauncherGenerator {
-    pub fn new(config: crate::BuilderConfig) -> Self {
+impl<'a> LauncherGenerator<'a> {
+    pub fn new(config: crate::BuilderConfig<'a>) -> Self {
         Self { config }
     }
 
@@ -49,10 +50,12 @@ impl LauncherGenerator {
         let zip_data = self.generate_zip_payload()?;
         let zip_array = byte_array_literal(&zip_data);
         let uv_binary_array = byte_array_literal(&self.config.uv_binary);
+        let launcher_config = load_project_config(&self.config.source_dir.to_path_buf());
 
         Ok(LAUNCHER_TEMPLATE
             .replace("{zip_binary_array}", &zip_array)
-            .replace("{uv_binary_array}", &uv_binary_array))
+            .replace("{uv_binary_array}", &uv_binary_array)
+            .replace("{entrypoint}", &launcher_config.package.entrypoint))
     }
 
     fn write_and_compile_source(&self, source: &str) -> io::Result<()> {

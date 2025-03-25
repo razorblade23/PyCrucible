@@ -1,6 +1,7 @@
 mod cli;
 mod launcher;
 
+use crate::launcher::config::load_project_config;
 use clap::Parser;
 use cli::Cli;
 use glob::Pattern;
@@ -20,24 +21,12 @@ struct SourceFile {
     content: Vec<u8>,
 }
 
-struct BuilderConfig {
+struct BuilderConfig<'a> {
+    source_dir: &'a Path,
     source_files: Vec<SourceFile>,
     manifest: Vec<u8>,
     uv_binary: Vec<u8>,
     output_path: String,
-}
-
-fn load_config(config_path: &PathBuf) -> ProjectConfig {
-    match ProjectConfig::from_file(&config_path) {
-        Ok(config) => config,
-        Err(e) => {
-            eprintln!(
-                "Warning: Failed to load config, using defaults. Error: {}",
-                e
-            );
-            ProjectConfig::default()
-        }
-    }
 }
 
 fn should_include_file(
@@ -70,17 +59,7 @@ fn collect_source_files(source_dir: &Path) -> io::Result<Vec<SourceFile>> {
     let mut seen_paths = HashSet::new();
     let source_dir = source_dir.canonicalize()?;
 
-    // Load config with default Python-specific patterns
-    let project_config = match source_dir.join("pycrucible.toml").canonicalize() {
-        Ok(config_path) if config_path.exists() => {
-            println!("Loading config from: {:?}", config_path);
-            load_config(&config_path)
-        }
-        _ => {
-            println!("Using default Python-specific configuration");
-            ProjectConfig::default()
-        }
-    };
+    let project_config = load_project_config(&source_dir);
 
     let include_patterns = project_config.package.patterns.include;
     let exclude_patterns = project_config.package.patterns.exclude;
@@ -140,6 +119,7 @@ fn main() -> io::Result<()> {
     sp.stop_and_persist("✔", "Source files collected".into());
 
     let config = BuilderConfig {
+        source_dir: &cli.source_dir,
         source_files,
         manifest: fs::read(manifest_path)?,
         uv_binary: fs::read(&cli.uv_path)?,

@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Deserialize)]
 pub struct FilePatterns {
@@ -82,4 +82,32 @@ impl Default for ProjectConfig {
             hooks: None,
         }
     }
+}
+
+fn load_config(config_path: &PathBuf) -> ProjectConfig {
+    match ProjectConfig::from_file(&config_path) {
+        Ok(config) => config,
+        Err(e) => {
+            eprintln!(
+                "Warning: Failed to load config, using defaults. Error: {}",
+                e
+            );
+            ProjectConfig::default()
+        }
+    }
+}
+
+pub fn load_project_config(source_dir: &PathBuf) -> ProjectConfig {
+    // Load config with default Python-specific patterns
+    let project_config = match source_dir.join("pycrucible.toml").canonicalize() {
+        Ok(config_path) if config_path.exists() => {
+            println!("Loading config from: {:?}", config_path);
+            load_config(&config_path)
+        }
+        _ => {
+            println!("Using default Python-specific configuration");
+            ProjectConfig::default()
+        }
+    };
+    project_config
 }
