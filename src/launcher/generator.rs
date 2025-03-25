@@ -1,5 +1,5 @@
 use crate::launcher::config::load_project_config;
-use spinners::{Spinner, Spinners};
+use crate::spinner_utils::{create_spinner_with_message, stop_and_persist_spinner_with_message};
 use std::fs;
 use std::io::{self, Cursor, Write};
 use std::process::Command;
@@ -17,12 +17,9 @@ impl<'a> LauncherGenerator<'a> {
     }
 
     pub fn generate_and_compile(&self) -> io::Result<()> {
-        let mut sp = Spinner::new(
-            Spinners::Dots9,
-            "Generating launcher source code ...".into(),
-        );
+        let sp: spinners::Spinner = create_spinner_with_message("Generating launcher template ...");
         let source = self.generate_source()?;
-        sp.stop_and_persist("✔", "Launcher source code generated".into());
+        stop_and_persist_spinner_with_message(sp, "Launcher source code generated");
 
         self.write_and_compile_source(&source)
     }

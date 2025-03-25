@@ -1,11 +1,12 @@
 mod cli;
 mod launcher;
+mod spinner_utils;
 
 use crate::launcher::config::load_project_config;
 use clap::Parser;
 use cli::Cli;
 use glob::Pattern;
-use launcher::config::ProjectConfig;
+use spinner_utils::{create_spinner_with_message, stop_and_persist_spinner_with_message};
 use spinners::{Spinner, Spinners};
 use std::collections::HashSet;
 use std::fs;
@@ -103,7 +104,7 @@ fn collect_source_files(source_dir: &Path) -> io::Result<Vec<SourceFile>> {
 
 fn main() -> io::Result<()> {
     let cli = Cli::parse();
-    let mut sp = Spinner::new(Spinners::Dots9, "Collecting source files ...".into());
+    let sp = create_spinner_with_message("Collecting source files ...");
     let source_files = collect_source_files(&cli.source_dir)?;
     if source_files.is_empty() {
         eprintln!("No Python source files found in the specified directory");
@@ -116,7 +117,7 @@ fn main() -> io::Result<()> {
         std::process::exit(1);
     }
 
-    sp.stop_and_persist("✔", "Source files collected".into());
+    stop_and_persist_spinner_with_message(sp, "Source files collected");
 
     let config = BuilderConfig {
         source_dir: &cli.source_dir,
