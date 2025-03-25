@@ -10,11 +10,7 @@ pub struct Cli {
 
     #[arg(short = 'B', long, default_value = "./uv")]
     pub uv_path: String,
-    
-    #[arg(short = 'o', long, default_value = "./PyCrucible")]
+
+    #[arg(short = 'o', long, default_value = "./pycrucible-launcher")]
     pub output_path: PathBuf,
-
-    #[arg(long, default_value = "release", value_parser = ["debug", "release"])]
-    pub profile: String,
-
 }

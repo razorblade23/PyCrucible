@@ -1,13 +1,13 @@
-mod launcher;
 mod cli;
+mod launcher;
 
+use clap::Parser;
+use cli::Cli;
+use spinners::{Spinner, Spinners};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
-use cli::Cli;
-use clap::Parser;
-use spinners::{Spinner, Spinners};
 
 use launcher::generator::LauncherGenerator;
 
@@ -33,7 +33,8 @@ fn collect_source_files(source_dir: &Path) -> io::Result<Vec<SourceFile>> {
         .into_iter()
         .filter_map(|e| e.ok())
     {
-        if entry.file_type().is_file() && entry.path().extension().map_or(false, |ext| ext == "py") {
+        if entry.file_type().is_file() && entry.path().extension().map_or(false, |ext| ext == "py")
+        {
             let relative_path = entry
                 .path()
                 .strip_prefix(&source_dir)
