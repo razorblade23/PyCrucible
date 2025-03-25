@@ -1,0 +1,33 @@
+[package]
+entrypoint = "src/main.py"
+
+[package.patterns]
+include = [
+    "**/*.py",           # Python source files
+    "**/*.pyi",          # Type stubs
+    "resources/**/*.json" # Resource files
+]
+exclude = [
+    "**/__pycache__/**", # Python cache
+    ".venv/**/*",        # Virtual environment
+    ".git/**/*",         # Git directory
+    "**/tests/**",       # Test files
+    "**/*.pyc",          # Compiled Python files
+    "**/*.pyo",
+    "**/*.pyd"
+]
+
+[uv] # NOT IMPLEMENTED
+args = [
+    "--system-site-packages",
+    "--python=3.11"
+]
+
+[env] # NOT IMPLEMENTED
+PYTHONPATH = "src"
+DEBUG = "1"
+APP_ENV = "development"
+
+[hooks] # NOT IMPLEMENTED
+pre_run = "python scripts/pre_run.py"
+post_run = "python scripts/cleanup.py"

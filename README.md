@@ -14,7 +14,7 @@ This tool runs a Python application with a help of UV binary. It extracts your p
     - [ ] macOS support
     - [x] Linux support (tested on ubuntu)
 - **Configurable**: 
-    - [ ] Use `pycrucible.toml` to customize project details
+    - [x] Use `pycrucible.toml` to customize project details
     - [ ] Use standard `requirements.txt` manifest
     - [x] Use UV initialized `pyproject.toml` manifest
     - [x] Load the project as a directory
@@ -40,8 +40,11 @@ The resulting binary will be in `target/release/pycrucible`.
 ## Usage
 
 Package your Python app as a ZIP file or a directory. Your package should include at least:
-- A directory with your Python application (with an entry point named __main__.py)
+- A directory with your Python application (with an entry point (default: __main__.py))
 - A `pyproject.toml` file and project initialized with `UV`
+- (optional) `pycrucible.toml` file with (in your project directory) for custom include/exclude, uv commands, enviroment variables and pre/post hooks
+    - EXAMPLE: Example can be found in root directory under the `pycrucible.toml.example` name
+    - WARNING: Only include/exclude implemented for now !
 
 ### Run the builder:
 #### Usage
@@ -56,8 +59,7 @@ Arguments:
 
 Options:
   -B, --uv-path <UV_PATH>          [default: ./uv]
-  -o, --output-path <OUTPUT_PATH>  [default: ./PyCrucible]
-      --profile <PROFILE>          [default: release] [possible values: debug, release]
+  -o, --output-path <OUTPUT_PATH>  [default: ./pycrucible-launcher]
   -h, --help                       Print help
   -V, --version                    Print version
 ```

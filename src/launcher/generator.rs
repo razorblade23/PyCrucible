@@ -1,7 +1,7 @@
 use spinners::{Spinner, Spinners};
 use std::fs;
 use std::io::{self, Cursor, Write};
-use std::process::{Command, Stdio};
+use std::process::Command;
 use zip::write::FileOptions;
 
 use super::template::LAUNCHER_TEMPLATE;
