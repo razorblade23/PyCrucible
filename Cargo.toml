@@ -10,3 +10,4 @@ lazy_static = "1.4"
 once_cell = "1.18"
 clap = { version = "4.2", features = ["derive"] }
 spinners = "4"
+zip = "2.5"

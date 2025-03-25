@@ -1,32 +1,29 @@
 pub const LAUNCHER_TEMPLATE: &str = r#"
-#[macro_use]
-extern crate maplit;
-
 use std::fs::{self, File};
-use std::io::Write;
+use std::io::{self, Write, Cursor};
 use std::env;
 use std::path::PathBuf;
 use std::process::Command;
-use std::collections::HashMap;
-use once_cell::sync::Lazy;
-
-static SOURCE_FILES: Lazy<HashMap<&'static str, Vec<u8>>> = 
-    Lazy::new(|| {source_files_map});
+use zip::ZipArchive;
 
 static UV_BINARY: &[u8] = &[{uv_binary_array}];
+static PAYLOAD_ZIP: &[u8] = &[{zip_binary_array}];
 
 fn extract_files(base_dir: &PathBuf) -> std::io::Result<()> {
-    for (path, content) in SOURCE_FILES.iter() {
-        let full_path = base_dir.join(path);
+    let reader = Cursor::new(PAYLOAD_ZIP);
+    let mut archive = ZipArchive::new(reader)?;
+    
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)?;
+        let outpath = base_dir.join(file.name());
         
-        // Ensure parent directories exist
-        if let Some(parent) = full_path.parent() {
+        if let Some(parent) = outpath.parent() {
             fs::create_dir_all(parent)?;
         }
         
-        let mut file = File::create(&full_path)?;
-        file.write_all(content)?;
-        println!("[-]: Extracted {}", path);
+        let mut outfile = File::create(&outpath)?;
+        io::copy(&mut file, &mut outfile)?;
+        println!("[-]: Extracted {}", file.name());
     }
     Ok(())
 }
