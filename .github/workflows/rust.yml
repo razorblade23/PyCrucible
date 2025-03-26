@@ -35,22 +35,40 @@ jobs:
     name: Build Artifacts
     needs: test
     runs-on: ubuntu-latest
-
+  
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
+  
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-
+  
+      - name: Get platform info
+        id: platform
+        run: |
+          OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "x86_64" ]; then ARCH="x86_64"; fi
+          if [ "$ARCH" = "aarch64" ]; then ARCH="aarch64"; fi
+          echo "os=$OS" >> $GITHUB_ENV
+          echo "arch=$ARCH" >> $GITHUB_ENV
+  
       - name: Build project
         run: cargo build --release
-
+  
+      - name: Rename binary
+        run: |
+          VERSION=${{ github.ref_name }}
+          BINARY_NAME=pycrucible_${VERSION}_${{ env.os }}_${{ env.arch }}
+          mv target/release/pycrucible $BINARY_NAME
+          echo "binary_name=$BINARY_NAME" >> $GITHUB_ENV
+  
       - name: Upload Artifact
         uses: actions/upload-artifact@v4.6.2
         with:
-          name: my-rust-binary
-          path: target/release/my-binary
+          name: ${{ env.binary_name }}
+          path: ${{ env.binary_name }}
+
 
   release:
     name: Create Release
@@ -61,12 +79,10 @@ jobs:
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v3
-        with:
-          name: my-rust-binary
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: my-binary
+          files: ./*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
