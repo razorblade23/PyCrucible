@@ -1,0 +1,91 @@
+name: PyCrucible pipeline
+
+on:
+  push:
+    branches: [ main ]
+  release:
+    types: [created]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run tests
+        run: cargo test --verbose
+
+  build:
+    name: Build Artifacts
+    needs: test
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+  
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+  
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+  
+      - name: Get platform info
+        id: platform
+        run: |
+          OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "x86_64" ]; then ARCH="x86_64"; fi
+          if [ "$ARCH" = "aarch64" ]; then ARCH="aarch64"; fi
+          echo "os=$OS" >> $GITHUB_ENV
+          echo "arch=$ARCH" >> $GITHUB_ENV
+  
+      - name: Build project
+        run: cargo build --release
+  
+      - name: Rename binary
+        run: |
+          VERSION=${{ github.ref_name }}
+          BINARY_NAME=pycrucible_${VERSION}_${{ env.os }}_${{ env.arch }}
+          mv target/release/pycrucible $BINARY_NAME
+          echo "binary_name=$BINARY_NAME" >> $GITHUB_ENV
+  
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: ${{ env.binary_name }}
+          path: ${{ env.binary_path }}
+
+
+  release:
+    name: Create Release
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4.2.1
+        with:
+          name: ${{ env.binary_name }}
+
+      - name: Upload to GitHub Release
+        uses: phuonghuynh/action-ghrelease@v1.1.0
+        with:
+          files: ./*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
