@@ -68,7 +68,7 @@ jobs:
         uses: actions/upload-artifact@v4.6.2
         with:
           name: ${{ env.binary_name }}
-          path: ${{ env.binary_path }}
+          path: ${{ env.binary_name }}
 
 
   release:
