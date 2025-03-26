@@ -14,3 +14,4 @@ serde = { version = "1.0", features = ["derive"] }
 spinners = "4"
 zip = "2.5"
 glob = "0.3"
+tempfile = "3.19"

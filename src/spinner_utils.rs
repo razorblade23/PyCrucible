@@ -6,5 +6,5 @@ pub fn create_spinner_with_message(msg: &str) -> Spinner {
 }
 
 pub fn stop_and_persist_spinner_with_message(mut sp: Spinner, msg: &str) {
-    sp.stop_and_persist("✔", "Source files collected".into());
+    sp.stop_and_persist("✔", msg.into());
 }

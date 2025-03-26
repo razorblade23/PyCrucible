@@ -6,6 +6,8 @@ use std::process::Command;
 use zip::write::FileOptions;
 
 use super::template::LAUNCHER_TEMPLATE;
+use std::path::PathBuf;
+use tempfile::tempdir;
 
 pub struct LauncherGenerator<'a> {
     config: crate::BuilderConfig<'a>,
@@ -125,4 +127,53 @@ fn byte_array_literal(data: &[u8]) -> String {
         .map(|b| b.to_string())
         .collect::<Vec<String>>()
         .join(", ")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_byte_array_literal() {
+        let data = vec![1, 2, 3, 255];
+        assert_eq!(byte_array_literal(&data), "1, 2, 3, 255");
+    }
+
+    #[test]
+    fn test_launcher_generator_new() {
+        let temp_path = PathBuf::new();
+        let config = crate::BuilderConfig {
+            source_files: vec![],
+            manifest: vec![],
+            uv_binary: vec![],
+            source_dir: temp_path.as_path(),
+            output_path: String::new(),
+        };
+        let generator = LauncherGenerator::new(config);
+        assert!(generator.config.source_files.is_empty());
+    }
+
+    #[test]
+    fn test_generate_zip_payload() -> io::Result<()> {
+        let temp_dir = tempdir()?;
+        let test_file = temp_dir.path().join("test.txt");
+        fs::write(&test_file, b"test content")?;
+
+        let config = crate::BuilderConfig {
+            source_files: vec![crate::SourceFile {
+                relative_path: PathBuf::from("test.txt"),
+                content: b"test content".to_vec(),
+            }],
+            manifest: b"[project]".to_vec(),
+            uv_binary: vec![],
+            source_dir: temp_dir.path(),
+            output_path: String::new(),
+        };
+
+        let generator = LauncherGenerator::new(config);
+        let payload = generator.generate_zip_payload()?;
+        assert!(!payload.is_empty());
+
+        Ok(())
+    }
 }

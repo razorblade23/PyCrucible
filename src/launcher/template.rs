@@ -62,7 +62,7 @@ fn main() -> std::io::Result<()> {
     // Run the main Python file
     let status = Command::new(&uv_path)
         .arg("run")
-        .arg(&[{entrypoint}]) // Run entrypoint
+        .arg("{entrypoint}")
         .current_dir(&tmp_dir)
         .status()?;
     if !status.success() {

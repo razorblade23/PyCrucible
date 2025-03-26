@@ -7,7 +7,6 @@ use clap::Parser;
 use cli::Cli;
 use glob::Pattern;
 use spinner_utils::{create_spinner_with_message, stop_and_persist_spinner_with_message};
-use spinners::{Spinner, Spinners};
 use std::collections::HashSet;
 use std::fs;
 use std::io;
