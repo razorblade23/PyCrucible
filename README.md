@@ -25,6 +25,8 @@ This tool runs a Python application with a help of UV binary. It extracts your p
     - [ ] Optionally remove temporary files after execution
 - **Tests**:
     - [ ] Unit tests cover configuration, extraction, and hook execution
+- **Source Update**:
+    - [ ] Initiate an update of source code pulling from GitHub
 
 
 ## Building
