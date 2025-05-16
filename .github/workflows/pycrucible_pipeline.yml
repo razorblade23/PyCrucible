@@ -53,6 +53,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
   
+      - name: Install SSL development package
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev pkg-config
+  
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
