@@ -13,7 +13,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
-use uv_handler::download_binary_and_unpack;
+use uv_handler::{download_binary_and_unpack, CrossTarget};
 
 use launcher::generator::LauncherGenerator;
 
@@ -29,6 +29,7 @@ struct BuilderConfig<'a> {
     manifest: Vec<u8>,
     uv_binary: Vec<u8>,
     output_path: String,
+    cross: Option<String>,
 }
 
 fn should_include_file(
@@ -123,12 +124,18 @@ fn main() -> io::Result<()> {
     }
     stop_and_persist_spinner_with_message(sp, "Source files collected");
 
+    let target = match cli.target.clone() {
+        Some(target_str) => Some(target_str.parse::<CrossTarget>().map_err(|e| {
+            io::Error::new(io::ErrorKind::InvalidInput, e)
+        })?),
+        None => None,
+    };
 
     // Check if the UV binary exists at the specified path, if not, download it
     let mut uv_path = cli.uv_path.clone();
     if !Path::new(&uv_path).exists() {
         let sp = create_spinner_with_message("UV binary not found, downloading...");
-        match download_binary_and_unpack() {
+        match download_binary_and_unpack(target) {
             Ok(path_buf) => {
                 uv_path = path_buf;
                 stop_and_persist_spinner_with_message(sp, "UV binary downloaded");
@@ -149,6 +156,7 @@ fn main() -> io::Result<()> {
         manifest: fs::read(manifest_path)?,
         uv_binary: fs::read(&uv_path)?,
         output_path: cli.output_path.to_string_lossy().to_string(),
+        cross: cli.target,
     };
 
     let generator = LauncherGenerator::new(config);

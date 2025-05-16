@@ -26,4 +26,7 @@ pub struct Cli {
 
     #[arg(short = 'o', long, default_value = "./pycrucible-launcher")]
     pub output_path: PathBuf,
+
+    #[arg(short = 't', long, default_value = None)]
+    pub target: Option<String>,
 }
