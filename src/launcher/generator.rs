@@ -70,7 +70,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-zip = { version = "2.5", default-features = false, features = ["deflate"] }
+zip = { version = "3", default-features = false, features = ["deflate"] }
 
 [profile.release]
 opt-level = "z"     # Optimize for size

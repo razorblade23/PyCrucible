@@ -68,7 +68,11 @@ Options:
 
 This will produce a binary to your specified location and name.
 
-You just need to run the launcher which will take care of downloading and installing `python` and all the dependacies listed
+You just need to run the launcher which will take care of downloading and installing `python` and all the dependacies listed.
+
+### This project uses `uv`
+- This project uses `uv` as python dependancy manager and is required as part of compilation step.
+- The application will download `uv` if the binary is not found and not specified as a flag.
 
 
 ## Thanks to

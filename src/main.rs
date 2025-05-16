@@ -1,6 +1,7 @@
 mod cli;
 mod launcher;
 mod spinner_utils;
+mod uv_handler;
 
 use crate::launcher::config::load_project_config;
 use clap::Parser;
@@ -12,6 +13,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
+use uv_handler::download_binary_and_unpack;
 
 use launcher::generator::LauncherGenerator;
 
@@ -84,11 +86,11 @@ fn collect_source_files(source_dir: &Path) -> io::Result<Vec<SourceFile>> {
                     .to_path_buf();
 
                 if seen_paths.contains(&relative_path) {
-                    eprintln!("Warning: Skipping duplicate file: {:?}", relative_path);
+                    // eprintln!("Warning: Skipping duplicate file: {:?}", relative_path);
                     continue;
                 }
 
-                println!("Found source file: {:?}", relative_path);
+                // println!("Found source file: {:?}", relative_path);
                 seen_paths.insert(relative_path.clone());
                 let content = fs::read(entry.path())?;
                 files.push(SourceFile {
@@ -102,7 +104,9 @@ fn collect_source_files(source_dir: &Path) -> io::Result<Vec<SourceFile>> {
 }
 
 fn main() -> io::Result<()> {
-    let cli = Cli::parse();
+    let cli = Cli::parse(); // parse command line arguments
+
+    // Collect source files
     let sp = create_spinner_with_message("Collecting source files ...");
     let source_files = collect_source_files(&cli.source_dir)?;
     if source_files.is_empty() {
@@ -110,19 +114,40 @@ fn main() -> io::Result<()> {
         std::process::exit(1);
     }
 
+    // Check if the manifest file exists
+    // TODO : Enable usage of requirements.txt and a new pylock.toml file
     let manifest_path = cli.source_dir.join("pyproject.toml");
     if !manifest_path.exists() {
         eprintln!("No pyproject.toml found in the source directory");
         std::process::exit(1);
     }
-
     stop_and_persist_spinner_with_message(sp, "Source files collected");
+
+
+    // Check if the UV binary exists at the specified path, if not, download it
+    let mut uv_path = cli.uv_path.clone();
+    if !Path::new(&uv_path).exists() {
+        let sp = create_spinner_with_message("UV binary not found, downloading...");
+        match download_binary_and_unpack() {
+            Ok(path_buf) => {
+                uv_path = path_buf;
+                stop_and_persist_spinner_with_message(sp, "UV binary downloaded");
+            }
+            Err(e) => {
+                stop_and_persist_spinner_with_message(sp, "✗ Failed to download UV binary. Please check your internet connection.");
+                eprintln!("Failed to download UV binary: {}", e);
+                std::process::exit(1);
+            }
+        }
+    }
+    
+
 
     let config = BuilderConfig {
         source_dir: &cli.source_dir,
         source_files,
         manifest: fs::read(manifest_path)?,
-        uv_binary: fs::read(&cli.uv_path)?,
+        uv_binary: fs::read(&uv_path)?,
         output_path: cli.output_path.to_string_lossy().to_string(),
     };
 
