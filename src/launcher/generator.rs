@@ -6,8 +6,6 @@ use std::process::Command;
 use zip::write::FileOptions;
 
 use super::template::LAUNCHER_TEMPLATE;
-use std::path::PathBuf;
-use tempfile::tempdir;
 
 pub struct LauncherGenerator<'a> {
     config: crate::BuilderConfig<'a>,
@@ -58,7 +56,8 @@ impl<'a> LauncherGenerator<'a> {
         
         let launcher_config = load_project_config(&self.config.source_dir.to_path_buf());
 
-        Ok(LAUNCHER_TEMPLATE.replace("{entrypoint}", &launcher_config.package.entrypoint))
+        let template = LAUNCHER_TEMPLATE.replace("{entrypoint}", &launcher_config.package.entrypoint);
+        Ok(template.replace("{extract_to_temp}", &self.config.extract_to_temp.to_string()))
     }
 
     fn write_and_compile_source(&self, source: &str) -> io::Result<()> {
@@ -150,7 +149,8 @@ overflow-checks = false
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use std::path::PathBuf;
+    use tempfile::tempdir;
     #[test]
     fn test_launcher_generator_new() {
         let temp_path = PathBuf::new();
@@ -161,6 +161,7 @@ mod tests {
             source_dir: temp_path.as_path(),
             output_path: String::new(),
             cross: None,
+            extract_to_temp: true
         };
         let generator = LauncherGenerator::new(config);
         assert!(generator.config.source_files.is_empty());
@@ -182,6 +183,7 @@ mod tests {
             source_dir: temp_dir.path(),
             output_path: String::new(),
             cross: None,
+            extract_to_temp: true
         };
 
         let generator = LauncherGenerator::new(config);
@@ -208,6 +210,7 @@ mod tests {
             source_dir: temp_dir.path(),
             output_path: String::new(),
             cross: None,
+            extract_to_temp: true
         };
 
         let generator = LauncherGenerator::new(config);

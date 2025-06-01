@@ -43,7 +43,7 @@ The resulting binary will be in `target/release/pycrucible`.
 
 Package your Python app as a ZIP file or a directory. Your package should include at least:
 - A directory with your Python application (with an entry point (default: __main__.py))
-- A `pyproject.toml` file and project initialized with `UV`
+- A `pyproject.toml` file and project initialized with `uv`
 - (optional) `pycrucible.toml` file with (in your project directory) for custom include/exclude, uv commands, enviroment variables and pre/post hooks
     - EXAMPLE: Example can be found in root directory under the `pycrucible.toml.example` name
     - WARNING: Only include/exclude implemented for now !
@@ -51,8 +51,7 @@ Package your Python app as a ZIP file or a directory. Your package should includ
 ### Run the builder:
 #### Usage
 ```
-$ pycrucible --help
-Tool to generate python executable by melding UV and python source code in crusable of one binary
+Tool to generate python executable by melding UV and python source code in crucible of one binary
 
 Usage: pycrucible [OPTIONS] <SOURCE_DIR>
 
@@ -60,11 +59,19 @@ Arguments:
   <SOURCE_DIR>  
 
 Options:
-  -B, --uv-path <UV_PATH>          [default: ./uv]
-  -o, --output-path <OUTPUT_PATH>  [default: ./pycrucible-launcher]
-  -t, --target                     [default: None]
-  -h, --help                       Print help
-  -V, --version                    Print version
+  -B, --uv-path <UV_PATH>
+          Set the path to `uv` executable. If not found, it will be downloaded. 
+          [default: ./uv]
+      --extract-to-temp <EXTRACT_TO_TEMP>
+          Extract to temporary directory [default: true]
+  -o, --output-path <OUTPUT_PATH>
+          Set the output path and launcher name [default: ./pycrucible-launcher]
+  -t, --target <TARGET>
+          Sets target architecture for cross-platform compilation
+  -h, --help
+          Print help
+  -V, --version
+          Print version
 ```
 
 This will produce a binary to your specified location and name.

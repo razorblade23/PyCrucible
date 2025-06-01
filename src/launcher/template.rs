@@ -36,16 +36,27 @@ fn extract_files(base_dir: &PathBuf) -> std::io::Result<()> {
 }
 
 fn main() -> std::io::Result<()> {
-    let tmp_dir = env::temp_dir().join("python_app_payload");
-    fs::create_dir_all(&tmp_dir)?;
-    println!("[-]: Created temporary directory");
+    let payload_dir = if {extract_to_temp} {
+        let dir = env::temp_dir().join("python_app_payload");
+        fs::create_dir_all(&dir)?;
+        println!("[-]: Created temporary directory");
+        dir
+    } else {
+        let exe_path = env::current_exe()?;
+        let dir = exe_path.parent().unwrap().join("payload");
+        fs::create_dir_all(&dir)?;
+        println!("[-]: Created payload directory next to executable");
+        dir
+    };
+
+
 
     // Extract all files maintaining directory structure
-    extract_files(&tmp_dir)?;
+    extract_files(&payload_dir)?;
     println!("[-]: Extracted all source files");
 
     // Setup UV binary
-    let uv_path = tmp_dir.join("uv");
+    let uv_path = payload_dir.join("uv");
     File::create(&uv_path)?.write_all(UV_BINARY.as_slice())?;
 
     #[cfg(unix)]
@@ -59,7 +70,7 @@ fn main() -> std::io::Result<()> {
     // Run UV sync
     let status = Command::new(&uv_path)
         .arg("sync")
-        .current_dir(&tmp_dir)
+        .current_dir(&payload_dir)
         .status()?;
     if !status.success() {
         return Err(std::io::Error::new(std::io::ErrorKind::Other, "uv sync failed"));
@@ -70,7 +81,7 @@ fn main() -> std::io::Result<()> {
     let status = Command::new(&uv_path)
         .arg("run")
         .arg("{entrypoint}")
-        .current_dir(&tmp_dir)
+        .current_dir(&payload_dir)
         .status()?;
     if !status.success() {
         return Err(std::io::Error::new(std::io::ErrorKind::Other, "Python application failed"));
