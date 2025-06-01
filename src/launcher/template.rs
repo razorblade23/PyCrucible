@@ -5,12 +5,19 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 use zip::ZipArchive;
+use rust_embed::RustEmbed;
 
-static UV_BINARY: &[u8] = &[{uv_binary_array}];
-static PAYLOAD_ZIP: &[u8] = &[{zip_binary_array}];
+#[derive(RustEmbed)]
+#[folder = "embedded"]
+struct AppFiles;
+
+lazy_static::lazy_static! {
+    static ref UV_BINARY: Vec<u8> = AppFiles::get("uv").expect("UV binary not found").data.into_owned();
+    static ref PAYLOAD_ZIP: Vec<u8> = AppFiles::get("payload.zip").expect("Payload zip not found").data.into_owned();
+}
 
 fn extract_files(base_dir: &PathBuf) -> std::io::Result<()> {
-    let reader = Cursor::new(PAYLOAD_ZIP);
+    let reader = Cursor::new(PAYLOAD_ZIP.as_slice());
     let mut archive = ZipArchive::new(reader)?;
     
     for i in 0..archive.len() {
@@ -39,7 +46,7 @@ fn main() -> std::io::Result<()> {
 
     // Setup UV binary
     let uv_path = tmp_dir.join("uv");
-    File::create(&uv_path)?.write_all(UV_BINARY)?;
+    File::create(&uv_path)?.write_all(UV_BINARY.as_slice())?;
 
     #[cfg(unix)]
     {

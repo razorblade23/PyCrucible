@@ -46,15 +46,19 @@ impl<'a> LauncherGenerator<'a> {
     }
 
     fn generate_source(&self) -> io::Result<String> {
+        // Generate the zip payload
         let zip_data = self.generate_zip_payload()?;
-        let zip_array = byte_array_literal(&zip_data);
-        let uv_binary_array = byte_array_literal(&self.config.uv_binary);
+        
+        // Create embedded directory
+        fs::create_dir_all("payload/embedded")?;
+        
+        // Write payload.zip and uv binary to embedded directory
+        fs::write("payload/embedded/payload.zip", &zip_data)?;
+        fs::write("payload/embedded/uv", &self.config.uv_binary)?;
+        
         let launcher_config = load_project_config(&self.config.source_dir.to_path_buf());
 
-        Ok(LAUNCHER_TEMPLATE
-            .replace("{zip_binary_array}", &zip_array)
-            .replace("{uv_binary_array}", &uv_binary_array)
-            .replace("{entrypoint}", &launcher_config.package.entrypoint))
+        Ok(LAUNCHER_TEMPLATE.replace("{entrypoint}", &launcher_config.package.entrypoint))
     }
 
     fn write_and_compile_source(&self, source: &str) -> io::Result<()> {
@@ -71,10 +75,11 @@ edition = "2024"
 
 [dependencies]
 zip = { version = "3", default-features = false, features = ["deflate"] }
+rust-embed = "8.0"
+lazy_static = "1.4"
 
 [profile.release]
 opt-level = "z"     # Optimize for size
-lto = "fat"         # More aggressive LTO
 codegen-units = 1   # Optimize for size
 panic = "abort"     # Remove panic unwinding
 strip = "symbols"   # More aggressive stripping
@@ -96,7 +101,7 @@ overflow-checks = false
                 .current_dir("payload")
                 .env(
                     "RUSTFLAGS",
-                    "-C opt-level=z -C target-cpu=native -C link-arg=-s -C embed-bitcode=yes -C lto=fat -C codegen-units=1",
+                    "-C opt-level=z -C target-cpu=native -C link-arg=-s -C embed-bitcode=yes -C codegen-units=1",
                 )
                 .spawn()?;
             let status = child.wait()?;
@@ -118,7 +123,7 @@ overflow-checks = false
                 .current_dir("payload")
                 .env(
                     "RUSTFLAGS",
-                    "-C opt-level=z -C target-cpu=native -C link-arg=-s -C embed-bitcode=yes -C lto=fat -C codegen-units=1",
+                    "-C opt-level=z -C target-cpu=native -C link-arg=-s -C embed-bitcode=yes -C codegen-units=1",
                 )
                 .spawn()?;
 
@@ -142,22 +147,9 @@ overflow-checks = false
     }
 }
 
-fn byte_array_literal(data: &[u8]) -> String {
-    data.iter()
-        .map(|b| b.to_string())
-        .collect::<Vec<String>>()
-        .join(", ")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_byte_array_literal() {
-        let data = vec![1, 2, 3, 255];
-        assert_eq!(byte_array_literal(&data), "1, 2, 3, 255");
-    }
 
     #[test]
     fn test_launcher_generator_new() {
@@ -195,6 +187,38 @@ mod tests {
         let generator = LauncherGenerator::new(config);
         let payload = generator.generate_zip_payload()?;
         assert!(!payload.is_empty());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_source() -> io::Result<()> {
+        let temp_dir = tempdir()?;
+        fs::create_dir_all(temp_dir.path().join("src"))?;
+        fs::write(temp_dir.path().join("src/main.py"), b"print('test')")?;
+        fs::write(temp_dir.path().join("pyproject.toml"), b"[project]\nname='test'")?;
+
+        let config = crate::BuilderConfig {
+            source_files: vec![crate::SourceFile {
+                relative_path: PathBuf::from("src/main.py"),
+                content: b"print('test')".to_vec(),
+            }],
+            manifest: b"[project]\nname='test'".to_vec(),
+            uv_binary: b"test binary".to_vec(),
+            source_dir: temp_dir.path(),
+            output_path: String::new(),
+            cross: None,
+        };
+
+        let generator = LauncherGenerator::new(config);
+        let source = generator.generate_source()?;
+        assert!(source.contains("use rust_embed::RustEmbed"));
+        assert!(source.contains("#[derive(RustEmbed)]"));
+        assert!(source.contains("#[folder = \"embedded\"]"));
+
+        // Check that the embedded files were created
+        assert!(fs::metadata("payload/embedded/uv").is_ok());
+        assert!(fs::metadata("payload/embedded/payload.zip").is_ok());
 
         Ok(())
     }
