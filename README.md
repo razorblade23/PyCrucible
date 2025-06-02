@@ -22,7 +22,7 @@ This tool runs a Python application with a help of UV binary. It extracts your p
 - **Hooks**:
     - [x] Run pre‑ and post‑execution scripts
 - **Cleanup**: 
-    - [ ] Optionally remove temporary files after execution
+    - [x] Optionally remove files after execution (reccomended for temporary directories)
 - **Tests**:
     - [ ] Unit tests cover configuration, extraction, and hook execution
 - **Source Update**:
@@ -51,6 +51,7 @@ Package your Python app as a ZIP file or a directory. Your package should includ
 ### Run the builder:
 #### Usage
 ```
+$ pycrucible --help
 Tool to generate python executable by melding UV and python source code in crucible of one binary
 
 Usage: pycrucible [OPTIONS] <SOURCE_DIR>
@@ -62,12 +63,15 @@ Options:
   -B, --uv-path <UV_PATH>
           Set the path to `uv` executable. If not found, it will be downloaded. 
           [default: ./uv]
-      --extract-to-temp <EXTRACT_TO_TEMP>
-          Extract to temporary directory [default: true]
   -o, --output-path <OUTPUT_PATH>
           Set the output path and launcher name [default: ./pycrucible-launcher]
-  -t, --target <TARGET>
-          Sets target architecture for cross-platform compilation
+      --target <TARGET>
+          Sets target architecture for cross-platform compilation (expect bugs)
+      --extract-to-temp <EXTRACT_TO_TEMP>
+          Extract to temporary directory [default: true]
+      --delete-after-run <DELETE_AFTER_RUN>
+          Deletes directory containing extracted data. Must get dependacies on each run if this flag is true.
+          [default: false]
   -h, --help
           Print help
   -V, --version

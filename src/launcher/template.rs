@@ -36,8 +36,7 @@ fn extract_files(base_dir: &PathBuf) -> std::io::Result<()> {
 
 fn main() -> std::io::Result<()> {
     // Extract all files
-    let extract_to_temp = {extract_to_temp};
-    let payload_dir = if extract_to_temp {
+    let payload_dir = if {extract_to_temp} {
         let dir = env::temp_dir().join("python_app_payload");
         fs::create_dir_all(&dir)?;
         dir
@@ -49,7 +48,7 @@ fn main() -> std::io::Result<()> {
     };
 
     extract_files(&payload_dir)?;
-    
+
 
     // Setup UV binary
     let uv_path = payload_dir.join("uv");
@@ -106,6 +105,10 @@ fn main() -> std::io::Result<()> {
     if !status.success() {
         return Err(std::io::Error::new(std::io::ErrorKind::Other, "Post-run script failed to run"));
         }
+    }
+
+    if {delete_after_run} {
+        fs::remove_dir_all(payload_dir)?;
     }
     
     Ok(())

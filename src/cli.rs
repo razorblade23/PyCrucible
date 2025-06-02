@@ -24,12 +24,15 @@ pub struct Cli {
     #[arg(default_value_os_t = get_output_dir().join(UV_BINARY))]
     pub uv_path: PathBuf,
 
+    #[arg(short = 'o', long, default_value = "./pycrucible-launcher", help="Set the output path and launcher name")]
+    pub output_path: PathBuf,
+    
+    #[arg(long, default_value = None, help="Sets target architecture for cross-platform compilation")]
+    pub target: Option<String>,
+
     #[arg(long, default_value = "true", help="Extract to temporary directory")]
     pub extract_to_temp: Option<String>,
 
-    #[arg(short = 'o', long, default_value = "./pycrucible-launcher", help="Set the output path and launcher name")]
-    pub output_path: PathBuf,
-
-    #[arg(short = 't', long, default_value = None, help="Sets target architecture for cross-platform compilation")]
-    pub target: Option<String>,
+    #[arg(long, default_value = "false", help="Deletes directory containing extracted data. Must get dependacies on each run if this flag is true.")]
+    pub delete_after_run: Option<String>,
 }

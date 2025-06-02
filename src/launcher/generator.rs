@@ -61,8 +61,10 @@ impl<'a> LauncherGenerator<'a> {
         let prerun = &hooks.pre_run.unwrap();
         let postrun = &hooks.post_run.unwrap();
 
+        // Create and modify launcher template
         let mut template = LAUNCHER_TEMPLATE.replace("{entrypoint}", &launcher_config.package.entrypoint);
 
+        // hooks
         if prerun != "" {
             template = template.replace("{prerun}", prerun)
         }
@@ -70,10 +72,12 @@ impl<'a> LauncherGenerator<'a> {
             template = template.replace("{postrun}", postrun)
         }
 
-
-        Ok(template.replace("{extract_to_temp}", &self.config.extract_to_temp.to_string()))
-
-
+        // extract to temporary dir
+        template = template.replace("{extract_to_temp}", &self.config.extract_to_temp.to_string());
+        // delete extracted directory
+        template = template.replace("{delete_after_run}", &self.config.delete_after_run.to_string());
+        
+        Ok(template)
     }
 
     fn cross_compile(&self) -> io::Result<()> {
@@ -162,7 +166,8 @@ mod tests {
             source_dir: temp_path.as_path(),
             output_path: String::new(),
             cross: None,
-            extract_to_temp: true
+            extract_to_temp: true,
+            delete_after_run: false
         };
         let generator = LauncherGenerator::new(config);
         assert!(generator.config.source_files.is_empty());
@@ -184,7 +189,8 @@ mod tests {
             source_dir: temp_dir.path(),
             output_path: String::new(),
             cross: None,
-            extract_to_temp: true
+            extract_to_temp: true,
+            delete_after_run: false
         };
 
         let generator = LauncherGenerator::new(config);
@@ -211,7 +217,8 @@ mod tests {
             source_dir: temp_dir.path(),
             output_path: String::new(),
             cross: None,
-            extract_to_temp: true
+            extract_to_temp: true,
+            delete_after_run: false
         };
 
         let generator = LauncherGenerator::new(config);

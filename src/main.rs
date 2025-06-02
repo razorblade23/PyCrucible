@@ -31,6 +31,7 @@ struct BuilderConfig<'a> {
     output_path: String,
     cross: Option<String>,
     extract_to_temp: bool,
+    delete_after_run: bool,
 }
 
 fn should_include_file(
@@ -158,7 +159,8 @@ fn main() -> io::Result<()> {
         uv_binary: fs::read(&uv_path)?,
         output_path: cli.output_path.to_string_lossy().to_string(),
         cross: cli.target,
-        extract_to_temp: cli.extract_to_temp.as_deref().unwrap_or("false") == "true"
+        extract_to_temp: cli.extract_to_temp.as_deref().unwrap_or("false") == "true",
+        delete_after_run: cli.delete_after_run.as_deref().unwrap_or("false") == "true",
     };
 
     let generator = LauncherGenerator::new(config);
