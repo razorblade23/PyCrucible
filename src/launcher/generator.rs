@@ -5,7 +5,7 @@ use std::io::{self, Cursor, Write};
 use std::process::Command;
 use zip::write::FileOptions;
 
-use super::template::LAUNCHER_TEMPLATE;
+use super::template::{LAUNCHER_TEMPLATE, CARGO_TOML};
 
 pub struct LauncherGenerator<'a> {
     config: crate::BuilderConfig<'a>,
@@ -60,91 +60,76 @@ impl<'a> LauncherGenerator<'a> {
         Ok(template.replace("{extract_to_temp}", &self.config.extract_to_temp.to_string()))
     }
 
+    fn cross_compile(&self) -> io::Result<()> {
+        let mut child = Command::new("cross")
+            .arg("build")
+            .arg("--release")
+            .arg("--target")
+            .arg(self.config.cross.as_ref().unwrap())
+            .current_dir("payload")
+            .env(
+            "RUSTFLAGS",
+            "-C opt-level=z -C target-cpu=native -C link-arg=-s -C embed-bitcode=yes -C codegen-units=1",
+            )
+            .spawn()?;
+
+        if !child.wait()?.success() {
+            eprintln!("Failed to compile the launcher binary.");
+            std::process::exit(1);
+        }
+
+        fs::copy(
+            "payload/target/release/pycrucible-launcher",
+            &self.config.output_path,
+        )?;
+        println!("Launcher binary created at: {}", self.config.output_path);
+        Ok(())
+        }
+
+    fn native_compile(&self) -> io::Result<()> {
+        let mut child = Command::new("cargo")
+            .arg("build")
+            .arg("--release")
+            .current_dir("payload")
+            .env(
+            "RUSTFLAGS",
+            "-C opt-level=z -C target-cpu=native -C link-arg=-s -C embed-bitcode=yes -C codegen-units=1",
+            )
+            .spawn()?;
+
+        if !child.wait()?.success() {
+            eprintln!("Failed to compile the launcher binary.");
+            std::process::exit(1);
+        }
+
+        fs::copy(
+            "payload/target/release/pycrucible-launcher",
+            &self.config.output_path,
+        )?;
+        println!("Launcher binary created at: {}", self.config.output_path);
+        Ok(())
+        }
+
     fn write_and_compile_source(&self, source: &str) -> io::Result<()> {
         let generated_source_path = "payload/src/main.rs";
 
         fs::create_dir_all("payload/src")?;
         fs::write(generated_source_path, source)?;
 
-        // Creating Cargo.toml for the launcher
-        let cargo_toml = r#"[package]
-name = "pycrucible-launcher"
-version = "0.1.0"
-edition = "2024"
+        fs::write("payload/Cargo.toml", CARGO_TOML)?;
 
-[dependencies]
-zip = { version = "3", default-features = false, features = ["deflate"] }
-rust-embed = "8.0"
-lazy_static = "1.4"
-
-[profile.release]
-opt-level = "z"     # Optimize for size
-codegen-units = 1   # Optimize for size
-panic = "abort"     # Remove panic unwinding
-strip = "symbols"   # More aggressive stripping
-debug = false       # No debug symbols
-debug-assertions = false
-incremental = false
-overflow-checks = false
-"#;
-
-        fs::write("payload/Cargo.toml", cargo_toml)?;
-
-        // Check for cross-compilation flag
         if self.config.cross.is_some() {
-            let mut child = Command::new("cross")
-                .arg("build")
-                .arg("--release")
-                .arg("--target")
-                .arg(self.config.cross.as_ref().unwrap())
-                .current_dir("payload")
-                .env(
-                    "RUSTFLAGS",
-                    "-C opt-level=z -C target-cpu=native -C link-arg=-s -C embed-bitcode=yes -C codegen-units=1",
-                )
-                .spawn()?;
-            let status = child.wait()?;
-                if !status.success() {
-                    eprintln!("Failed to compile the launcher binary.");
-                    std::process::exit(1);
-                } else {
-                    // Copy the binary to the desired output location
-                    fs::copy(
-                        "payload/target/release/pycrucible-launcher",
-                        &self.config.output_path,
-                    )?;
-                    println!("Launcher binary created at: {}", self.config.output_path);
-                }
+            self.cross_compile()?;
         } else {
-            let mut child = Command::new("cargo")
-                .arg("build")
-                .arg("--release")
-                .current_dir("payload")
-                .env(
-                    "RUSTFLAGS",
-                    "-C opt-level=z -C target-cpu=native -C link-arg=-s -C embed-bitcode=yes -C codegen-units=1",
-                )
-                .spawn()?;
-
-            let status = child.wait()?;
-            if !status.success() {
-                eprintln!("Failed to compile the launcher binary.");
-                std::process::exit(1);
-            } else {
-                // Copy the binary to the desired output location
-                fs::copy(
-                    "payload/target/release/pycrucible-launcher",
-                    &self.config.output_path,
-                )?;
-                println!("Launcher binary created at: {}", self.config.output_path);
-            }
+            self.native_compile()?;
         }
+
         // Clean up temporary files
         fs::remove_dir_all("payload")?;
 
         Ok(())
+        }
     }
-}
 
 #[cfg(test)]
 mod tests {

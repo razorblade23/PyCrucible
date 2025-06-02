@@ -89,3 +89,25 @@ fn main() -> std::io::Result<()> {
 
     Ok(())
 }"#;
+
+
+pub const CARGO_TOML: &str = r#"[package]
+name = "pycrucible-launcher"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+zip = { version = "3", default-features = false, features = ["deflate"] }
+rust-embed = "8.0"
+lazy_static = "1.4"
+
+[profile.release]
+opt-level = "z"     # Optimize for size
+codegen-units = 1   # Optimize for size
+panic = "abort"     # Remove panic unwinding
+strip = "symbols"   # More aggressive stripping
+debug = false       # No debug symbols
+debug-assertions = false
+incremental = false
+overflow-checks = false
+"#;
