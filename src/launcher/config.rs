@@ -81,7 +81,10 @@ impl Default for ProjectConfig {
             },
             uv: None,
             env: None,
-            hooks: None,
+            hooks: Some(Hooks {
+                pre_run: Some("".to_string()),
+                post_run: Some("".to_string()),
+            }),
         }
     }
 }

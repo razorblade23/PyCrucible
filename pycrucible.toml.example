@@ -3,8 +3,8 @@ entrypoint = "src/main.py"
 
 [package.patterns]
 include = [
-    "**/*.py",           # Python source files
-    "**/*.pyi",          # Type stubs
+    "**/*.py",            # Python source files
+    "**/*.pyi",           # Type stubs
     "resources/**/*.json" # Resource files
 ]
 exclude = [
@@ -28,6 +28,6 @@ PYTHONPATH = "src"
 DEBUG = "1"
 APP_ENV = "development"
 
-[hooks] # NOT IMPLEMENTED
-pre_run = "python scripts/pre_run.py"
-post_run = "python scripts/cleanup.py"
+[hooks]
+pre_run = "scripts/pre_run.py"
+post_run = "scripts/cleanup.py"

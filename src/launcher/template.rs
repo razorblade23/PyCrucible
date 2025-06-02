@@ -30,35 +30,32 @@ fn extract_files(base_dir: &PathBuf) -> std::io::Result<()> {
         
         let mut outfile = File::create(&outpath)?;
         io::copy(&mut file, &mut outfile)?;
-        println!("[-]: Extracted {}", file.name());
     }
     Ok(())
 }
 
 fn main() -> std::io::Result<()> {
-    let payload_dir = if {extract_to_temp} {
+    // Extract all files
+    let extract_to_temp = {extract_to_temp};
+    let payload_dir = if extract_to_temp {
         let dir = env::temp_dir().join("python_app_payload");
         fs::create_dir_all(&dir)?;
-        println!("[-]: Created temporary directory");
         dir
     } else {
         let exe_path = env::current_exe()?;
         let dir = exe_path.parent().unwrap().join("payload");
         fs::create_dir_all(&dir)?;
-        println!("[-]: Created payload directory next to executable");
         dir
     };
 
-
-
-    // Extract all files maintaining directory structure
     extract_files(&payload_dir)?;
-    println!("[-]: Extracted all source files");
+    
 
     // Setup UV binary
     let uv_path = payload_dir.join("uv");
     File::create(&uv_path)?.write_all(UV_BINARY.as_slice())?;
 
+    // On Unix-like systems modify permissions for uv binary
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -67,6 +64,7 @@ fn main() -> std::io::Result<()> {
         fs::set_permissions(&uv_path, perms)?;
     }
 
+    
     // Run UV sync
     let status = Command::new(&uv_path)
         .arg("sync")
@@ -75,7 +73,18 @@ fn main() -> std::io::Result<()> {
     if !status.success() {
         return Err(std::io::Error::new(std::io::ErrorKind::Other, "uv sync failed"));
     }
-    println!("[-]: Synced virtual environment");
+
+    // Run pre-run hook
+    if "{prerun}" != "" {
+        let status = Command::new(&uv_path)
+        .arg("run")
+        .arg("{prerun}")
+        .current_dir(&payload_dir)
+        .status()?;
+        if !status.success() {
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "Pre-run script failed to run"));
+        }
+    }
 
     // Run the main Python file
     let status = Command::new(&uv_path)
@@ -84,9 +93,21 @@ fn main() -> std::io::Result<()> {
         .current_dir(&payload_dir)
         .status()?;
     if !status.success() {
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, "Python application failed"));
+        return Err(std::io::Error::new(std::io::ErrorKind::Other, "Main application failed"));
     }
 
+    // Run post-run hook
+    if "{postrun}" != "" {
+        let status = Command::new(&uv_path)
+        .arg("run")
+        .arg("{postrun}")
+        .current_dir(&payload_dir)
+        .status()?;
+    if !status.success() {
+        return Err(std::io::Error::new(std::io::ErrorKind::Other, "Post-run script failed to run"));
+        }
+    }
+    
     Ok(())
 }"#;
 

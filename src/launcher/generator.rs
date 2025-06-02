@@ -56,8 +56,24 @@ impl<'a> LauncherGenerator<'a> {
         
         let launcher_config = load_project_config(&self.config.source_dir.to_path_buf());
 
-        let template = LAUNCHER_TEMPLATE.replace("{entrypoint}", &launcher_config.package.entrypoint);
+        // Check for pre and post run hooks
+        let hooks = launcher_config.hooks.unwrap();
+        let prerun = &hooks.pre_run.unwrap();
+        let postrun = &hooks.post_run.unwrap();
+
+        let mut template = LAUNCHER_TEMPLATE.replace("{entrypoint}", &launcher_config.package.entrypoint);
+
+        if prerun != "" {
+            template = template.replace("{prerun}", prerun)
+        }
+        if postrun != "" {
+            template = template.replace("{postrun}", postrun)
+        }
+
+
         Ok(template.replace("{extract_to_temp}", &self.config.extract_to_temp.to_string()))
+
+
     }
 
     fn cross_compile(&self) -> io::Result<()> {

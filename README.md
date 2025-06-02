@@ -20,7 +20,7 @@ This tool runs a Python application with a help of UV binary. It extracts your p
     - [x] Load the project as a directory
     - [ ] Load the project as .zip archive
 - **Hooks**:
-    - [ ] Run pre‑ and post‑execution scripts
+    - [x] Run pre‑ and post‑execution scripts
 - **Cleanup**: 
     - [ ] Optionally remove temporary files after execution
 - **Tests**:
