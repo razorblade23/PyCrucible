@@ -6,6 +6,9 @@ on:
   release:
     types: [created]
 
+permissions:
+  contents: write
+
 jobs:
   test:
     name: Run Tests
