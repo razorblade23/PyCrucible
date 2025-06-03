@@ -3,10 +3,6 @@ name = "pycrucible"
 version = "0.1.0"
 edition = "2024"
 
-[features]
-deafult = []
-vendored-openssl = ["openssl/vendored"]
-
 [dependencies]
 walkdir = "2.4"
 maplit = "1.0"
@@ -15,8 +11,7 @@ once_cell = "1.18"
 toml = "0.8"
 clap = { version = "4.2", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
-reqwest = { version = "0.12", features = ["blocking"] }
-openssl = { version = "0.10", optional = true, default-features = false }
+reqwest = { version = "0.12", features = ["blocking", "rustls-tls"] }
 spinners = "4"
 zip = "3"
 tar = "0.4"
