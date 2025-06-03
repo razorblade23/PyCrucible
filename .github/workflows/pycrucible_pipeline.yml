@@ -67,7 +67,7 @@ jobs:
           driver: docker
   
       - name: Build project with cross
-        run: cross build --release --target ${{ matrix.target }} --features vendored-ssl
+        run: cross build --release --target ${{ matrix.target }}
   
       - name: Prepare binary
         run: |
