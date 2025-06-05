@@ -84,11 +84,15 @@ pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf
     let base_url = "https://github.com/astral-sh/uv/releases/download/0.7.4";
     let url = format!("{}/{}", base_url, artifact_name);
 
+    println!("Downloading UV from: {}", url);
     let dir = tempdir()?;
     let file_path = dir.path().join(&artifact_name);
 
     // Download the file
     let response = reqwest::blocking::get(&url)?;
+    if !response.status().is_success() {
+        return Err(format!("Failed to download UV: {}", response.status()).into());
+    }
 
     let mut dest = File::create(&file_path)?;
     let bytes = response.bytes()?;
@@ -96,42 +100,98 @@ pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf
     copy(&mut content, &mut dest)?;
 
     let output_dir = get_output_dir();
+    std::fs::create_dir_all(&output_dir)?;
 
-    // Check file extension and use appropriate extraction method
+    let uv_binary_path = if artifact_name.ends_with(".zip") {
+        output_dir.join("uv.exe")
+    } else {
+        output_dir.join("uv")
+    };
+
+    // Remove existing binary if it exists
+    if uv_binary_path.exists() {
+        std::fs::remove_file(&uv_binary_path)?;
+    }
+
+    // Extract the binary
     if artifact_name.ends_with(".zip") {
         let file = File::open(&file_path)?;
         let mut archive = zip::ZipArchive::new(file)?;
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;
             if file.name().contains("uv.exe") {
-                let outpath = output_dir.join("uv.exe");
-                let mut outfile = File::create(&outpath)?;
+                let mut outfile = File::create(&uv_binary_path)?;
                 std::io::copy(&mut file, &mut outfile)?;
                 break;
             }
         }
     } else if artifact_name.ends_with(".tar.gz") {
+        println!("Extracting tar.gz archive");
         let file = File::open(&file_path)?;
         let decompressor = flate2::read::GzDecoder::new(file);
         let mut archive = tar::Archive::new(decompressor);
+        
+        // Debug: List all files in archive
+        println!("Archive contents:");
+        for entry in archive.entries()? {
+            let entry = entry?;
+            println!("  - {}", entry.path()?.display());
+        }
+
+        // Reset archive for actual extraction
+        let file = File::open(&file_path)?;
+        let decompressor = flate2::read::GzDecoder::new(file);
+        let mut archive = tar::Archive::new(decompressor);
+
+        let mut found = false;
         for entry in archive.entries()? {
             let mut entry = entry?;
             let path = entry.path()?;
-            if path.to_string_lossy().contains("uv") && !path.to_string_lossy().ends_with("/") {
-                let mut outfile = File::create(output_dir.join("uv"))?;
+            let path_str = path.to_string_lossy();
+            println!("Checking entry: {}", path_str);
+            
+            // Look for the actual binary, usually named just 'uv'
+            if path_str.ends_with("/uv") || path_str == "uv" {
+                println!("Found UV binary at: {}", path_str);
+                let mut outfile = File::create(&uv_binary_path)?;
                 std::io::copy(&mut entry, &mut outfile)?;
+                found = true;
                 break;
             }
         }
+
+        if !found {
+            return Err("Could not find UV binary in archive".into());
+        }
+
+        // Verify file was created and has content
+        let metadata = std::fs::metadata(&uv_binary_path)?;
+        println!("Extracted UV binary size: {} bytes", metadata.len());
     } else {
         return Err("Unsupported archive format".into());
     }
 
-    if artifact_name.ends_with(".zip") {
-        Ok(output_dir.join("uv.exe"))
-    } else {
-        Ok(output_dir.join("uv"))
+    // Set executable permissions on Unix
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = std::fs::metadata(&uv_binary_path)?.permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(&uv_binary_path, perms)?;
     }
-}
 
+    // Verify the binary works
+    let output = std::process::Command::new(&uv_binary_path)
+        .arg("--version")
+        .output()?;
+
+    if !output.status.success() {
+        return Err(format!(
+            "UV binary verification failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ).into());
+    }
+
+    Ok(uv_binary_path)
+}
 
