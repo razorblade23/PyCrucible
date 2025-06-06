@@ -12,7 +12,7 @@ This tool runs a Python application with a help of UV binary. It extracts your p
 - **Cross-Platform**: 
     - [x] Windows support
     - [ ] macOS support
-    - [x] Linux support (tested on ubuntu)
+    - [x] Linux support
 - **Configurable**: 
     - [x] Use `pycrucible.toml` to customize project details
     - [ ] Use standard `requirements.txt` manifest
@@ -22,25 +22,34 @@ This tool runs a Python application with a help of UV binary. It extracts your p
 - **Hooks**:
     - [x] Run pre‑ and post‑execution scripts
 - **Cleanup**: 
-    - [x] Optionally remove files after execution (reccomended for temporary directories)
+    - [ ] Optionally remove files after execution (reccomended for temporary directories)
 - **Tests**:
     - [ ] Unit tests cover configuration, extraction, and hook execution
 - **Source Update**:
     - [ ] Initiate an update of source code pulling from GitHub
 
 
-## Building
+## Building from source
 
-Ensure you have [Rust](https://www.rust-lang.org/) installed.
+1. Ensure you have [Rust](https://www.rust-lang.org/) installed.
 
-```bash
-cargo build --release
-```
+2. Clone the repository
+ - `git clone github.com/razorblade23/PyCrucible`
 
-The resulting binary will be in `target/release/pycrucible`.
+3. Change directory to be inside of a project
+ - `cd PyCrucible`
+
+4. Build the binary
+ - `cargo build --release`
+
+#### The resulting binary will be in `target/release/pycrucible`.
+
+
+## Downloading pre-made binary
+You can download pre-made binaries for your system from [Releases](https://github.com/razorblade23/PyCrucible/releases/latest) page
+
 
 ## Usage
-
 Your package should include at least:
 - A directory with your Python application (with an entry point (default: __main__.py))
 - A `uv` initialized project with `pyproject.toml` file
@@ -48,8 +57,7 @@ Your package should include at least:
     - EXAMPLE: Example can be found in root directory under the `pycrucible.toml.example` name
     - WARNING: Only include/exclude implemented for now !
 
-### Run the builder:
-#### Usage
+
 ```
 $ pycrucible --help
 Tool to generate python executable by melding UV and python source code in crucible of one binary
@@ -57,53 +65,49 @@ Tool to generate python executable by melding UV and python source code in cruci
 Usage: pycrucible [OPTIONS]
 
 Options:
-      --embed <EMBED>      Directory containing Python project to embed. When specified, creates a new binary with the embedded project
-  -B, --uv-path <UV_PATH>  Path to `uv` executable. If not found, it will be downloaded automatically [default: .]
-  -o, --output <OUTPUT>    Output path for the new binary when using --embed
-  -h, --help               Print help
-  -V, --version            Print version
+  -e, --embed <EMBED>
+          Directory containing Python project to embed. When specified, creates a new binary with the embedded project
+  -o, --output <OUTPUT>
+          Output path for the new binary when using --embed
+      --uv-path <UV_PATH>
+          Path to `uv` executable. If not found, it will be downloaded automatically [default: `.`]
+      --extract-to-temp
+          Extract Python project to a temporary directory when running
+      --delete-after-run <DELETE_AFTER_RUN>
+          Delete extracted files after running. Note: requires re-downloading dependencies on each run [default: false]
+  -h, --help
+          Print help
+  -V, --version
+          Print version
 ```
 
-This will produce a binary to your specified location and name.
+### Usage examples (Linux)
+You can copy built/downloaded binary to your project folder and just run:
 
-You just need to run the launcher which will take care of downloading and installing `python` and all the dependacies listed.
+`./pycrucible -e . -o ./launcher`
 
-### Cross-compilation
-It is possible to cross-compile both builder and launcher for a number of operating systems.
-This is achived using [cross](https://github.com/cross-rs/cross) crate.
+This will embed your project into another binary (that we called "launcher")
 
-`Cross` uses containerization engine (docker or podman) to generate executable for non-native systems.
+You can run your project from binary by running
 
-#### Install `cross` crate
-```bash
-cargo install cross
-```
-This will install Cross to `$HOME/.cargo/bin`
+`./launcher`
 
-#### Install docker or podman
-- [Docker](https://docs.docker.com/engine/install/)
-- [Podman](https://podman.io/docs/installation)
+### Usage examples (Windows)
+You can copy built/downloaded binary to your project folder and just run:
 
-With these steps completed you are ready for cross-compilation
+`pycrucible.exe -e . -o ./launcher`
 
-#### Cross-compile builder
-```bash
-cross build --release -target <TARGET_PLATFORM>
-```
+This will embed your project into another binary (that we called "launcher")
 
-#### Supported platforms for cross compilation
-- `x86_64-unknown-linux-gnu`  (Linux x64)
-- `x86_64-pc-windows-gnu`    (Windows x64)
+You can run your project from binary by running
 
-##### Aditional platforms can be added but are not supported by base `cross` crate. Requires additional configuration
+`launcher.exe`
 
-
-### This project uses `uv`
-- This project uses `uv` as python dependancy manager and is required as part of compilation step.
-- The application will download `uv` (for specified target) if the binary is not found and not specified as a flag.
+Now you can copy that "launcher" on practicly any machine with the same arhitecture.
+Machine only needs internet connection in order to download the dependacies.
+This proccess is extremely fast (but reliant on internet connection)
 
 
 ## Thanks to
 The idea is inspired by [Packaged](https://packaged.live/)
-
 Thanks to all the briliant developers at [UV](https://astral.sh/blog/uv)
