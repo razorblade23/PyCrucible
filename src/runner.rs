@@ -6,7 +6,7 @@ use crate::config::load_project_config;
 
 pub fn run_extracted_project(temp_dir: &Path) -> io::Result<()> {
     // Verify Python files exist
-    let config = load_project_config(&temp_dir.join("pycrucible.toml"));
+    let config = load_project_config(&temp_dir.to_path_buf());
     let entrypoint = config.package.entrypoint;
     let entry_point_path = temp_dir.join(&entrypoint);
     let uv_path = temp_dir.join("uv");
