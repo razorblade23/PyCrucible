@@ -18,21 +18,20 @@ fn get_version() -> &'static str {
 #[derive(Parser, Debug)]
 #[command(author = AUTHOR, version = get_version(), about = ABOUT, long_about = None)]
 pub struct Cli {
-    pub source_dir: PathBuf,
+    #[arg(short = 'e', long, help = "Directory containing Python project to embed. When specified, creates a new binary with the embedded project")]
+    pub embed: Option<PathBuf>,
 
-    #[arg(short = 'B', long, help="Set the path to `uv` executable. If not found, it will be downloaded.")]
+    #[arg(short = 'o', long, help="Output path for the new binary when using --embed")]
+    pub output: Option<PathBuf>,
+    
+    #[arg(long, help="Path to `uv` executable. If not found, it will be downloaded automatically")]
     #[arg(default_value_os_t = get_output_dir().join(UV_BINARY))]
     pub uv_path: PathBuf,
 
-    #[arg(short = 'o', long, default_value = "./pycrucible-launcher", help="Set the output path and launcher name")]
-    pub output_path: PathBuf,
-    
-    #[arg(long, default_value = None, help="Sets target architecture for cross-platform compilation")]
-    pub target: Option<String>,
+    #[arg(long, help="Extract Python project to a temporary directory when running")]
+    pub extract_to_temp: bool,
 
-    #[arg(long, default_value = "true", help="Extract to temporary directory")]
-    pub extract_to_temp: Option<String>,
-
-    #[arg(long, default_value = "false", help="Deletes directory containing extracted data. Must get dependacies on each run if this flag is true.")]
+    #[arg(long, default_value = "false", help="Delete extracted files after running. Note: requires re-downloading dependencies on each run")]
     pub delete_after_run: Option<String>,
+
 }
