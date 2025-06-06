@@ -34,7 +34,7 @@ This tool runs a Python application with a help of UV binary. It extracts your p
 1. Ensure you have [Rust](https://www.rust-lang.org/) installed.
 
 2. Clone the repository
- - `git clone github.com/razorblade23/PyCrucible`
+ - `git clone https://github.com/razorblade23/PyCrucible`
 
 3. Change directory to be inside of a project
  - `cd PyCrucible`
