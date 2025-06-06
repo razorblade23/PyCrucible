@@ -29,5 +29,5 @@ DEBUG = "1"
 APP_ENV = "development"
 
 [hooks]
-pre_run = "scripts/pre_run.py"
-post_run = "scripts/cleanup.py"
+pre_run = ""
+post_run = ""

@@ -1,56 +1,14 @@
 use glob::Pattern;
-use serde::Deserialize;
 use std::collections::HashSet;
-use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use walkdir;
 
-#[derive(Deserialize, Debug, Default)]
-pub struct FilePatterns {
-    #[serde(default)]
-    pub include: Vec<String>,
-    #[serde(default)]
-    pub exclude: Vec<String>,
-}
-
-#[derive(Deserialize, Debug, Default)]
-pub struct PackageConfig {
-    #[serde(default = "default_entrypoint")]
-    pub entrypoint: String,
-    #[serde(default)]
-    pub patterns: FilePatterns,
-}
-
-#[derive(Deserialize, Debug, Default)]
-pub struct ProjectConfig {
-    #[serde(default)]
-    pub package: PackageConfig,
-}
-
-fn default_entrypoint() -> String {
-    "main.py".to_string()
-}
-
-pub fn load_project_config(source_dir: &Path) -> ProjectConfig {
-    match source_dir.join("pycrucible.toml").canonicalize() {
-        Ok(config_path) if config_path.exists() => {
-            match fs::read_to_string(&config_path)
-                .ok()
-                .and_then(|content| toml::from_str(&content).ok())
-            {
-                Some(config) => config,
-                None => ProjectConfig::default(),
-            }
-        }
-        _ => ProjectConfig::default(),
-    }
-}
+use crate::config::load_project_config;
 
 #[derive(Debug)]
 pub struct SourceFile {
-    pub relative_path: PathBuf,
-    pub content: Vec<u8>,
+    pub absolute_path: PathBuf
 }
 
 fn should_include_file(
@@ -100,21 +58,18 @@ pub fn collect_source_files(source_dir: &Path) -> io::Result<Vec<SourceFile>> {
                 &include_patterns,
                 &exclude_patterns,
             ) {
-                let relative_path = entry
+
+                let absolute_path = entry
                     .path()
-                    .strip_prefix(&source_dir)
-                    .unwrap()
                     .to_path_buf();
 
-                if seen_paths.contains(&relative_path) {
+                if seen_paths.contains(&absolute_path) {
                     continue;
                 }
 
-                seen_paths.insert(relative_path.clone());
-                let content = fs::read(entry.path())?;
+                seen_paths.insert(absolute_path.clone());
                 files.push(SourceFile {
-                    relative_path,
-                    content,
+                    absolute_path
                 });
             }
         }

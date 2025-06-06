@@ -4,6 +4,7 @@ use std::io::copy;
 use std::path::PathBuf;
 use std::str::FromStr;
 use tempfile::tempdir;
+use crate::spinner_utils::{create_spinner_with_message, stop_and_persist_spinner_with_message};
 
 
 #[derive(Debug, Clone)]
@@ -80,11 +81,12 @@ fn get_output_dir() -> PathBuf {
 
 // Modify your download function to accept target
 pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let sp = create_spinner_with_message("Downloading `uv`");
+
     let artifact_name = get_architecture(target).ok_or("Unsupported platform")?;
     let base_url = "https://github.com/astral-sh/uv/releases/download/0.7.4";
     let url = format!("{}/{}", base_url, artifact_name);
 
-    println!("Downloading UV from: {}", url);
     let dir = tempdir()?;
     let file_path = dir.path().join(&artifact_name);
 
@@ -126,19 +128,6 @@ pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf
             }
         }
     } else if artifact_name.ends_with(".tar.gz") {
-        println!("Extracting tar.gz archive");
-        let file = File::open(&file_path)?;
-        let decompressor = flate2::read::GzDecoder::new(file);
-        let mut archive = tar::Archive::new(decompressor);
-        
-        // Debug: List all files in archive
-        println!("Archive contents:");
-        for entry in archive.entries()? {
-            let entry = entry?;
-            println!("  - {}", entry.path()?.display());
-        }
-
-        // Reset archive for actual extraction
         let file = File::open(&file_path)?;
         let decompressor = flate2::read::GzDecoder::new(file);
         let mut archive = tar::Archive::new(decompressor);
@@ -148,11 +137,9 @@ pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf
             let mut entry = entry?;
             let path = entry.path()?;
             let path_str = path.to_string_lossy();
-            println!("Checking entry: {}", path_str);
             
             // Look for the actual binary, usually named just 'uv'
             if path_str.ends_with("/uv") || path_str == "uv" {
-                println!("Found UV binary at: {}", path_str);
                 let mut outfile = File::create(&uv_binary_path)?;
                 std::io::copy(&mut entry, &mut outfile)?;
                 found = true;
@@ -163,10 +150,7 @@ pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf
         if !found {
             return Err("Could not find UV binary in archive".into());
         }
-
-        // Verify file was created and has content
-        let metadata = std::fs::metadata(&uv_binary_path)?;
-        println!("Extracted UV binary size: {} bytes", metadata.len());
+        
     } else {
         return Err("Unsupported archive format".into());
     }
@@ -191,7 +175,7 @@ pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf
             String::from_utf8_lossy(&output.stderr)
         ).into());
     }
-
+    stop_and_persist_spinner_with_message(sp, "Downloaded `uv` successfully");
     Ok(uv_binary_path)
 }
 

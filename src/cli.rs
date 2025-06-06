@@ -24,15 +24,12 @@ pub struct Cli {
     #[arg(short = 'B', long, help="Path to `uv` executable. If not found, it will be downloaded automatically")]
     #[arg(default_value_os_t = get_output_dir().join(UV_BINARY))]
     pub uv_path: PathBuf,
-    
-    #[arg(long, help="Target architecture for cross-platform compilation (x86_64-unknown-linux-gnu, x86_64-pc-windows-gnu)")]
-    pub target: Option<String>,
 
-    #[arg(long, default_value = "true", help="Extract Python project to a temporary directory when running")]
-    pub extract_to_temp: Option<String>,
+    // #[arg(long, default_value = "true", help="Extract Python project to a temporary directory when running")]
+    // pub extract_to_temp: Option<String>,
 
-    #[arg(long, default_value = "false", help="Delete extracted files after running. Note: requires re-downloading dependencies on each run")]
-    pub delete_after_run: Option<String>,
+    // #[arg(long, default_value = "false", help="Delete extracted files after running. Note: requires re-downloading dependencies on each run")]
+    // pub delete_after_run: Option<String>,
 
     #[arg(short = 'o', long, help="Output path for the new binary when using --embed")]
     pub output: Option<PathBuf>,

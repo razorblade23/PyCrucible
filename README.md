@@ -41,9 +41,9 @@ The resulting binary will be in `target/release/pycrucible`.
 
 ## Usage
 
-Package your Python app as a ZIP file or a directory. Your package should include at least:
+Your package should include at least:
 - A directory with your Python application (with an entry point (default: __main__.py))
-- A `pyproject.toml` file and project initialized with `uv`
+- A `uv` initialized project with `pyproject.toml` file
 - (optional) `pycrucible.toml` file with (in your project directory) for custom include/exclude, uv commands, enviroment variables and pre/post hooks
     - EXAMPLE: Example can be found in root directory under the `pycrucible.toml.example` name
     - WARNING: Only include/exclude implemented for now !
@@ -54,28 +54,14 @@ Package your Python app as a ZIP file or a directory. Your package should includ
 $ pycrucible --help
 Tool to generate python executable by melding UV and python source code in crucible of one binary
 
-Usage: pycrucible [OPTIONS] <SOURCE_DIR>
-
-Arguments:
-  <SOURCE_DIR>  
+Usage: pycrucible [OPTIONS]
 
 Options:
-  -B, --uv-path <UV_PATH>
-          Set the path to `uv` executable. If not found, it will be downloaded. 
-          [default: ./uv]
-  -o, --output-path <OUTPUT_PATH>
-          Set the output path and launcher name [default: ./pycrucible-launcher]
-      --target <TARGET>
-          Sets target architecture for cross-platform compilation (expect bugs)
-      --extract-to-temp <EXTRACT_TO_TEMP>
-          Extract to temporary directory [default: true]
-      --delete-after-run <DELETE_AFTER_RUN>
-          Deletes directory containing extracted data. Must get dependacies on each run if this flag is true.
-          [default: false]
-  -h, --help
-          Print help
-  -V, --version
-          Print version
+      --embed <EMBED>      Directory containing Python project to embed. When specified, creates a new binary with the embedded project
+  -B, --uv-path <UV_PATH>  Path to `uv` executable. If not found, it will be downloaded automatically [default: .]
+  -o, --output <OUTPUT>    Output path for the new binary when using --embed
+  -h, --help               Print help
+  -V, --version            Print version
 ```
 
 This will produce a binary to your specified location and name.
@@ -103,11 +89,6 @@ With these steps completed you are ready for cross-compilation
 #### Cross-compile builder
 ```bash
 cross build --release -target <TARGET_PLATFORM>
-```
-
-#### Cross-compile launcher
-```bash
-pycrucible pycrucible -t <TARGET_PLATFORM>  <SOURCE_DIR>
 ```
 
 #### Supported platforms for cross compilation

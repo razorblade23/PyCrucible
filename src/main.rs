@@ -4,6 +4,7 @@ mod project;
 mod runner;
 mod spinner_utils;
 mod uv_handler;
+mod config;
 
 use clap::Parser;
 use cli::Cli;
@@ -27,24 +28,34 @@ fn embed_source(source_dir: &Path, output_path: &Path) -> io::Result<()> {
         eprintln!("No pyproject.toml found in the source directory");
         std::process::exit(1);
     }
+
+    // Create ProjectConfig based on pycrucible-tom or default if there is no such file
+    let pycrucibletoml_path = source_dir.join("pycrucible.toml");
+    let project_config = if pycrucibletoml_path.exists() {
+        config::load_project_config(&source_dir.to_path_buf())
+    } else {
+        config::ProjectConfig::default()
+    };
+
+
     stop_and_persist_spinner_with_message(sp, "Source files collected");
 
     // Embed Python project into the binary
-    let source_paths: Vec<_> = source_files.iter().map(|sf| sf.relative_path.clone()).collect();
-    payload::embed_payload(&source_paths, &manifest_path, output_path)
+    let source_paths: Vec<_> = source_files.iter().map(|sf| sf.absolute_path.clone()).collect();
+    payload::embed_payload(&source_paths, &manifest_path, project_config, output_path)
 }
 
 fn extract_and_run() -> io::Result<()> {
     let payload_info = payload::read_footer()?;
     
-    println!("Creating temp directory");
+    // Creating temp directory
     let temp_dir = std::env::temp_dir().join("python_app_payload");
     fs::create_dir_all(&temp_dir)?;
 
-    println!("Extracting payload");
+    // Extracting payload
     payload::extract_payload(&payload_info, &temp_dir)?;
 
-    println!("Running application");
+    // Running application
     runner::run_extracted_project(&temp_dir)
 }
 
