@@ -4,12 +4,12 @@ use std::process::Command;
 use crate::config::load_project_config;
 
 
-pub fn run_extracted_project(temp_dir: &Path) -> io::Result<()> {
+pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
     // Verify Python files exist
-    let config = load_project_config(&temp_dir.to_path_buf());
+    let config = load_project_config(&project_dir.to_path_buf());
     let entrypoint = config.package.entrypoint;
-    let entry_point_path = temp_dir.join(&entrypoint);
-    let uv_path = temp_dir.join("uv");
+    let entry_point_path = project_dir.join(&entrypoint);
+    let uv_path = project_dir.join("uv");
     
     if !entry_point_path.exists() {
         return Err(io::Error::new(
@@ -21,7 +21,7 @@ pub fn run_extracted_project(temp_dir: &Path) -> io::Result<()> {
     let status = Command::new(&uv_path)
         .arg("sync")
         .arg("-qq")
-        .current_dir(&temp_dir)
+        .current_dir(&project_dir)
         .status()?;
     if !status.success() {
         return Err(std::io::Error::new(std::io::ErrorKind::Other, "uv sync failed"));
@@ -36,7 +36,7 @@ pub fn run_extracted_project(temp_dir: &Path) -> io::Result<()> {
         let status = Command::new(&uv_path)
             .arg("run")
             .arg(pre_hook)
-            .current_dir(&temp_dir)
+            .current_dir(&project_dir)
             .status()?;
         if !status.success() {
             return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to run pre-hook"));
@@ -46,7 +46,7 @@ pub fn run_extracted_project(temp_dir: &Path) -> io::Result<()> {
     let status = Command::new(&uv_path)
         .arg("run")
         .arg(entrypoint)
-        .current_dir(&temp_dir)
+        .current_dir(&project_dir)
         .status()?;
     if !status.success() {
         return Err(std::io::Error::new(std::io::ErrorKind::Other, "Main application failed"));
@@ -56,7 +56,7 @@ pub fn run_extracted_project(temp_dir: &Path) -> io::Result<()> {
         let status = Command::new(&uv_path)
             .arg("run")
             .arg(post_hook)
-            .current_dir(&temp_dir)
+            .current_dir(&project_dir)
             .status()?;
         if !status.success() {
             return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to run post-hook"));

@@ -45,18 +45,26 @@ fn embed_source(source_dir: &Path, output_path: &Path) -> io::Result<()> {
     payload::embed_payload(&source_paths, &manifest_path, project_config, output_path)
 }
 
-fn extract_and_run() -> io::Result<()> {
+fn extract_and_run(create_temp_dir: bool) -> io::Result<()> {
     let payload_info = payload::read_footer()?;
     
-    // Creating temp directory
-    let temp_dir = std::env::temp_dir().join("python_app_payload");
-    fs::create_dir_all(&temp_dir)?;
+    let project_dir = if create_temp_dir {
+        // Creating temp directory
+        let temp_dir = std::env::temp_dir().join("python_app_payload");
+        fs::create_dir_all(&temp_dir)?;
+        temp_dir
+    } else {
+        let exe_path = std::env::current_exe()?;
+        let project_dir = exe_path.parent().unwrap().join("payload");
+        fs::create_dir_all(&project_dir)?;
+        project_dir
+    };
 
     // Extracting payload
-    payload::extract_payload(&payload_info, &temp_dir)?;
+    payload::extract_payload(&payload_info, &project_dir)?;
 
     // Running application
-    runner::run_extracted_project(&temp_dir)
+    runner::run_extracted_project(&project_dir)
 }
 
 fn main() -> io::Result<()> {
@@ -80,14 +88,12 @@ fn main() -> io::Result<()> {
         println!("Successfully embedded Python project into new binary: {}", output_path.display());
     } else {
         // Try to run embedded payload
-        match payload::read_footer() {
-            Ok(_) => extract_and_run()?,
-            Err(e) => {
-                eprintln!("No Python project embedded in this binary");
-                eprintln!("Use --embed <project_dir> -o <output_binary> to create a new binary with embedded code");
-                eprintln!("Error: {}", e);
-                std::process::exit(1);
-            }
+        if payload::read_footer().is_ok() {
+            extract_and_run(cli.extract_to_temp)?;
+        } else {
+            eprintln!("No Python project embedded in this binary");
+            eprintln!("Use --embed <project_dir> -o <output_binary> to create a new binary with embedded code");
+            std::process::exit(1);
         }
     }
 
