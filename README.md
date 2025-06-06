@@ -103,7 +103,7 @@ You can run your project from binary by running
 
 `launcher.exe`
 
-Now you can copy that "launcher" on practicly any machine with the same arhitecture.
+Now you can copy that "launcher" on practicly any machine with the same architecture.
 Machine only needs internet connection in order to download the dependacies.
 This proccess is extremely fast (but reliant on internet connection)
 
