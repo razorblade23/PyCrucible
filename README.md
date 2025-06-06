@@ -73,6 +73,8 @@ Options:
           Path to `uv` executable. If not found, it will be downloaded automatically [default: `.`]
       --extract-to-temp
           Extract Python project to a temporary directory when running
+      --debug
+          Enable debug output
       --delete-after-run <DELETE_AFTER_RUN>
           Delete extracted files after running. Note: requires re-downloading dependencies on each run [default: false]
   -h, --help

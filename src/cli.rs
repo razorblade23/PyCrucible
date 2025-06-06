@@ -28,6 +28,9 @@ pub struct Cli {
     #[arg(default_value_os_t = get_output_dir().join(UV_BINARY))]
     pub uv_path: PathBuf,
 
+    #[arg(long, help="Enable debug output")]
+    pub debug: bool,
+
     #[arg(long, help="Extract Python project to a temporary directory when running")]
     pub extract_to_temp: bool,
 

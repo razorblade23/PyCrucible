@@ -5,6 +5,7 @@ use zip::{write::FileOptions, ZipWriter};
 use crate::config;
 use crate::uv_handler::download_binary_and_unpack;
 use crate::uv_handler::CrossTarget;
+use crate::debug_println;
 
 pub const FOOTER_SIZE: usize = 16;
 pub const MAGIC_BYTES: &[u8] = b"PYCR";
@@ -43,8 +44,14 @@ pub fn read_footer() -> io::Result<PayloadInfo> {
 
 pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_config: config::ProjectConfig, output_path: &Path) -> io::Result<()> {
     // Copy the current executable to the output path
+    debug_println!("Source files: {:?}", source_files);
+    debug_println!("Manifest path: {:?}", manifest_path);
+    debug_println!("Project config: {:?}", project_config);
+    debug_println!("Output path: {:?}", output_path);
+
     let current_exe = std::env::current_exe()?;
     fs::copy(&current_exe, output_path)?;
+    debug_println!("Copied itself to output path");
 
     // Create a memory buffer for the ZIP
     let mut cursor = Cursor::new(Vec::new());
@@ -52,6 +59,7 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
     let options = FileOptions::<()>::default();
 
     // Copy source files and manifest file to .zip
+    debug_println!("Starting copy of source files to .zip");
     let source_dir = manifest_path.parent().unwrap();
     for source_file in source_files {
         let relative_path = source_file.strip_prefix(source_dir)
@@ -59,10 +67,12 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
         let mut file = fs::File::open(source_file)?;
         zip.start_file(relative_path.to_string_lossy(), options)?;
         io::copy(&mut file, &mut zip)?;
+        debug_println!("Copied {:?} with relative path {:?} to zip", source_file, relative_path);
     }
     let mut manifest_file = fs::File::open(manifest_path)?;
     zip.start_file("pyproject.toml", options)?;
     io::copy(&mut manifest_file, &mut zip)?;
+    debug_println!("Copied manifest file");
 
     // Serialize project config to TOML format
     let project_config_toml = toml::to_string(&project_config)
@@ -70,17 +80,20 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
     let mut pycrucible_file = Cursor::new(project_config_toml);
     zip.start_file("pycrucible.toml", options)?;
     io::copy(&mut pycrucible_file, &mut zip)?;
-    println!("pycrucible.toml copied");
+    debug_println!("pycrucible.toml copied");
     
 
     // Look for already downloaded uv to embed next to binary, if not, download it
+    debug_println!("Looking for uv");
     let exe_dir = std::env::current_exe()?.parent().unwrap().to_path_buf();
     let local_uv = exe_dir.join("uv");
     
     let uv_path = if local_uv.exists() {
+        debug_println!("uv found locally, using it");
         local_uv
     } else {
         // Download `uv` and copy it to zip
+        debug_println!("uv not found locally, downloading ...");
         let target: Option<CrossTarget> = None; // We're running locally
         download_binary_and_unpack(target)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?
@@ -93,14 +106,17 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
         let mut perms = fs::metadata(&uv_path)?.permissions();
         perms.set_mode(0o755);
         fs::set_permissions(&uv_path, perms)?;
+        debug_println!("Set permissions for uv on linux");
     }
     zip.start_file("uv", options)?;
     let mut uv_file = fs::File::open(&uv_path)?;
     io::copy(&mut uv_file, &mut zip)?;
+    debug_println!("Added uv to zip");
 
     // Finalize ZIP
     zip.finish()?;
     let payload = cursor.into_inner();
+    debug_println!("Zip finalized");
 
     // Open output file in append mode (the copied executable)
     let mut file = OpenOptions::new()

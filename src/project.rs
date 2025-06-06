@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use walkdir;
 
 use crate::config::load_project_config;
+use crate::debug_println;
 
 #[derive(Debug)]
 pub struct SourceFile {
@@ -36,16 +37,19 @@ fn should_include_file(
 }
 
 pub fn collect_source_files(source_dir: &Path) -> io::Result<Vec<SourceFile>> {
+    debug_println!("Collecting source files from: {:?}", source_dir);
     let mut files = Vec::new();
     let mut seen_paths = HashSet::new();
     let source_dir = source_dir.canonicalize()?;
 
     let project_config = load_project_config(&source_dir);
+    debug_println!("Project config: {:?}", project_config);
 
     let include_patterns = project_config.package.patterns.include;
     let exclude_patterns = project_config.package.patterns.exclude;
 
     // Collect files based on patterns
+    debug_println!("Collecting project files");
     for entry in walkdir::WalkDir::new(&source_dir)
         .follow_links(true)
         .into_iter()
@@ -67,6 +71,8 @@ pub fn collect_source_files(source_dir: &Path) -> io::Result<Vec<SourceFile>> {
                     continue;
                 }
 
+                debug_println!("Collected file at path: {:?}", absolute_path);
+
                 seen_paths.insert(absolute_path.clone());
                 files.push(SourceFile {
                     absolute_path
@@ -74,5 +80,6 @@ pub fn collect_source_files(source_dir: &Path) -> io::Result<Vec<SourceFile>> {
             }
         }
     }
+    debug_println!("All collected files: {:?}", files);
     Ok(files)
 }
