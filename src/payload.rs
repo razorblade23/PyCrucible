@@ -60,14 +60,15 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
 
     // Copy source files and manifest file to .zip
     debug_println!("Starting copy of source files to .zip");
-    let source_dir = manifest_path.parent().unwrap();
+    let source_dir = manifest_path.parent().unwrap().canonicalize()?;
     for source_file in source_files {
-        let relative_path = source_file.strip_prefix(source_dir)
+        let relative_path = source_file.strip_prefix(&source_dir)
             .unwrap_or(source_file.as_path());
-        let mut file = fs::File::open(source_file)?;
-        zip.start_file(relative_path.to_string_lossy(), options)?;
-        io::copy(&mut file, &mut zip)?;
+        let relative_path = relative_path.to_string_lossy().replace("\\", "/");
         debug_println!("Copied {:?} with relative path {:?} to zip", source_file, relative_path);
+        let mut file = fs::File::open(source_file)?;
+        zip.start_file(relative_path, options)?;
+        io::copy(&mut file, &mut zip)?;
     }
     let mut manifest_file = fs::File::open(manifest_path)?;
     zip.start_file("pyproject.toml", options)?;
