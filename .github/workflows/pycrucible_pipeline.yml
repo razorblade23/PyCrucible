@@ -1,4 +1,4 @@
-name: PyCrucible pipeline
+name: Build and Release PyCrucible
 
 on:
   push:

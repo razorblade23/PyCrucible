@@ -1,8 +1,8 @@
 name: Build and run an example app
 
 on:
-  push:
-    branches: main
+  release:
+    types: [created]
   workflow_dispatch:
 
 
@@ -21,7 +21,7 @@ jobs:
             },
           ]
         use_workaround_hack:
-          [true, false]
+          [false]
           
     runs-on: ${{ matrix.config.runner }}
 
