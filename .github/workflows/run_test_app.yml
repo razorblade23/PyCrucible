@@ -59,7 +59,7 @@ jobs:
         if: contains(matrix.config.runner,'windows')
         shell: cmd
         working-directory: simple-python-project-for-PyCrucible
-        run: .\pycrucible.exe -e ${GITHUB_WORKSPACE}\simple-python-project-for-PyCrucible -o cowsay.exe --debug
+        run: .\pycrucible.exe -e . -o cowsay.exe --debug
 
       - name: Run PyCrucible
         if: ${{ !contains(matrix.config.runner,'windows') }}
