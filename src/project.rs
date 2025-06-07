@@ -19,10 +19,10 @@ fn should_include_file(
     exclude_patterns: &[String],
 ) -> bool {
     let relative_path = file_path
-        .strip_prefix(source_dir)
-        .unwrap()
-        .to_string_lossy()
-        .to_string();
+    .strip_prefix(source_dir)
+    .unwrap()
+    .to_string_lossy()
+    .replace("\\", "/");
     // Check exclude patterns first
     for pattern in exclude_patterns {
         if Pattern::new(pattern).unwrap().matches(&relative_path) {
