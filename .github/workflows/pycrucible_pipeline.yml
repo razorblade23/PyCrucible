@@ -6,6 +6,8 @@ on:
   release:
     types: [created]
 
+permissions:
+  contents: write
 
 jobs:
   test:
