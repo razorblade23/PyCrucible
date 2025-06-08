@@ -150,7 +150,7 @@ jobs:
 
   release:
     name: Create Release
-    needs: build, run_test_app
+    needs: [build, run_test_app]
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
 
