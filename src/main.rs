@@ -78,7 +78,13 @@ fn main() -> io::Result<()> {
 
     debuging::set_debug_mode(cli.debug);
 
+    let has_embedded_project = payload::read_footer().is_ok();
+
     if let Some(source_dir) = cli.embed {
+        if has_embedded_project {
+            eprintln!("This binary already has an embedded Python project.");
+            std::process::exit(1);
+        }
         let source_dir = if source_dir.is_relative() {
             std::env::current_dir()?.join(source_dir)
         } else {
@@ -102,7 +108,7 @@ fn main() -> io::Result<()> {
         println!("Successfully embedded Python project into new binary: {}", output_path.display());
     } else {
         // Try to run embedded payload
-        if payload::read_footer().is_ok() {
+        if has_embedded_project {
             extract_and_run(cli.extract_to_temp)?;
         } else {
             eprintln!("No Python project embedded in this binary");
