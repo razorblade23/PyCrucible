@@ -14,13 +14,17 @@ This tool runs a Python application with a help of UV binary. It extracts your p
     - [ ] macOS support
     - [x] Linux support
 - **Configurable**: 
-    - [x] Use `pycrucible.toml` to customize project details
-    - [ ] Use standard `requirements.txt` manifest
-    - [x] Use UV initialized `pyproject.toml` manifest
+    - [ ] Use `pycrucible.toml` to customize embedding details
+        - [x] entrypoint
+        - [x] include/exlude files
+        - [ ] arguments to `uv
+        - [ ] env variables
+        - [x] pre and post run hooks (python scripts)
+    - [ ] support for standard `requirements.txt` manifest
+    - [x] support for `uv` initialized `pyproject.toml` manifest
+    - [ ] Support for new `pylock.toml` manifest
     - [x] Load the project as a directory
     - [ ] Load the project as .zip archive
-- **Hooks**:
-    - [x] Run pre‑ and post‑execution scripts
 - **Cleanup**: 
     - [ ] Optionally remove files after execution (reccomended for temporary directories)
 - **Tests**:

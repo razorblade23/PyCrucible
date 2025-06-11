@@ -6,6 +6,7 @@ mod spinner_utils;
 mod uv_handler;
 mod config;
 mod debuging;
+mod repository;
 
 use clap::Parser;
 use cli::Cli;
@@ -13,8 +14,19 @@ use spinner_utils::{create_spinner_with_message, stop_and_persist_spinner_with_m
 use std::fs;
 use std::io;
 use std::path::Path;
+use repository::RepositoryHandler;
 
 fn embed_source(source_dir: &Path, output_path: &Path) -> io::Result<()> {
+    // Create ProjectConfig based on pycrucible-toml or default if there is no such file
+    let pycrucibletoml_path = source_dir.join("pycrucible.toml");
+    let project_config = if pycrucibletoml_path.exists() {
+        config::load_project_config(&source_dir.to_path_buf())
+    } else {
+        config::ProjectConfig::default()
+    };
+
+    // Repository handling moved to extract_and_run function
+
     // Collect source files
     debug_println!("Embedding source");
     debug_println!("Source dir: {:?}", source_dir);
@@ -33,14 +45,6 @@ fn embed_source(source_dir: &Path, output_path: &Path) -> io::Result<()> {
         eprintln!("No pyproject.toml found in the source directory");
         std::process::exit(1);
     }
-
-    // Create ProjectConfig based on pycrucible-tom or default if there is no such file
-    let pycrucibletoml_path = source_dir.join("pycrucible.toml");
-    let project_config = if pycrucibletoml_path.exists() {
-        config::load_project_config(&source_dir.to_path_buf())
-    } else {
-        config::ProjectConfig::default()
-    };
 
 
     stop_and_persist_spinner_with_message(sp, "Source files collected");
@@ -68,6 +72,32 @@ fn extract_and_run(create_temp_dir: bool) -> io::Result<()> {
 
     // Extracting payload
     payload::extract_payload(&payload_info, &project_dir)?;
+
+    // Check for source configuration and update if necessary
+    let pycrucibletoml_path = project_dir.join("pycrucible.toml");
+    if pycrucibletoml_path.exists() {
+        let project_config = config::load_project_config(&project_dir.to_path_buf());
+        if let Some(source_config) = &project_config.source {
+            let sp = create_spinner_with_message("Updating source code from repository...");
+            let mut repo_handler = RepositoryHandler::new(source_config.clone());
+            
+            match repo_handler.init_or_open(&project_dir) {
+                Ok(_) => {
+                    if let Err(e) = repo_handler.update() {
+                        stop_and_persist_spinner_with_message(sp, "Failed to update repository");
+                        eprintln!("Error updating repository: {:?}", e);
+                        std::process::exit(1);
+                    }
+                    stop_and_persist_spinner_with_message(sp, "Repository updated successfully");
+                }
+                Err(e) => {
+                    stop_and_persist_spinner_with_message(sp, "Failed to initialize repository");
+                    eprintln!("Error initializing repository: {:?}", e);
+                    std::process::exit(1);
+                }
+            }
+        }
+    }
 
     // Running application
     runner::run_extracted_project(&project_dir)
