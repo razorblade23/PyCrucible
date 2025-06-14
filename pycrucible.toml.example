@@ -1,6 +1,13 @@
 [package]
 entrypoint = "src/main.py"
 
+[source]
+repository = "https://github.com/username/repo"
+branch = "main"  # Optional: Specify branch to use
+# tag = "v1.0.0"   # Optional: Use specific tag
+# commit = "abc123" # Optional: Use specific commit
+update_strategy = "pull" # Optional: "pull" or "fetch", defaults to "pull"
+
 [package.patterns]
 include = [
     "**/*.py",            # Python source files

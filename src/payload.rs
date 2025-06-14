@@ -42,7 +42,7 @@ pub fn read_footer() -> io::Result<PayloadInfo> {
     Ok(PayloadInfo { offset, size })
 }
 
-pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_config: config::ProjectConfig, output_path: &Path) -> io::Result<()> {
+pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_config: config::ProjectConfig, uv_path: PathBuf, output_path: &Path) -> io::Result<()> {
     // Copy the current executable to the output path
     debug_println!("Source files: {:?}", source_files);
     debug_println!("Manifest path: {:?}", manifest_path);
@@ -87,7 +87,14 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
     // Look for already downloaded uv to embed next to binary, if not, download it
     debug_println!("Looking for uv");
     let exe_dir = std::env::current_exe()?.parent().unwrap().to_path_buf();
-    let local_uv = exe_dir.join("uv");
+    let local_uv = if uv_path.exists() {
+        debug_println!("uv found at specified path, using it");
+        uv_path
+    } else {
+        debug_println!("uv not found at specified path, looking for local uv");
+        exe_dir.join("uv")
+    };
+
     
     let uv_path = if local_uv.exists() {
         debug_println!("uv found locally, using it");

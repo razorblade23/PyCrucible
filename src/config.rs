@@ -47,9 +47,19 @@ pub struct Hooks {
     pub post_run: Option<String>,
 }
 
+#[derive(serde::Serialize, Debug, Deserialize, Clone)]
+pub struct SourceConfig {
+    pub repository: String,
+    pub branch: Option<String>,
+    pub tag: Option<String>,
+    pub commit: Option<String>,
+    pub update_strategy: Option<String>, // "pull" or "fetch"
+}
+
 #[derive(serde::Serialize, Debug, Deserialize)]
 pub struct ProjectConfig {
     pub package: PackageConfig,
+    pub source: Option<SourceConfig>,
     pub uv: Option<UVConfig>,
     pub env: Option<EnvConfig>,
     pub hooks: Option<Hooks>,
@@ -80,6 +90,7 @@ impl Default for ProjectConfig {
                     ],
                 },
             },
+            source: None,
             uv: None,
             env: None,
             hooks: Some(Hooks {
