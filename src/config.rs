@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::fs;
 
 use std::path::{Path, PathBuf};
-use crate::debug_println;
+
 
 
 #[derive(serde::Serialize, Debug, Deserialize)]
@@ -118,13 +118,106 @@ pub fn load_project_config(source_dir: &PathBuf) -> ProjectConfig {
     // Load config with default Python-specific patterns
     let project_config = match source_dir.join("pycrucible.toml").canonicalize() {
         Ok(config_path) if config_path.exists() => {
-            debug_println!("Loading project config from project directory - (pycrucible.toml found)");
+            println!("Loading project config from project directory - (pycrucible.toml found)");
             load_config(&config_path)
         }
         _ => {
-            debug_println!("Loading project config defaults - (pycrucible.toml not found)");
+            println!("Loading project config defaults - (pycrucible.toml not found)");
             ProjectConfig::default()
         }
     };
     project_config
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_default_config() {
+        let config = ProjectConfig::default();
+        
+        assert_eq!(config.package.entrypoint, "main.py");
+        assert!(config.source.is_none());
+        assert!(config.uv.is_none());
+        assert!(config.env.is_none());
+        
+        // Check default patterns
+        assert_eq!(config.package.patterns.include, vec!["**/*.py"]);
+        assert!(config.package.patterns.exclude.contains(&"**/__pycache__/**".to_string()));
+        assert!(config.package.patterns.exclude.contains(&".venv/**/*".to_string()));
+        assert!(config.package.patterns.exclude.contains(&".git/**/*".to_string()));
+    }
+
+    #[test]
+    fn test_load_config_from_file() {
+        let dir = tempdir().unwrap();
+        let config_path = dir.path().join("pycrucible.toml");
+        
+        let config_content = r#"
+            [package]
+            entrypoint = "src/app.py"
+
+            [package.patterns]
+            include = ["**/*.py", "**/*.pyi"]
+            exclude = ["tests/**/*"]
+
+            [source]
+            repository = "https://github.com/user/repo"
+            branch = "main"
+        "#;
+
+        std::fs::write(&config_path, config_content).unwrap();
+
+        let config = ProjectConfig::from_file(config_path.as_path()).unwrap();
+
+        assert_eq!(config.package.entrypoint, "src/app.py");
+        assert_eq!(config.package.patterns.include, vec!["**/*.py", "**/*.pyi"]);
+        assert_eq!(config.package.patterns.exclude, vec!["tests/**/*"]);
+        assert!(config.source.is_some());
+        let source = config.source.unwrap();
+        assert_eq!(source.repository, "https://github.com/user/repo");
+        assert_eq!(source.branch.unwrap(), "main");
+    }
+
+    #[test]
+    fn test_invalid_config() {
+        let dir = tempdir().unwrap();
+        let config_path = dir.path().join("pycrucible.toml");
+        
+        let invalid_content = r#"
+            [package
+            invalid toml content
+        "#;
+
+        std::fs::write(&config_path, invalid_content).unwrap();
+
+        assert!(ProjectConfig::from_file(config_path.as_path()).is_err());
+    }
+
+    #[test]
+    fn test_load_project_config() {
+        let dir = tempdir().unwrap();
+        let config_path = dir.path().join("pycrucible.toml");
+        let source_dir = dir.path().to_path_buf();
+
+        // Test with no config file (should use defaults)
+        let default_config = load_project_config(&source_dir);
+        assert_eq!(default_config.package.entrypoint, "main.py");
+
+        // Test with config file
+        let config_content = r#"
+            [package]
+            entrypoint = "src/main.py"
+
+            [package.patterns]
+            include = ["**/*.py"]
+            exclude = ["tests/**/*"]
+        "#;
+
+        std::fs::write(&config_path, config_content).unwrap();
+        let loaded_config = load_project_config(&source_dir);
+        assert_eq!(loaded_config.package.entrypoint, "src/main.py");
+    }
 }

@@ -16,9 +16,8 @@ pub struct PayloadInfo {
     pub size: u32,
 }
 
-pub fn read_footer() -> io::Result<PayloadInfo> {
-    let exe_path = std::env::current_exe()?;
-    let mut file = fs::File::open(exe_path)?;
+pub fn read_footer_from_file(path: &Path) -> io::Result<PayloadInfo> {
+    let mut file = fs::File::open(path)?;
     let file_size = file.metadata()?.len();
     
     if file_size < FOOTER_SIZE as u64 {
@@ -40,6 +39,11 @@ pub fn read_footer() -> io::Result<PayloadInfo> {
     let size = u32::from_le_bytes(footer[12..16].try_into().unwrap());
 
     Ok(PayloadInfo { offset, size })
+}
+
+pub fn read_footer() -> io::Result<PayloadInfo> {
+    let exe_path = std::env::current_exe()?;
+    read_footer_from_file(&exe_path)
 }
 
 pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_config: config::ProjectConfig, uv_path: PathBuf, output_path: &Path) -> io::Result<()> {
@@ -189,4 +193,146 @@ pub fn extract_payload(info: &PayloadInfo, target_dir: &Path) -> io::Result<()> 
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+    use std::io::Write;
+    use crate::config::ProjectConfig;
+
+    fn create_test_files(dir: &Path) -> Vec<PathBuf> {
+        let main_py = dir.join("main.py");
+        let utils_py = dir.join("src").join("utils.py");
+        
+        fs::create_dir_all(dir.join("src")).unwrap();
+        fs::write(&main_py, "print('Hello, World!')").unwrap();
+        fs::write(&utils_py, "def test(): pass").unwrap();
+        
+        vec![main_py, utils_py]
+    }
+
+    #[test]
+    fn test_embed_and_extract_payload() {
+        let source_dir = tempdir().unwrap();
+        let output_dir = tempdir().unwrap();
+        let extract_dir = tempdir().unwrap();
+        
+        // Create test files
+        let source_files = create_test_files(source_dir.path());
+        
+        // Create pycrucible.toml
+        fs::write(source_dir.path().join("pycrucible.toml"), r#"
+[package]
+entrypoint = "main.py"
+
+[package.patterns]
+include = ["**/*.py"]
+exclude = ["tests/**/*"]
+"#).unwrap();
+
+        // Create manifest
+        let manifest_path = source_dir.path().join("pyproject.toml");
+        fs::write(&manifest_path, r#"[project]
+name = "test"
+version = "0.1.0"
+dependencies = []
+"#).unwrap();
+
+        // Create UV binary mock
+        let uv_path = source_dir.path().join(if cfg!(windows) { "uv.exe" } else { "uv" });
+        
+        // Create a mock UV binary that appears to work
+        let mock_content = if cfg!(windows) {
+            "@echo off\necho UV mock 1.0.0"
+        } else {
+            "#!/bin/sh\necho UV mock 1.0.0"
+        };
+        fs::write(&uv_path, mock_content).unwrap();
+
+        // Set proper permissions for UV binary
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(&uv_path).unwrap().permissions();
+            perms.set_mode(0o755);
+            fs::set_permissions(&uv_path, perms).unwrap();
+        }
+
+        // Copy the current executable for testing
+        let output_path = output_dir.path().join("test_binary");
+        fs::copy(std::env::current_exe().unwrap(), &output_path).unwrap();
+
+        let result = embed_payload(
+            &source_files,
+            &manifest_path,
+            ProjectConfig::default(),
+            uv_path.clone(),
+            &output_path
+        );
+        assert!(result.is_ok());
+        
+        // Test reading footer from the output file (not the running executable)
+        let footer_info = read_footer_from_file(&output_path);
+        assert!(footer_info.is_ok());
+        let info = footer_info.unwrap();
+        assert!(info.size > 0);
+        
+        // Test extraction
+        let result = extract_payload(&info, extract_dir.path());
+        assert!(result.is_ok());
+        
+        // Verify extracted files exist with proper content
+        assert!(extract_dir.path().join("main.py").exists());
+        assert!(extract_dir.path().join("src/utils.py").exists());
+        assert!(extract_dir.path().join("pyproject.toml").exists());
+        assert!(extract_dir.path().join(if cfg!(windows) { "uv.exe" } else { "uv" }).exists());
+
+        // Verify the content of extracted files
+        let main_content = fs::read_to_string(extract_dir.path().join("main.py")).unwrap();
+        assert_eq!(main_content, "print('Hello, World!')");
+        
+        let utils_content = fs::read_to_string(extract_dir.path().join("src/utils.py")).unwrap();
+        assert_eq!(utils_content, "def test(): pass");
+
+        // Verify UV permissions on Unix
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let uv_path = extract_dir.path().join("uv");
+            let metadata = fs::metadata(&uv_path).unwrap();
+            let perms = metadata.permissions();
+            assert_eq!(perms.mode() & 0o111, 0o111); // Check execute bits
+        }
+    }
+
+    #[test]
+    fn test_invalid_footer() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("invalid");
+        
+        // Create file with invalid footer
+        let mut file = fs::File::create(&file_path).unwrap();
+        file.write_all(b"some content").unwrap();
+        file.write_all(&[0; FOOTER_SIZE]).unwrap();
+        
+        let footer_result = read_footer_from_file(&file_path);
+        assert!(footer_result.is_err());
+    }
+
+    #[test]
+    fn test_embed_with_empty_source() {
+        let dir = tempdir().unwrap();
+        let output_path = dir.path().join("test_binary");
+        
+        let result = embed_payload(
+            &Vec::new(),
+            &dir.path().join("nonexistent.toml"),
+            ProjectConfig::default(),
+            PathBuf::from("nonexistent_uv"),
+            &output_path
+        );
+        assert!(result.is_err());
+    }
 }

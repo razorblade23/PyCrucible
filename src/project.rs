@@ -83,3 +83,79 @@ pub fn collect_source_files(source_dir: &Path) -> io::Result<Vec<SourceFile>> {
     debug_println!("All collected files: {:?}", files);
     Ok(files)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_collect_source_files_empty_dir() {
+        let dir = tempdir().unwrap();
+        let files = collect_source_files(dir.path()).unwrap();
+        assert!(files.is_empty());
+    }
+
+    #[test]
+    fn test_collect_source_files_with_python_files() {
+        let dir = tempdir().unwrap();
+        
+        // Create some Python files
+        fs::write(dir.path().join("main.py"), "print('hello')").unwrap();
+        fs::write(dir.path().join("utils.py"), "def helper(): pass").unwrap();
+        fs::create_dir(dir.path().join("src")).unwrap();
+        fs::write(dir.path().join("src").join("lib.py"), "class MyClass: pass").unwrap();
+        
+        let files = collect_source_files(dir.path()).unwrap();
+        assert_eq!(files.len(), 3);
+        
+        let file_names: Vec<String> = files
+            .iter()
+            .map(|f| f.absolute_path.file_name().unwrap().to_string_lossy().to_string())
+            .collect();
+        
+        assert!(file_names.contains(&"main.py".to_string()));
+        assert!(file_names.contains(&"utils.py".to_string()));
+        assert!(file_names.contains(&"lib.py".to_string()));
+    }
+
+    #[test]
+    fn test_exclude_patterns() {
+        let dir = tempdir().unwrap();
+        
+        // Create some files
+        fs::write(dir.path().join("main.py"), "print('hello')").unwrap();
+        fs::create_dir(dir.path().join("__pycache__")).unwrap();
+        fs::write(dir.path().join("__pycache__").join("main.pyc"), "").unwrap();
+        fs::create_dir(dir.path().join(".venv")).unwrap();
+        fs::write(dir.path().join(".venv").join("lib.py"), "").unwrap();
+        
+        let files = collect_source_files(dir.path()).unwrap();
+        assert_eq!(files.len(), 1); // Should only include main.py
+        
+        let file = &files[0];
+        assert_eq!(file.absolute_path.file_name().unwrap().to_string_lossy(), "main.py");
+    }
+
+    #[test]
+    fn test_custom_include_exclude_patterns() {
+        let dir = tempdir().unwrap();
+        let config_content = r#"
+            [package]
+            entrypoint = "main.py"
+
+            [package.patterns]
+            include = ["**/*.txt"]
+            exclude = ["**/*.py"]
+        "#;
+        
+        fs::write(dir.path().join("pycrucible.toml"), config_content).unwrap();
+        fs::write(dir.path().join("data.txt"), "some data").unwrap();
+        fs::write(dir.path().join("script.py"), "print('hello')").unwrap();
+        
+        let files = collect_source_files(dir.path()).unwrap();
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].absolute_path.file_name().unwrap().to_string_lossy(), "data.txt");
+    }
+}

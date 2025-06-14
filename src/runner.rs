@@ -70,3 +70,99 @@ pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_run_project_missing_entrypoint() {
+        let dir = tempdir().unwrap();
+        let result = run_extracted_project(dir.path());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_run_project_with_entrypoint() {
+        let dir = tempdir().unwrap();
+        
+        // Create minimal project structure
+        fs::write(dir.path().join("main.py"), "print('test')").unwrap();
+        fs::write(dir.path().join("pyproject.toml"), r#"
+            [project]
+            name = "test-project"
+            version = "0.1.0"
+        "#).unwrap();
+        fs::write(dir.path().join("pycrucible.toml"), r#"
+            [package]
+            entrypoint = "main.py"
+
+            [hooks]
+            pre_run = ""
+            post_run = ""
+        "#).unwrap();
+        
+        // Create uv executable mock (just a script that does nothing)
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .mode(0o755)
+                .open(dir.path().join("uv"))
+                .unwrap();
+        }
+        #[cfg(windows)]
+        {
+            fs::write(dir.path().join("uv.exe"), "").unwrap();
+        }
+        
+        let result = run_extracted_project(dir.path());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_project_with_hooks() {
+        let dir = tempdir().unwrap();
+        
+        // Create project structure with hooks
+        fs::write(dir.path().join("main.py"), "print('main')").unwrap();
+        fs::write(dir.path().join("pre_hook.py"), "print('pre-hook')").unwrap();
+        fs::write(dir.path().join("post_hook.py"), "print('post-hook')").unwrap();
+        fs::write(dir.path().join("pyproject.toml"), r#"
+            [project]
+            name = "test-project"
+            version = "0.1.0"
+        "#).unwrap();
+        fs::write(dir.path().join("pycrucible.toml"), r#"
+            [package]
+            entrypoint = "main.py"
+
+            [hooks]
+            pre_run = "pre_hook.py"
+            post_run = "post_hook.py"
+        "#).unwrap();
+        
+        // Create uv executable mock
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .mode(0o755)
+                .open(dir.path().join("uv"))
+                .unwrap();
+        }
+        #[cfg(windows)]
+        {
+            fs::write(dir.path().join("uv.exe"), "").unwrap();
+        }
+        
+        let result = run_extracted_project(dir.path());
+        assert!(result.is_ok());
+    }
+}

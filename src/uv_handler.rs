@@ -179,3 +179,72 @@ pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf
     Ok(uv_binary_path)
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cross_target_from_str() {
+        assert!(CrossTarget::from_str("x86_64-unknown-linux-gnu").is_ok());
+        assert!(CrossTarget::from_str("x86_64-pc-windows-gnu").is_ok());
+        assert!(CrossTarget::from_str("invalid-target").is_err());
+    }
+
+    #[test]
+    fn test_cross_target_artifact_name() {
+        assert_eq!(
+            CrossTarget::LinuxX86_64.to_uv_artifact_name(),
+            "uv-x86_64-unknown-linux-gnu.tar.gz"
+        );
+        assert_eq!(
+            CrossTarget::WindowsX86_64.to_uv_artifact_name(),
+            "uv-x86_64-pc-windows-msvc.zip"
+        );
+    }
+
+    #[test]
+    fn test_download_binary_and_unpack() {
+        let result = download_binary_and_unpack(None);
+        assert!(result.is_ok());
+        
+        let binary_path = result.unwrap();
+        assert!(binary_path.exists());
+        
+        // Verify the binary is executable
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let metadata = std::fs::metadata(&binary_path).unwrap();
+            let permissions = metadata.permissions();
+            assert_eq!(permissions.mode() & 0o111, 0o111);
+        }
+    }
+
+    #[test]
+    fn test_download_binary_with_target() {
+        let target = Some(CrossTarget::LinuxX86_64);
+        let result = download_binary_and_unpack(target);
+        assert!(result.is_ok());
+        
+        let binary_path = result.unwrap();
+        assert!(binary_path.exists());
+    }
+
+    #[test]
+    fn test_download_binary_verify() {
+        let result = download_binary_and_unpack(None);
+        assert!(result.is_ok());
+        
+        let binary_path = result.unwrap();
+        
+        // Test that the binary actually works
+        let output = std::process::Command::new(&binary_path)
+            .arg("--version")
+            .output()
+            .unwrap();
+            
+        assert!(output.status.success());
+        assert!(!String::from_utf8_lossy(&output.stdout).is_empty());
+    }
+}
+
