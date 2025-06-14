@@ -2,14 +2,19 @@ use std::io;
 use std::path::Path;
 use std::process::Command;
 use crate::config::load_project_config;
+use crate::debug_println;
 
 
 pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
     // Verify Python files exist
     let config = load_project_config(&project_dir.to_path_buf());
+    debug_println!("Loaded project config");
     let entrypoint = config.package.entrypoint;
+    debug_println!("Loaded project entrypopoint");
     let entry_point_path = project_dir.join(&entrypoint);
+    debug_println!("Loaded project entrypoint path");
     let uv_path = project_dir.join("uv");
+    debug_println!("Loaded project uv");
     
     if !entry_point_path.exists() {
         return Err(io::Error::new(

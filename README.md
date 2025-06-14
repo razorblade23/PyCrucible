@@ -30,7 +30,7 @@ This tool runs a Python application with a help of UV binary. It extracts your p
 - **Tests**:
     - [ ] Unit tests cover configuration, extraction, and hook execution
 - **Source Update**:
-    - [ ] Initiate an update of source code pulling from GitHub
+    - [x] Initiate an update of source code pulling from GitHub
 
 
 ## Building from source
@@ -53,13 +53,19 @@ This tool runs a Python application with a help of UV binary. It extracts your p
 You can download pre-made binaries for your system from [Releases](https://github.com/razorblade23/PyCrucible/releases/latest) page
 
 
+## Update your project from GitHub
+In `pycrucible.toml` file its possible to set your GitHub repository, so the resulting binary will always check for update before running the application.
+
+This is not mandatory and works only for public repos (for now)
+
+If you dont wish to auto-update from github, just comment lines under `source` section in your `pycrucible.toml`.
+
 ## Usage
 Your package should include at least:
 - A directory with your Python application (with an entry point (default: __main__.py))
 - A `uv` initialized project with `pyproject.toml` file
 - (optional) `pycrucible.toml` file with (in your project directory) for custom include/exclude, uv commands, enviroment variables and pre/post hooks
     - EXAMPLE: Example can be found in root directory under the `pycrucible.toml.example` name
-    - WARNING: Only include/exclude implemented for now !
 
 
 ```
@@ -116,4 +122,4 @@ This proccess is extremely fast (but reliant on internet connection)
 
 ## Thanks to
 The idea is inspired by [Packaged](https://packaged.live/)
-Thanks to all the briliant developers at [UV](https://astral.sh/blog/uv)
+Thanks to all the briliant developers at `Astral` - they did awesome job with [uv](https://astral.sh/blog/uv)

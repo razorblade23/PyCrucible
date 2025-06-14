@@ -14,9 +14,10 @@ use spinner_utils::{create_spinner_with_message, stop_and_persist_spinner_with_m
 use std::fs;
 use std::io;
 use std::path::Path;
+use std::path::PathBuf;
 use repository::RepositoryHandler;
 
-fn embed_source(source_dir: &Path, output_path: &Path) -> io::Result<()> {
+fn embed_source(source_dir: &Path, output_path: &Path, uv_path: PathBuf) -> io::Result<()> {
     // Create ProjectConfig based on pycrucible-toml or default if there is no such file
     let pycrucibletoml_path = source_dir.join("pycrucible.toml");
     let project_config = if pycrucibletoml_path.exists() {
@@ -52,7 +53,7 @@ fn embed_source(source_dir: &Path, output_path: &Path) -> io::Result<()> {
     // Embed Python project into the binary
     let source_paths: Vec<_> = source_files.iter().map(|sf| sf.absolute_path.clone()).collect();
     debug_println!("Starting embedding proccess with: {:?}", source_paths);
-    payload::embed_payload(&source_paths, &manifest_path, project_config, output_path)
+    payload::embed_payload(&source_paths, &manifest_path, project_config, uv_path, output_path)
 }
 
 fn extract_and_run(create_temp_dir: bool) -> io::Result<()> {
@@ -65,9 +66,9 @@ fn extract_and_run(create_temp_dir: bool) -> io::Result<()> {
         temp_dir
     } else {
         let exe_path = std::env::current_exe()?;
-        let project_dir = exe_path.parent().unwrap().join("payload");
-        fs::create_dir_all(&project_dir)?;
-        project_dir
+        let current_dir = exe_path.parent().unwrap().join("payload");
+        fs::create_dir_all(&current_dir)?;
+        current_dir
     };
 
     // Extracting payload
@@ -88,12 +89,12 @@ fn extract_and_run(create_temp_dir: bool) -> io::Result<()> {
                         eprintln!("Error updating repository: {:?}", e);
                         std::process::exit(1);
                     }
+                    
                     stop_and_persist_spinner_with_message(sp, "Repository updated successfully");
                 }
                 Err(e) => {
                     stop_and_persist_spinner_with_message(sp, "Failed to initialize repository");
                     eprintln!("Error initializing repository: {:?}", e);
-                    std::process::exit(1);
                 }
             }
         }
@@ -134,7 +135,7 @@ fn main() -> io::Result<()> {
         }
 
         // Embed the project and create new binary
-        embed_source(&source_dir, &output_path)?;
+        embed_source(&source_dir, &output_path, cli.uv_path)?;
         println!("Successfully embedded Python project into new binary: {}", output_path.display());
     } else {
         // Try to run embedded payload
