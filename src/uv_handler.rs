@@ -4,6 +4,7 @@ use std::io::copy;
 use std::path::PathBuf;
 use std::str::FromStr;
 use tempfile::tempdir;
+use std::path::Path;
 use crate::spinner_utils::{create_spinner_with_message, stop_and_persist_spinner_with_message};
 
 
@@ -179,3 +180,20 @@ pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf
     Ok(uv_binary_path)
 }
 
+pub fn find_manifest_file(source_dir: &Path) -> PathBuf  {
+    let manifest_path = if source_dir.join("pyproject.toml").exists() {
+        source_dir.join("pyproject.toml")
+    } else if source_dir.join("requirements.txt").exists() {
+        source_dir.join("requirements.txt")
+    } else if source_dir.join("pylock.toml").exists() {
+        source_dir.join("pylock.toml")
+    } else if source_dir.join("setup.py").exists() {
+        source_dir.join("setup.py")
+    } else if source_dir.join("setup.cfg").exists() {
+        source_dir.join("setup.cfg")
+    } else {
+        eprintln!("No manifest file found in the source directory. \nManifest files can be pyproject.toml, requirements.txt, pylock.toml, setup.py or setup.cfg");
+        source_dir.join("") // Default to empty string if none found;
+    };
+    manifest_path
+}

@@ -15,6 +15,25 @@ pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
     debug_println!("Loaded project entrypoint path");
     let uv_path = project_dir.join("uv");
     debug_println!("Loaded project uv");
+
+    // Find manifest file
+    let manifest_path = if project_dir.join("pyproject.toml").exists() {
+        project_dir.join("pyproject.toml")
+    } else if project_dir.join("requirements.txt").exists() {
+        project_dir.join("requirements.txt")
+    } else if project_dir.join("pylock.toml").exists() {
+        project_dir.join("pylock.toml")
+    } else if project_dir.join("setup.py").exists() {
+        project_dir.join("setup.py")
+    } else if project_dir.join("setup.cfg").exists() {
+        project_dir.join("setup.cfg")
+    } else {
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            "No manifest file found in the source directory. \nManifest files can be pyproject.toml, requirements.txt, pylock.toml, setup.py or setup.cfg"
+        ));
+    };
+    debug_println!("Manifest path: {:?}", manifest_path);
     
     if !entry_point_path.exists() {
         return Err(io::Error::new(
@@ -22,10 +41,24 @@ pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
             format!("Entry point {} not found", entry_point_path.display())
         ));
     }
+
+    // Create a virtual environment
+    let status = Command::new(&uv_path)
+        .arg("venv")
+        .arg("-qq")
+        .current_dir(&project_dir)
+        .status()?;
+    if !status.success() {
+        return Err(std::io::Error::new(std::io::ErrorKind::Other, "uv sync failed"));
+    }
+
     // Run uv pip sync with proper environment
     let status = Command::new(&uv_path)
-        .arg("sync")
+        .arg("pip")
+        .arg("install")
         .arg("-qq")
+        .arg("--requirements")
+        .arg(manifest_path)
         .current_dir(&project_dir)
         .status()?;
     if !status.success() {

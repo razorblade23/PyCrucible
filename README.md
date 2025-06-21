@@ -20,9 +20,12 @@ This tool runs a Python application with a help of UV binary. It extracts your p
         - [ ] arguments to `uv
         - [ ] env variables
         - [x] pre and post run hooks (python scripts)
-    - [ ] support for standard `requirements.txt` manifest
-    - [x] support for `uv` initialized `pyproject.toml` manifest
-    - [ ] Support for new `pylock.toml` manifest
+    - [x] Support for multiple ways of defining requirements
+        - [x] `uv` initialized `pyproject.toml`
+        - [x] `requirements.txt`
+        - [x] `pylock.toml`
+        - [x] `setup.py`
+        - [x] `setup.cfg`
     - [x] Load the project as a directory
     - [ ] Load the project as .zip archive
 - **Cleanup**: 
@@ -60,14 +63,41 @@ This is not mandatory and works only for public repos (for now)
 
 If you dont wish to auto-update from github, just comment lines under `source` section in your `pycrucible.toml`.
 
-## Usage
-Your package should include at least:
+## Prepare your python project
+Your project should include at least:
 - A directory with your Python application (with an entry point (default: __main__.py))
-- A `uv` initialized project with `pyproject.toml` file
+- Some kind of manifest file declaring dependacies
 - (optional) `pycrucible.toml` file with (in your project directory) for custom include/exclude, uv commands, enviroment variables and pre/post hooks
     - EXAMPLE: Example can be found in root directory under the `pycrucible.toml.example` name
+    - if this file is not present, it will be created with default values.
+    ```rust
+        ProjectConfig {
+                package: PackageConfig {
+                    entrypoint: "main.py".into(),
+                    patterns: FilePatterns {
+                        include: vec!["**/*.py".to_string()],
+                        exclude: vec![
+                            ".venv/**/*".to_string(),
+                            "**/__pycache__/**".to_string(),
+                            ".git/**/*".to_string(),
+                            "**/*.pyc".to_string(),
+                            "**/*.pyo".to_string(),
+                            "**/*.pyd".to_string(),
+                        ],
+                    },
+                },
+                source: None,
+                uv: None,
+                env: None,
+                hooks: Some(Hooks {
+                    pre_run: Some("".to_string()),
+                    post_run: Some("".to_string()),
+                }),
+            }
+    ```
 
 
+## Usage
 ```
 $ pycrucible --help
 Tool to generate python executable by melding UV and python source code in crucible of one binary

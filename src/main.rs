@@ -16,6 +16,7 @@ use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 use repository::RepositoryHandler;
+use uv_handler::find_manifest_file;
 
 fn embed_source(source_dir: &Path, output_path: &Path, uv_path: PathBuf) -> io::Result<()> {
     // Create ProjectConfig based on pycrucible-toml or default if there is no such file
@@ -41,12 +42,12 @@ fn embed_source(source_dir: &Path, output_path: &Path, uv_path: PathBuf) -> io::
     }
 
     // Check manifest
-    let manifest_path = source_dir.join("pyproject.toml");
+    let manifest_path = find_manifest_file(source_dir);
     if !manifest_path.exists() {
-        eprintln!("No pyproject.toml found in the source directory");
+        eprintln!("No manifest file found in the source directory");
         std::process::exit(1);
     }
-
+    debug_println!("Manifest path: {:?}", manifest_path);
 
     stop_and_persist_spinner_with_message(sp, "Source files collected");
 
@@ -128,9 +129,10 @@ fn main() -> io::Result<()> {
         })?;
 
         // Check if the manifest file exists
-        let manifest_path = source_dir.join("pyproject.toml");
+        // Check manifest
+        let manifest_path = find_manifest_file(&source_dir);
         if !manifest_path.exists() {
-            eprintln!("No pyproject.toml found in the source directory");
+            eprintln!("No manifest file found in the source directory");
             std::process::exit(1);
         }
 

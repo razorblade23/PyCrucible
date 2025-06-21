@@ -71,7 +71,10 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
         io::copy(&mut file, &mut zip)?;
     }
     let mut manifest_file = fs::File::open(manifest_path)?;
-    zip.start_file("pyproject.toml", options)?;
+    let manifest_file_name = manifest_path.file_name()
+        .and_then(|s| s.to_str())
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid manifest file name"))?;
+    zip.start_file(manifest_file_name, options)?;
     io::copy(&mut manifest_file, &mut zip)?;
     debug_println!("Copied manifest file");
 
