@@ -8,13 +8,13 @@ use crate::debug_println;
 pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
     // Verify Python files exist
     let config = load_project_config(&project_dir.to_path_buf());
-    debug_println!("Loaded project config");
+    debug_println!("[runner.run_extracted_project] - Loaded project config");
     let entrypoint = config.package.entrypoint;
-    debug_println!("Loaded project entrypopoint");
+    debug_println!("[runner.run_extracted_project] - Loaded project entrypopoint");
     let entry_point_path = project_dir.join(&entrypoint);
-    debug_println!("Loaded project entrypoint path");
+    debug_println!("[runner.run_extracted_project] - Loaded project entrypoint path");
     let uv_path = project_dir.join("uv");
-    debug_println!("Loaded project uv");
+    debug_println!("[runner.run_extracted_project] - Loaded project uv");
 
     // Find manifest file
     let manifest_path = if project_dir.join("pyproject.toml").exists() {
@@ -33,7 +33,7 @@ pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
             "No manifest file found in the source directory. \nManifest files can be pyproject.toml, requirements.txt, pylock.toml, setup.py or setup.cfg"
         ));
     };
-    debug_println!("Manifest path: {:?}", manifest_path);
+    debug_println!("[runner.run_extracted_project] - Manifest path: {:?}", manifest_path);
     
     if !entry_point_path.exists() {
         return Err(io::Error::new(

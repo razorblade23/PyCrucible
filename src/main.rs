@@ -26,13 +26,13 @@ fn embed_source(source_dir: &Path, output_path: &Path, uv_path: PathBuf) -> io::
     } else {
         config::ProjectConfig::default()
     };
+    debug_println!("[main.embed_source] - Project config: {:?}", project_config);
 
     // Repository handling moved to extract_and_run function
 
     // Collect source files
-    debug_println!("Embedding source");
-    debug_println!("Source dir: {:?}", source_dir);
-    debug_println!("Output dir: {:?}", source_dir);
+    debug_println!("[main.embed_source] - Source dir: {:?}", source_dir);
+    debug_println!("[main.embed_source] - Output dir: {:?}", source_dir);
 
     let sp = create_spinner_with_message("Collecting source files ...");
     let source_files = project::collect_source_files(source_dir)?;
@@ -47,13 +47,13 @@ fn embed_source(source_dir: &Path, output_path: &Path, uv_path: PathBuf) -> io::
         eprintln!("No manifest file found in the source directory");
         std::process::exit(1);
     }
-    debug_println!("Manifest path: {:?}", manifest_path);
+    debug_println!("[main.embed_source] - Manifest path: {:?}", manifest_path);
 
     stop_and_persist_spinner_with_message(sp, "Source files collected");
 
     // Embed Python project into the binary
     let source_paths: Vec<_> = source_files.iter().map(|sf| sf.absolute_path.clone()).collect();
-    debug_println!("Starting embedding proccess with: {:?}", source_paths);
+    debug_println!("[main.embed_source] - Starting embedding proccess");
     payload::embed_payload(&source_paths, &manifest_path, project_config, uv_path, output_path)
 }
 

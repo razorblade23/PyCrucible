@@ -118,11 +118,11 @@ pub fn load_project_config(source_dir: &PathBuf) -> ProjectConfig {
     // Load config with default Python-specific patterns
     let project_config = match source_dir.join("pycrucible.toml").canonicalize() {
         Ok(config_path) if config_path.exists() => {
-            debug_println!("Loading project config from project directory - (pycrucible.toml found)");
+            debug_println!("[config.load_project_config] - Loading project config from pycrucible.toml file)");
             load_config(&config_path)
         }
         _ => {
-            debug_println!("Loading project config defaults - (pycrucible.toml not found)");
+            debug_println!("[config.load_project_config] - Loading project config defaults");
             ProjectConfig::default()
         }
     };

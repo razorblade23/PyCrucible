@@ -31,10 +31,10 @@ impl RepositoryHandler {
 
     pub fn init_or_open(&mut self, path: &Path) -> Result<(), RepositoryError> {
         self.repo = if path.join(".git").exists() {
-            debug_println!("Found existing repository at {}, opening ...", path.display());
+            debug_println!("[repository.init_or_open] - Found existing repository at {}, opening ...", path.display());
             Some(Repository::open(path)?)
         } else {
-            debug_println!("No existing repository found at {}, cloning from {}", path.display(), self.config.repository);
+            debug_println!("[repository.init_or_open] - No existing repository found at {}, cloning from {}", path.display(), self.config.repository);
             if path.exists() {
                 let uv_name = if cfg!(windows) { "uv.exe" } else { "uv" };
                 let uv_path = path.join(uv_name);

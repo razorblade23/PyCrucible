@@ -43,15 +43,9 @@ pub fn read_footer() -> io::Result<PayloadInfo> {
 }
 
 pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_config: config::ProjectConfig, uv_path: PathBuf, output_path: &Path) -> io::Result<()> {
-    // Copy the current executable to the output path
-    debug_println!("Source files: {:?}", source_files);
-    debug_println!("Manifest path: {:?}", manifest_path);
-    debug_println!("Project config: {:?}", project_config);
-    debug_println!("Output path: {:?}", output_path);
-
     let current_exe = std::env::current_exe()?;
     fs::copy(&current_exe, output_path)?;
-    debug_println!("Copied itself to output path");
+    debug_println!("[payload.embed_payload] - Copied itself to output path");
 
     // Create a memory buffer for the ZIP
     let mut cursor = Cursor::new(Vec::new());
@@ -59,13 +53,13 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
     let options = FileOptions::<()>::default();
 
     // Copy source files and manifest file to .zip
-    debug_println!("Starting copy of source files to .zip");
+    debug_println!("[payload.embed_payload] - Starting copy of source files to .zip");
     let source_dir = manifest_path.parent().unwrap().canonicalize()?;
     for source_file in source_files {
         let relative_path = source_file.strip_prefix(&source_dir)
             .unwrap_or(source_file.as_path());
         let relative_path = relative_path.to_string_lossy().replace("\\", "/");
-        debug_println!("Copied {:?} with relative path {:?} to zip", source_file, relative_path);
+        debug_println!("[payload.embed_payload] - Copied {:?} with relative path {:?} to zip", source_file, relative_path);
         let mut file = fs::File::open(source_file)?;
         zip.start_file(relative_path, options)?;
         io::copy(&mut file, &mut zip)?;
@@ -76,7 +70,7 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid manifest file name"))?;
     zip.start_file(manifest_file_name, options)?;
     io::copy(&mut manifest_file, &mut zip)?;
-    debug_println!("Copied manifest file");
+    debug_println!("[payload.embed_payload] - Copied manifest file");
 
     // Serialize project config to TOML format
     let project_config_toml = toml::to_string(&project_config)
@@ -84,27 +78,27 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
     let mut pycrucible_file = Cursor::new(project_config_toml);
     zip.start_file("pycrucible.toml", options)?;
     io::copy(&mut pycrucible_file, &mut zip)?;
-    debug_println!("pycrucible.toml copied");
+    debug_println!("[payload.embed_payload] - pycrucible.toml copied");
     
 
     // Look for already downloaded uv to embed next to binary, if not, download it
-    debug_println!("Looking for uv");
+    debug_println!("[payload.embed_payload] - Looking for uv");
     let exe_dir = std::env::current_exe()?.parent().unwrap().to_path_buf();
     let local_uv = if uv_path.exists() {
-        debug_println!("uv found at specified path, using it");
+        debug_println!("[payload.embed_payload] - uv found at specified path, using it");
         uv_path
     } else {
-        debug_println!("uv not found at specified path, looking for local uv");
+        debug_println!("[payload.embed_payload] - uv not found at specified path, looking for local uv");
         exe_dir.join("uv")
     };
 
     
     let uv_path = if local_uv.exists() {
-        debug_println!("uv found locally, using it");
+        debug_println!("[payload.embed_payload] - uv found locally, using it");
         local_uv
     } else {
         // Download `uv` and copy it to zip
-        debug_println!("uv not found locally, downloading ...");
+        debug_println!("[payload.embed_payload] - uv not found locally, downloading ...");
         let target: Option<CrossTarget> = None; // We're running locally
         download_binary_and_unpack(target)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?
@@ -117,17 +111,17 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
         let mut perms = fs::metadata(&uv_path)?.permissions();
         perms.set_mode(0o755);
         fs::set_permissions(&uv_path, perms)?;
-        debug_println!("Set permissions for uv on linux");
+        debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
     }
     zip.start_file("uv", options)?;
     let mut uv_file = fs::File::open(&uv_path)?;
     io::copy(&mut uv_file, &mut zip)?;
-    debug_println!("Added uv to zip");
+    debug_println!("[payload.embed_payload] - Added uv to zip");
 
     // Finalize ZIP
     zip.finish()?;
     let payload = cursor.into_inner();
-    debug_println!("Zip finalized");
+    debug_println!("[payload.embed_payload] - Zip finalized");
 
     // Open output file in append mode (the copied executable)
     let mut file = OpenOptions::new()
