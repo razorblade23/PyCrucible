@@ -69,6 +69,7 @@ Your project should include at least:
 - Some kind of manifest file declaring dependacies
 - (optional) `pycrucible.toml` file with (in your project directory) for custom include/exclude, uv commands, enviroment variables and pre/post hooks
     - EXAMPLE: Example can be found in root directory under the `pycrucible.toml.example` name
+    - Only `package.entrypoint` is required if using this configuration file, other options are optional
     - if this file is not present, it will be created with default values.
     ```rust
         ProjectConfig {

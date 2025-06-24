@@ -17,8 +17,15 @@ pub struct FilePatterns {
 impl Default for FilePatterns {
     fn default() -> Self {
         FilePatterns {
-            include: vec![],
-            exclude: vec![],
+            include: vec!["**/*.py".to_string()],
+            exclude: vec![
+                ".venv/**/*".to_string(),
+                "**/__pycache__/**".to_string(),
+                ".git/**/*".to_string(),
+                "**/*.pyc".to_string(),
+                "**/*.pyo".to_string(),
+                "**/*.pyd".to_string(),
+            ],
         }
     }
 }
@@ -30,21 +37,52 @@ pub struct PackageConfig {
     pub patterns: FilePatterns,
 }
 
+impl Default for PackageConfig {
+    fn default() -> Self {
+        PackageConfig {
+            entrypoint: "main.py".into(),
+            patterns: FilePatterns::default(),
+        }
+    }
+}
+
 #[derive(serde::Serialize, Debug, Deserialize)]
 pub struct UVConfig {
     pub args: Option<Vec<String>>,
+}
+impl Default for UVConfig {
+    fn default() -> Self {
+        UVConfig {
+            args: None,
+        }
+    }
 }
 
 #[derive(serde::Serialize, Debug, Deserialize)]
 pub struct EnvConfig {
     #[serde(flatten)]
-    pub variables: HashMap<String, String>,
+    pub variables: Option<HashMap<String, String>>,
+}
+impl Default for EnvConfig {
+    fn default() -> Self {
+        EnvConfig {
+            variables: None,
+        }
+    }
 }
 
 #[derive(serde::Serialize, Debug, Deserialize)]
 pub struct Hooks {
     pub pre_run: Option<String>,
     pub post_run: Option<String>,
+}
+impl Default for Hooks {
+    fn default() -> Self {
+        Hooks {
+            pre_run: None,
+            post_run: None,
+        }
+    }
 }
 
 #[derive(serde::Serialize, Debug, Deserialize, Clone)]
@@ -55,13 +93,29 @@ pub struct SourceConfig {
     pub commit: Option<String>,
     pub update_strategy: Option<String>, // "pull" or "fetch"
 }
+impl Default for SourceConfig {
+    fn default() -> Self {
+        SourceConfig {
+            repository: String::new(),
+            branch: None,
+            tag: None,
+            commit: None,
+            update_strategy: Some("pull".to_string()), // Default to "pull"
+        }
+    }
+}
+
 
 #[derive(serde::Serialize, Debug, Deserialize)]
 pub struct ProjectConfig {
     pub package: PackageConfig,
+     #[serde(default)]
     pub source: Option<SourceConfig>,
+     #[serde(default)]
     pub uv: Option<UVConfig>,
+     #[serde(default)]
     pub env: Option<EnvConfig>,
+     #[serde(default)]
     pub hooks: Option<Hooks>,
 }
 
@@ -93,10 +147,7 @@ impl Default for ProjectConfig {
             source: None,
             uv: None,
             env: None,
-            hooks: Some(Hooks {
-                pre_run: Some("".to_string()),
-                post_run: Some("".to_string()),
-            }),
+            hooks: None,
         }
     }
 }
