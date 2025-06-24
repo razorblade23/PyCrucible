@@ -1,7 +1,8 @@
 use std::io;
 use std::path::Path;
 use std::process::Command;
-use crate::config::load_project_config;
+
+use crate::config::{load_project_config, Hooks};
 use crate::debug_println;
 
 
@@ -65,10 +66,20 @@ pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
         return Err(std::io::Error::new(std::io::ErrorKind::Other, "uv sync failed"));
     }
 
-    let hooks = config.hooks.unwrap();
+
+    let hooks = if config.hooks.is_some() {
+        debug_println!("[runner.run_extracted_project] - Hooks found in project config");
+        config.hooks.unwrap()
+    } else {
+        debug_println!("[runner.run_extracted_project] - No hooks found in project config");
+        Hooks {
+            pre_run: Some(String::new()),
+            post_run: Some(String::new()),
+        }
+    };
+
     let pre_hook = hooks.pre_run.unwrap();
     let post_hook = hooks.post_run.unwrap();
-
 
     if !pre_hook.is_empty() {
         let status = Command::new(&uv_path)
