@@ -1,5 +1,4 @@
 # Required
-[package]
 entrypoint = "src/main.py"
 
 # Optional

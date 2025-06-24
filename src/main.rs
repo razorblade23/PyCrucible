@@ -20,12 +20,7 @@ use uv_handler::find_manifest_file;
 
 fn embed_source(source_dir: &Path, output_path: &Path, uv_path: PathBuf) -> io::Result<()> {
     // Create ProjectConfig based on pycrucible-toml or default if there is no such file
-    let pycrucibletoml_path = source_dir.join("pycrucible.toml");
-    let project_config = if pycrucibletoml_path.exists() {
-        config::load_project_config(&source_dir.to_path_buf())
-    } else {
-        config::ProjectConfig::default()
-    };
+    let project_config = config::load_project_config(&source_dir.to_path_buf());
     debug_println!("[main.embed_source] - Project config: {:?}", project_config);
 
     // Repository handling moved to extract_and_run function
