@@ -80,7 +80,6 @@ fn get_output_dir() -> PathBuf {
     exe_path.parent().unwrap().to_path_buf()
 }
 
-// Modify your download function to accept target
 pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let sp = create_spinner_with_message("Downloading `uv`");
 
@@ -91,7 +90,6 @@ pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf
     let dir = tempdir()?;
     let file_path = dir.path().join(&artifact_name);
 
-    // Download the file
     let response = reqwest::blocking::get(&url)?;
     if !response.status().is_success() {
         return Err(format!("Failed to download UV: {}", response.status()).into());
