@@ -150,12 +150,11 @@ jobs:
       - name: Run PyCrucible
         working-directory: simple-python-project-for-PyCrucible
         run: |
-          ./pycrucible_* -e . -o cowsay${{ matrix.bin_ext }} --debug
+          ./pycrucible_${{ github.ref_name }}_${{ matrix.target }}${{ matrix.bin_ext }} -e . -o cowsay${{ matrix.bin_ext }} --debug
 
       - name: Smoke-test generated artifact
         working-directory: simple-python-project-for-PyCrucible
         run: ./cowsay${{ matrix.bin_ext }}
-
   release:
     name: Publish Release
     if: github.event_name == 'release'
