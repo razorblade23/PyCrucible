@@ -6,3 +6,4 @@
 pycrucible_launcher
 /old
 uv
+.env

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pycrucible"
+version = "0.2.7"
+description = "Python wrapper for the PyCrucible CLI tool"
+requires-python = ">=3.2"
+authors = [{ name = "razorblade23", email = "contact@razorblade23" }]
+readme = "README.md"
+license = { text = "MIT" }
+classifiers = ["Programming Language :: Python :: 3",
+                "Programming Language :: Rust",
+                "License :: OSI Approved :: MIT License",
+                "Operating System :: OS Independent",
+                "Intended Audience :: Developers",
+                "Topic :: Software Development :: Build Tools",
+]
+scripts = { pycrucible = "pycrucible.__main__:main" }
