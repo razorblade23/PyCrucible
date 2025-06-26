@@ -141,8 +141,7 @@ jobs:
 
       - name: Copy PyCrucible binary into example project
         shell: bash
-        run: |
-          cp pycrucible_${{ matrix.artifact_glob }} simple-python-project-for-PyCrucible/
+        run: cp ./pycrucible_*/* simple-python-project-for-PyCrucible
 
       - name: Make binary executable (linux)
         if: runner.os != 'Windows'
