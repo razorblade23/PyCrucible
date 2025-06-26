@@ -88,7 +88,7 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
         debug_println!("[payload.embed_payload] - uv found at specified path, using it");
         uv_path
     } else {
-        // Try to find uv in system PATH in a cross-platform way
+        // Try to find uv in system PATH
         if let Some(path) = which::which("uv").ok() {
             debug_println!("[payload.embed_payload] - uv found in system PATH at {:?}", path);
             path

@@ -11,7 +11,7 @@ This tool runs a Python application with a help of UV binary. It extracts your p
 
 - **Cross-Platform**: 
     - [x] Windows support
-    - [ ] macOS support
+    - [x] macOS support (testing)
     - [x] Linux support
 - **Configurable**: 
     - [ ] Use `pycrucible.toml` to customize embedding details
