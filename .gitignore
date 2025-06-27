@@ -7,3 +7,7 @@ pycrucible_launcher
 /old
 uv
 .env
+python-wrapper/dist
+python-wrapper/.python-version
+python-wrapper/src/pycrucible.egg-info
+python-wrapper/src/pycrucible/pycrucible-bin
