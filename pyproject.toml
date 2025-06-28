@@ -13,13 +13,12 @@ classifiers = ["Programming Language :: Python :: 3",
                 "Intended Audience :: Developers",
                 "Topic :: Software Development :: Build Tools",
 ]
-scripts = { pycrucible = "pycrucible.__main__:main" }
 dependencies = []
 keywords = ["install", "python installer", "install python", "python packaging", "python build tool", "pycrucible", "pyinstaller", "py2exe", "python wrapper", "python cli tool"]
 
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
 
 [project.urls]
 Homepage = "https://github.com/razorblade23/PyCrucible"

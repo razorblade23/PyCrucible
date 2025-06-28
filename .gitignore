@@ -5,9 +5,12 @@
 /payload
 pycrucible_launcher
 /old
+/src/pycrucible.egg-info
 uv
 .env
-python-wrapper/dist
-python-wrapper/.python-version
-python-wrapper/src/pycrucible.egg-info
-python-wrapper/src/pycrucible/pycrucible-bin
+python-wrapper
+# python-wrapper/dist
+# python-wrapper/.venv
+# python-wrapper/.python-version
+# python-wrapper/src/pycrucible.egg-info
+# python-wrapper/src/pycrucible/pycrucible-bin
