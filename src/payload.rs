@@ -193,3 +193,108 @@ pub fn extract_payload(info: &PayloadInfo, target_dir: &Path) -> io::Result<()> 
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs::{self, File};
+    use std::io::{Seek, SeekFrom};
+    use tempfile::tempdir;
+    use super::*;
+
+    // Helper for tests: extract from a specific file, not current_exe
+    fn extract_payload_from_file(info: &PayloadInfo, target_dir: &std::path::Path, exe_path: &std::path::Path) -> std::io::Result<()> {
+        let mut file = File::open(exe_path)?;
+
+        file.seek(SeekFrom::Start(info.offset))?;
+        let mut payload_data = vec![0u8; info.size as usize];
+        file.read_exact(&mut payload_data)?;
+
+        let reader = std::io::Cursor::new(payload_data);
+        let mut archive = zip::ZipArchive::new(reader)?;
+
+        for i in 0..archive.len() {
+            let mut file = archive.by_index(i)?;
+            let outpath = target_dir.join(file.name());
+
+            if let Some(parent) = outpath.parent() {
+                fs::create_dir_all(parent)?;
+            }
+
+            let mut outfile = File::create(&outpath)?;
+            std::io::copy(&mut file, &mut outfile)?;
+
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let mut perms = fs::metadata(&outpath)?.permissions();
+                if file.name().contains("uv") && !file.name().ends_with("/") {
+                    perms.set_mode(0o755);
+                } else {
+                    perms.set_mode(0o644);
+                }
+                fs::set_permissions(&outpath, perms)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_embed_and_extract_payload() {
+        let dir = tempdir().unwrap();
+        let src_dir = dir.path().join("src");
+        fs::create_dir(&src_dir).unwrap();
+        let file1 = src_dir.join("main.py");
+        let file2 = src_dir.join("utils.py");
+        fs::write(&file1, b"print('hello')").unwrap();
+        fs::write(&file2, b"def foo(): pass").unwrap();
+
+        let manifest = dir.path().join("manifest.toml");
+        fs::write(&manifest, b"[project]\nname = 'test'").unwrap();
+
+        let project_config = config::ProjectConfig {
+            package: config::PackageConfig {
+                entrypoint: "src/main.py".to_string(), 
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let uv_path = dir.path().join("uv");
+        fs::write(&uv_path, b"uv-binary").unwrap();
+
+        let output_path = dir.path().join("output_exe");
+        let source_files = vec![file1.clone(), file2.clone()];
+
+        let result = embed_payload(
+            &source_files,
+            &manifest,
+            project_config,
+            uv_path.clone(),
+            &output_path,
+        );
+        assert!(result.is_ok());
+        assert!(output_path.exists());
+
+        let mut file = File::open(&output_path).unwrap();
+        file.seek(SeekFrom::End(-(FOOTER_SIZE as i64))).unwrap();
+        let mut footer = [0u8; FOOTER_SIZE];
+        file.read_exact(&mut footer).unwrap();
+        assert_eq!(&footer[0..4], MAGIC_BYTES);
+
+        let offset = u64::from_le_bytes(footer[4..12].try_into().unwrap());
+        let size = u32::from_le_bytes(footer[12..16].try_into().unwrap());
+        let info = PayloadInfo { offset, size };
+
+        let extract_dir = dir.path().join("extract");
+        fs::create_dir(&extract_dir).unwrap();
+        let result = extract_payload_from_file(&info, &extract_dir, &output_path);
+        assert!(result.is_ok());
+
+        assert!(extract_dir.join("src/main.py").exists());
+        assert!(extract_dir.join("src/utils.py").exists());
+        assert!(extract_dir.join("manifest.toml").exists());
+        assert!(extract_dir.join("pycrucible.toml").exists());
+        assert!(extract_dir.join("uv").exists());
+    }
+}

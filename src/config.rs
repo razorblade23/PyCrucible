@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use crate::debug_println;
 
 
+
 #[derive(serde::Serialize, Debug, Deserialize)]
 pub struct FilePatterns {
     #[serde(default)]
@@ -214,3 +215,135 @@ pub fn load_project_config(source_dir: &PathBuf) -> ProjectConfig {
     ProjectConfig::default()
 }
 
+
+#[cfg(test)]
+mod tests {
+    use std::fs::File;
+    use std::io::Write;
+    use tempfile::tempdir;
+    use super::*;
+
+    #[test]
+    fn test_file_patterns_default() {
+        let patterns = FilePatterns::default();
+        assert!(patterns.include.contains(&"**/*.py".to_string()));
+        assert!(patterns.exclude.contains(&".venv/**/*".to_string()));
+    }
+
+    #[test]
+    fn test_package_config_default() {
+        let pkg = PackageConfig::default();
+        assert_eq!(pkg.entrypoint, "main.py");
+        assert!(pkg.patterns.include.contains(&"**/*.py".to_string()));
+    }
+
+    #[test]
+    fn test_project_config_default() {
+        let config = ProjectConfig::default();
+        assert_eq!(config.package.entrypoint, "main.py");
+        assert!(config.package.patterns.include.contains(&"**/*.py".to_string()));
+        assert!(config.source.is_none());
+        assert!(config.uv.is_none());
+        assert!(config.env.is_none());
+        assert!(config.hooks.is_none());
+    }
+
+    #[test]
+    fn test_project_config_from_file() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("pycrucible.toml");
+        let toml_content = r#"
+            entry = "app.py"
+            [patterns]
+            include = ["src/**/*.py"]
+            exclude = ["tests/**/*"]
+        "#;
+        let mut file = File::create(&file_path).unwrap();
+        file.write_all(toml_content.as_bytes()).unwrap();
+
+        let config = ProjectConfig::from_file(&file_path).unwrap();
+        assert_eq!(config.package.entrypoint, "app.py");
+        assert!(config.package.patterns.include.contains(&"src/**/*.py".to_string()));
+        assert!(config.package.patterns.exclude.contains(&"tests/**/*".to_string()));
+    }
+
+    #[test]
+    fn test_project_config_from_pyproject() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("pyproject.toml");
+        let toml_content = r#"
+            [tool.pycrucible]
+            entry = "main2.py"
+            [tool.pycrucible.patterns]
+            include = ["lib/**/*.py"]
+        "#;
+        let mut file = File::create(&file_path).unwrap();
+        file.write_all(toml_content.as_bytes()).unwrap();
+
+        let config = ProjectConfig::from_pyproject(&file_path).unwrap();
+        assert_eq!(config.package.entrypoint, "main2.py");
+        assert!(config.package.patterns.include.contains(&"lib/**/*.py".to_string()));
+    }
+
+    #[test]
+    fn test_load_project_config_with_pycrucible_toml() {
+        let dir = tempdir().unwrap();
+        let config_path = dir.path().join("pycrucible.toml");
+        let toml_content = r#"
+            entry = "run.py"
+        "#;
+        let mut file = File::create(&config_path).unwrap();
+        file.write_all(toml_content.as_bytes()).unwrap();
+
+        let config = load_project_config(&dir.path().to_path_buf());
+        assert_eq!(config.package.entrypoint, "run.py");
+    }
+
+    #[test]
+    fn test_load_project_config_with_pyproject_toml() {
+        let dir = tempdir().unwrap();
+        let config_path = dir.path().join("pyproject.toml");
+        let toml_content = r#"
+            [tool.pycrucible]
+            entry = "main3.py"
+        "#;
+        let mut file = File::create(&config_path).unwrap();
+        file.write_all(toml_content.as_bytes()).unwrap();
+
+        let config = load_project_config(&dir.path().to_path_buf());
+        assert_eq!(config.package.entrypoint, "main3.py");
+    }
+
+    #[test]
+    fn test_load_project_config_defaults_when_no_config() {
+        let dir = tempdir().unwrap();
+        let config = load_project_config(&dir.path().to_path_buf());
+        assert_eq!(config.package.entrypoint, "main.py");
+    }
+
+    #[test]
+    fn test_source_config_default() {
+        let source = SourceConfig::default();
+        assert_eq!(source.repository, "");
+        assert_eq!(source.update_strategy, Some("pull".to_string()));
+    }
+
+    #[test]
+    fn test_env_config_default() {
+        let env = EnvConfig::default();
+        assert!(env.variables.is_none());
+    }
+
+    #[test]
+    fn test_hooks_default() {
+        let hooks = Hooks::default();
+        assert!(hooks.pre_run.is_none());
+        assert!(hooks.post_run.is_none());
+    }
+
+    #[test]
+    fn test_uv_config_default() {
+        let uv = UVConfig::default();
+        assert!(uv.args.is_none());
+    }
+}
