@@ -283,17 +283,4 @@ mod tests {
         let out = get_output_dir();
         assert!(out.is_dir());
     }
-
-    // Mock download_binary_and_unpack to avoid network and extraction
-    #[test]
-    fn test_download_binary_and_unpack_error_on_unsupported() {
-        // Use a fake target that is not supported by get_architecture
-        struct DummyTarget;
-        impl std::str::FromStr for DummyTarget {
-            type Err = ();
-            fn from_str(_: &str) -> Result<Self, Self::Err> { Ok(DummyTarget) }
-        }
-        // For now just assert true
-        assert!(true);
-    }
 }
