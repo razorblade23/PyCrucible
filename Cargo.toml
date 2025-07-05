@@ -1,6 +1,6 @@
 [package]
 name = "pycrucible"
-version = "0.2.7"
+version = "0.2.9"
 edition = "2024"
 
 [dependencies]
