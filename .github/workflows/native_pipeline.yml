@@ -190,8 +190,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install maturin
-          if [[ "$RUNNER_OS" == "Linux" ]]; then pip install patchelf; fi
-
+      
+      - name: Install patchelf (Linux only)
+        if: runner.os != 'Windows'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y patchelf
+      
       - name: Download build artifacts
         uses: actions/download-artifact@v4
 
@@ -205,7 +210,7 @@ jobs:
       - name: Upload sdists
         uses: actions/upload-artifact@v4
         with:
-          name: sdist
+          name: pycrucible-sdist-${{ github.ref_name }}-${{ matrix.target }}
           path: dist
     
   
