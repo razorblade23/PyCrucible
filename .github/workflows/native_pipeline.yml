@@ -157,6 +157,7 @@ jobs:
 
   build_sdist:
     name: Build sdist for PyPI
+    if: github.event_name == 'release'
     needs: [build, run_test_app]
     runs-on: ${{ matrix.runner }}
     strategy:
