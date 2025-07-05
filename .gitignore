@@ -1,8 +1,2 @@
 /target
 /test
-/launcher_generated.rs
-/pycrucible-launcher
-/payload
-pycrucible_launcher
-/old
-uv

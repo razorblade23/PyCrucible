@@ -1,0 +1,26 @@
+[project]
+name = "pycrucible"
+version = "0.2.9"
+description = "Python wrapper for the PyCrucible CLI tool"
+requires-python = ">=3.6"
+authors = [{ name = "razorblade23", email = "contact@razorblade23.dev" }]
+readme = "README.md"
+license = { text = "MIT" }
+classifiers = ["Programming Language :: Python :: 3",
+                "Programming Language :: Rust",
+                "License :: OSI Approved :: MIT License",
+                "Operating System :: OS Independent",
+                "Intended Audience :: Developers",
+                "Topic :: Software Development :: Build Tools",
+]
+dependencies = []
+keywords = ["install", "python installer", "install python", "python packaging", "python build tool", "pycrucible", "pyinstaller", "py2exe", "python wrapper", "python cli tool"]
+
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project.urls]
+Homepage = "https://github.com/razorblade23/PyCrucible"
+Repository = "https://github.com/razorblade23/PyCrucible.git"
+Issues = "https://github.com/razorblade23/PyCrucible/issues"
