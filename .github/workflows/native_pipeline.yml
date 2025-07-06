@@ -2,6 +2,8 @@ name: Build and Release PyCrucible (native)
 
 on:
   push:
+    tags:
+      - "v*.*.*"
     branches: [main]
   release:
     types: [created]
@@ -36,6 +38,7 @@ jobs:
 
   build:
     name: Build ${{ matrix.target }}
+    if: github.event_name == 'release'
     needs: test
     runs-on: ${{ matrix.runner }}
 
@@ -103,6 +106,7 @@ jobs:
 
   run_test_app:
     name: Smoke Test PyCrucible
+    if: github.event_name == 'release'
     needs: build
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -236,7 +240,7 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         skip-existing: true
-        packages-dir: ./
+        packages-dir: dist/
 
   release_to_gh:
     name: Publish Release to GitHub
