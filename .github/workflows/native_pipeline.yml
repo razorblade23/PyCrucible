@@ -257,15 +257,20 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+      
+      - name: Remove non-PyPI files
+        run: |
+          find dist -type f ! -name "*.whl" ! -name "*.tar.gz" -delete
 
       - name: List files
         run: ls -R dist
-
+      
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           skip-existing: true
           packages-dir: dist/
+        continue-on-error: false
 
 
   release_to_gh:
