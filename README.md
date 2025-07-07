@@ -36,7 +36,7 @@ You can download pre-made binaries for your system from [Github Releases](https:
 4. Build the binary
 ```cargo build --release```
 
-#### The resulting binary will be in `target/release/pycrucible`.
+> :memo: **Note:** The resulting binary will be in `target/release/pycrucible`.
 
 ## How to use `PyCrucible`
 All you need for starting is a single `main.py` file with some code.
@@ -92,12 +92,9 @@ Configuration can be set in two ways:
 - `pycrucible.toml`
 - `pyproject.toml`
 
-#### Note
-**When both `pycrucible.toml` and `pyproject.toml` are discovered, configuration from `pycrucible.toml` will take effect.**
-#### Note
-**When using any configuration, only `entrypoint` is required. Other options are optional.**
-#### Note
-**In both `pycrucible.toml` and `pyproject.toml` directive `entrypoint` can also be replaced by just `entry`.**
+> :note: **Note:** When both `pycrucible.toml` and `pyproject.toml` are discovered, configuration from `pycrucible.toml` will take effect.
+> :note: **Note:** When using any configuration, only `entrypoint` is required. Other options are optional.
+> :note: **Note:** In both `pycrucible.toml` and `pyproject.toml` directive `entrypoint` can also be replaced by just `entry`.
 
 Both of these files have exact same configuration options. You can find example file for `pycrucible.toml` [here](https://raw.githubusercontent.com/razorblade23/PyCrucible/refs/heads/main/pycrucible.toml.example)
 
