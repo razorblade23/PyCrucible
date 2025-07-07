@@ -93,7 +93,9 @@ Configuration can be set in two ways:
 - `pyproject.toml`
 
 > :note: **Note:** When both `pycrucible.toml` and `pyproject.toml` are discovered, configuration from `pycrucible.toml` will take effect.
+
 > :note: **Note:** When using any configuration, only `entrypoint` is required. Other options are optional.
+
 > :note: **Note:** In both `pycrucible.toml` and `pyproject.toml` directive `entrypoint` can also be replaced by just `entry`.
 
 Both of these files have exact same configuration options. You can find example file for `pycrucible.toml` [here](https://raw.githubusercontent.com/razorblade23/PyCrucible/refs/heads/main/pycrucible.toml.example)
