@@ -1,9 +1,4 @@
-# PyCrucible
-#### "Run Python Apps Instantly, No Setup Required."
-
 ![Poster image of PyCrucible](/PyCrucible_poster.png)
-
-A robust, cross-platform embedder for Python applications using `uv` for bootstraping.
 
 ## Overview
 
