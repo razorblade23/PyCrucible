@@ -1,6 +1,8 @@
 # PyCrucible
 #### "Run Python Apps Instantly, No Setup Required."
 
+![Poster image of PyCrucible](/PyCrucible_poster.png)
+
 A robust, cross-platform embedder for Python applications using `uv` for bootstraping.
 
 ## Overview
@@ -11,6 +13,9 @@ This tool runs a Python application with a help of UV binary. It extracts your a
 What this means is that you get a single binary, which can then be transfered to other machines running the same platform.
 
 Only internet connection required. No python installation needed. You run the executable and it takes care of everything.
+
+## Documentation
+Better documentation can be found at [docs](https://pycrucible.razorblade23.dev).
 
 ## How to get `PyCrucible`
 There are a couple of ways to get PyCrucible.
