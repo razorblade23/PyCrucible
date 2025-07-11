@@ -1,0 +1,16 @@
+[package]
+name = "runner"
+version = "0.3.0"
+edition = "2024"
+
+[dependencies]
+shared = { path = "../shared" }
+
+walkdir = "2.4"
+once_cell = "1.18"
+toml = "0.8"
+zip = "3"
+tar = "0.4"
+tempfile = "3"
+flate2 = "1"
+git2 = { version = "0.20", default-features = false }

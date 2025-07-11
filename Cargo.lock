@@ -1042,7 +1042,7 @@ dependencies = [
 
 [[package]]
 name = "pycrucible"
-version = "0.2.9"
+version = "0.3.0"
 dependencies = [
  "clap",
  "flate2",
@@ -1053,6 +1053,7 @@ dependencies = [
  "once_cell",
  "reqwest",
  "serde",
+ "shared",
  "spinners",
  "tar",
  "tempfile",
@@ -1229,6 +1230,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "runner"
+version = "0.3.0"
+dependencies = [
+ "flate2",
+ "git2",
+ "once_cell",
+ "shared",
+ "tar",
+ "tempfile",
+ "toml",
+ "walkdir",
+ "zip",
+]
+
+[[package]]
 name = "rustc-demangle"
 version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1380,6 +1396,28 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
+]
+
+[[package]]
+name = "shared"
+version = "0.3.0"
+dependencies = [
+ "clap",
+ "flate2",
+ "git2",
+ "glob",
+ "lazy_static",
+ "maplit",
+ "once_cell",
+ "reqwest",
+ "serde",
+ "spinners",
+ "tar",
+ "tempfile",
+ "toml",
+ "walkdir",
+ "which",
+ "zip",
 ]
 
 [[package]]

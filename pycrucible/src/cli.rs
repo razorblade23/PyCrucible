@@ -18,8 +18,12 @@ fn get_version() -> &'static str {
 #[derive(Parser, Debug)]
 #[command(author = AUTHOR, version = get_version(), about = ABOUT, long_about = None)]
 pub struct Cli {
-    #[arg(short = 'e', long, help = "Directory containing Python project to embed. When specified, creates a new binary with the embedded project")]
-    pub embed: Option<PathBuf>,
+
+    // #[arg(short = 'e', long, default_value=".", help = "Directory containing Python project to embed. If specified without a value, uses the current directory.", value_name = "DIR")]
+    pub embed: PathBuf,
+
+    // #[arg(short = 'e', long, help = "Directory containing Python project to embed. When specified, creates a new binary with the embedded project")]
+    // pub embed: Option<PathBuf>,
 
     #[arg(short = 'o', long, help="Output path for the new binary when using --embed")]
     pub output: Option<PathBuf>,

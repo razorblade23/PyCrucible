@@ -2,6 +2,11 @@
 entrypoint = "src/main.py"
 
 # Optional
+[tool]
+extract_to_temp = true
+delete_after_run = false
+
+# Optional
 [source]
 repository = "https://github.com/username/repo"
 branch = "main"  # Optional: Specify branch to use

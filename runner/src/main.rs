@@ -1,22 +1,20 @@
+mod extract;
+
 use std::io;
 use std::path::Path;
 use std::process::Command;
 
-use crate::config::{load_project_config, Hooks};
-use crate::debug_println;
+use shared::config::{load_project_config, Hooks};
+use shared::debug_println;
 
 
-
-pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
+fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
     // Verify Python files exist
     let config = load_project_config(&project_dir.to_path_buf());
-    debug_println!("[runner.run_extracted_project] - Loaded project config");
     let entrypoint = config.package.entrypoint;
-    debug_println!("[runner.run_extracted_project] - Loaded project entrypopoint");
     let entry_point_path = project_dir.join(&entrypoint);
-    debug_println!("[runner.run_extracted_project] - Loaded project entrypoint path");
     let uv_path = project_dir.join("uv");
-    debug_println!("[runner.run_extracted_project] - Loaded project uv");
+    debug_println!("[runner.run_extracted_project] - Loaded: config, entrypoint, uv");
 
     // Find manifest file
     let manifest_path = if project_dir.join("pyproject.toml").exists() {
@@ -67,7 +65,7 @@ pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
         return Err(std::io::Error::new(std::io::ErrorKind::Other, "uv sync failed"));
     }
 
-
+    // Figure out if there is a hooks section in the config
     let hooks = if config.hooks.is_some() {
         debug_println!("[runner.run_extracted_project] - Hooks found in project config");
         config.hooks.unwrap()
@@ -82,6 +80,7 @@ pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
     let pre_hook = hooks.pre_run.unwrap();
     let post_hook = hooks.post_run.unwrap();
 
+    // Run pre-hook if specified
     if !pre_hook.is_empty() {
         let status = Command::new(&uv_path)
             .arg("run")
@@ -93,6 +92,7 @@ pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
         }
     }
 
+    // Run the main application
     let status = Command::new(&uv_path)
         .arg("run")
         .arg(entrypoint)
@@ -102,6 +102,7 @@ pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
         return Err(std::io::Error::new(std::io::ErrorKind::Other, "Main application failed"));
     }
 
+    // Run post-hook if specified
     if !post_hook.is_empty() {
         let status = Command::new(&uv_path)
             .arg("run")
@@ -113,6 +114,21 @@ pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
         }
     }
 
+    Ok(())
+}
+
+
+
+fn main() -> io::Result<()> {
+    // Example usage of run_extracted_project
+    let path = extract::extract_payload(true);
+    if path.is_none() {
+        eprintln!("Failed to extract payload");
+        std::process::exit(1);
+    }
+    let project_dir = path.unwrap();
+
+    run_extracted_project(&project_dir)?;
     Ok(())
 }
 

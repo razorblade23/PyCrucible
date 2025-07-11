@@ -107,11 +107,29 @@ impl Default for SourceConfig {
     }
 }
 
+#[derive(serde::Serialize, Debug, Deserialize, Clone)]
+pub struct ToolOptions {
+    pub extract_to_temp: bool,
+    pub delete_after_run: bool,
+    pub offline_mode: bool,
+}
+impl Default for ToolOptions {
+    fn default() -> Self {
+        ToolOptions {
+            extract_to_temp: false,
+            delete_after_run: false,
+            offline_mode: false,
+        }
+    }
+}
+
 
 #[derive(serde::Serialize, Debug, Deserialize)]
 pub struct ProjectConfig {
     #[serde(flatten)]
     pub package: PackageConfig,
+    #[serde(default)]
+    pub options: Option<ToolOptions>,
     #[serde(default)]
     pub source: Option<SourceConfig>,
     #[serde(default)]
@@ -161,6 +179,7 @@ impl Default for ProjectConfig {
                     ],
                 },
             },
+            options: None,
             source: None,
             uv: None,
             env: None,
