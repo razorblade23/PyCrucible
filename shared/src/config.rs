@@ -109,6 +109,7 @@ impl Default for SourceConfig {
 
 #[derive(serde::Serialize, Debug, Deserialize, Clone)]
 pub struct ToolOptions {
+    pub debug: bool,
     pub extract_to_temp: bool,
     pub delete_after_run: bool,
     pub offline_mode: bool,
@@ -116,6 +117,7 @@ pub struct ToolOptions {
 impl Default for ToolOptions {
     fn default() -> Self {
         ToolOptions {
+            debug: false,
             extract_to_temp: false,
             delete_after_run: false,
             offline_mode: false,
@@ -129,7 +131,7 @@ pub struct ProjectConfig {
     #[serde(flatten)]
     pub package: PackageConfig,
     #[serde(default)]
-    pub options: Option<ToolOptions>,
+    pub options: ToolOptions,
     #[serde(default)]
     pub source: Option<SourceConfig>,
     #[serde(default)]
@@ -179,7 +181,7 @@ impl Default for ProjectConfig {
                     ],
                 },
             },
-            options: None,
+            options: ToolOptions::default(),
             source: None,
             uv: None,
             env: None,

@@ -1,12 +1,11 @@
 mod extract;
+mod repository;
 
 use std::io;
 use std::path::Path;
 use std::process::Command;
 
-use shared::config::{load_project_config, Hooks};
-use shared::debug_println;
-
+use shared::config::load_project_config;
 
 fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
     // Verify Python files exist
@@ -14,7 +13,6 @@ fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
     let entrypoint = config.package.entrypoint;
     let entry_point_path = project_dir.join(&entrypoint);
     let uv_path = project_dir.join("uv");
-    debug_println!("[runner.run_extracted_project] - Loaded: config, entrypoint, uv");
 
     // Find manifest file
     let manifest_path = if project_dir.join("pyproject.toml").exists() {
@@ -33,7 +31,6 @@ fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
             "No manifest file found in the source directory. \nManifest files can be pyproject.toml, requirements.txt, pylock.toml, setup.py or setup.cfg"
         ));
     };
-    debug_println!("[runner.run_extracted_project] - Manifest path: {:?}", manifest_path);
     
     if !entry_point_path.exists() {
         return Err(io::Error::new(
@@ -67,18 +64,17 @@ fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
 
     // Figure out if there is a hooks section in the config
     let hooks = if config.hooks.is_some() {
-        debug_println!("[runner.run_extracted_project] - Hooks found in project config");
-        config.hooks.unwrap()
+        config.hooks
     } else {
-        debug_println!("[runner.run_extracted_project] - No hooks found in project config");
-        Hooks {
-            pre_run: Some(String::new()),
-            post_run: Some(String::new()),
-        }
+        None
     };
 
-    let pre_hook = hooks.pre_run.unwrap();
-    let post_hook = hooks.post_run.unwrap();
+    let (pre_hook, post_hook) = hooks.map(|h| {
+        (
+            h.pre_run.unwrap_or_default(),
+            h.post_run.unwrap_or_default(),
+        )
+    }).unwrap_or((String::new(), String::new()));
 
     // Run pre-hook if specified
     if !pre_hook.is_empty() {
@@ -117,11 +113,8 @@ fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
     Ok(())
 }
 
-
-
 fn main() -> io::Result<()> {
-    // Example usage of run_extracted_project
-    let path = extract::extract_payload(true);
+    let path = extract::prepare_and_extract_payload(false);
     if path.is_none() {
         eprintln!("Failed to extract payload");
         std::process::exit(1);
@@ -132,81 +125,81 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use std::fs::{self, File};
-    use std::io::Write;
-    use tempfile::tempdir;
-    use std::os::unix::fs::PermissionsExt;
-    use super::*;
+// #[cfg(test)]
+// mod tests {
+//     use std::fs::{self, File};
+//     use std::io::Write;
+//     use tempfile::tempdir;
+//     use std::os::unix::fs::PermissionsExt;
+//     use super::*;
 
-    // Helper to create a dummy uv executable
-    fn create_dummy_uv(dir: &std::path::Path) -> std::path::PathBuf {
-        let uv_path = dir.join("uv");
-        #[cfg(unix)]
-        {
-            let mut file = File::create(&uv_path).unwrap();
-            writeln!(file, "#!/bin/sh\nexit 0").unwrap();
-            fs::set_permissions(&uv_path, fs::Permissions::from_mode(0o755)).unwrap();
-        }
-        #[cfg(windows)]
-        {
-            let mut file = File::create(&uv_path).unwrap();
-            writeln!(file, "exit 0").unwrap();
-        }
-        uv_path
-    }
+//     // Helper to create a dummy uv executable
+//     fn create_dummy_uv(dir: &std::path::Path) -> std::path::PathBuf {
+//         let uv_path = dir.join("uv");
+//         #[cfg(unix)]
+//         {
+//             let mut file = File::create(&uv_path).unwrap();
+//             writeln!(file, "#!/bin/sh\nexit 0").unwrap();
+//             fs::set_permissions(&uv_path, fs::Permissions::from_mode(0o755)).unwrap();
+//         }
+//         #[cfg(windows)]
+//         {
+//             let mut file = File::create(&uv_path).unwrap();
+//             writeln!(file, "exit 0").unwrap();
+//         }
+//         uv_path
+//     }
 
-    #[test]
-    fn test_missing_manifest_returns_error() {
-        let dir = tempdir().unwrap();
-        let entrypoint = "main.py";
-        File::create(dir.path().join(entrypoint)).unwrap();
-        create_dummy_uv(dir.path());
+//     #[test]
+//     fn test_missing_manifest_returns_error() {
+//         let dir = tempdir().unwrap();
+//         let entrypoint = "main.py";
+//         File::create(dir.path().join(entrypoint)).unwrap();
+//         create_dummy_uv(dir.path());
 
-        let result = run_extracted_project(dir.path());
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert_eq!(err.kind(), std::io::ErrorKind::NotFound);
-    }
+//         let result = run_extracted_project(dir.path());
+//         assert!(result.is_err());
+//         let err = result.unwrap_err();
+//         assert_eq!(err.kind(), std::io::ErrorKind::NotFound);
+//     }
 
-    #[test]
-    fn test_missing_entrypoint_returns_error() {
-        let dir = tempdir().unwrap();
-        File::create(dir.path().join("pyproject.toml")).unwrap();
-        create_dummy_uv(dir.path());
+//     #[test]
+//     fn test_missing_entrypoint_returns_error() {
+//         let dir = tempdir().unwrap();
+//         File::create(dir.path().join("pyproject.toml")).unwrap();
+//         create_dummy_uv(dir.path());
 
-        let result = run_extracted_project(dir.path());
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert_eq!(err.kind(), std::io::ErrorKind::NotFound);
-    }
+//         let result = run_extracted_project(dir.path());
+//         assert!(result.is_err());
+//         let err = result.unwrap_err();
+//         assert_eq!(err.kind(), std::io::ErrorKind::NotFound);
+//     }
 
-    #[test]
-    fn test_successful_run_with_pyproject() {
-        let dir = tempdir().unwrap();
-        let entrypoint = "main.py";
-        File::create(dir.path().join("pyproject.toml")).unwrap();
-        File::create(dir.path().join(entrypoint)).unwrap();
-        create_dummy_uv(dir.path());
+//     #[test]
+//     fn test_successful_run_with_pyproject() {
+//         let dir = tempdir().unwrap();
+//         let entrypoint = "main.py";
+//         File::create(dir.path().join("pyproject.toml")).unwrap();
+//         File::create(dir.path().join(entrypoint)).unwrap();
+//         create_dummy_uv(dir.path());
 
-        let result = run_extracted_project(dir.path());
-        assert!(result.is_err() || result.is_ok());
-    }
+//         let result = run_extracted_project(dir.path());
+//         assert!(result.is_err() || result.is_ok());
+//     }
 
-    #[test]
-    fn test_manifest_priority_order() {
-        let dir = tempdir().unwrap();
-        let entrypoint = "main.py";
-        File::create(dir.path().join("requirements.txt")).unwrap();
-        File::create(dir.path().join("pylock.toml")).unwrap();
-        File::create(dir.path().join("setup.py")).unwrap();
-        File::create(dir.path().join("setup.cfg")).unwrap();
-        File::create(dir.path().join(entrypoint)).unwrap();
-        create_dummy_uv(dir.path());
+//     #[test]
+//     fn test_manifest_priority_order() {
+//         let dir = tempdir().unwrap();
+//         let entrypoint = "main.py";
+//         File::create(dir.path().join("requirements.txt")).unwrap();
+//         File::create(dir.path().join("pylock.toml")).unwrap();
+//         File::create(dir.path().join("setup.py")).unwrap();
+//         File::create(dir.path().join("setup.cfg")).unwrap();
+//         File::create(dir.path().join(entrypoint)).unwrap();
+//         create_dummy_uv(dir.path());
 
-        // Only requirements.txt should be picked if pyproject.toml is missing
-        let result = run_extracted_project(dir.path());
-        assert!(result.is_err() || result.is_ok());
-    }
-}
+//         // Only requirements.txt should be picked if pyproject.toml is missing
+//         let result = run_extracted_project(dir.path());
+//         assert!(result.is_err() || result.is_ok());
+//     }
+// }

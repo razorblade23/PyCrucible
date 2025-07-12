@@ -1,13 +1,17 @@
 pub mod config;
-pub mod payload;
-pub mod repository;
-pub mod spinner_utils;
-pub mod uv_handler;
+pub mod spinner;
 pub mod debuging;
+pub mod cli;
+pub mod footer;
 
 pub use config::*;
-pub use payload::*;
-pub use repository::*;
-pub use spinner_utils::*;
-pub use uv_handler::*;
+pub use spinner::*;
 pub use debuging::*;
+pub use footer::{PayloadInfo, FOOTER_SIZE};
+pub use cli::Cli;
+
+pub static PYCRUCIBLE_RUNNER_NAME: &str = if cfg!(target_os = "windows") {
+    "pycrucible_runner.exe"
+} else {
+    "pycrucible_runner"
+};

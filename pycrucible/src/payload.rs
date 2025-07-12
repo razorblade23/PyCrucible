@@ -1,52 +1,35 @@
 use std::fs::{self, OpenOptions};
-use std::io::{self, Read, Write, Seek, SeekFrom, Cursor};
+use std::io::{self, Write, Seek, SeekFrom, Cursor};
 use std::path::{Path, PathBuf};
 use zip::{write::FileOptions, ZipWriter};
 use crate::config;
-use crate::uv_handler::download_binary_and_unpack;
-use crate::uv_handler::CrossTarget;
 use crate::debug_println;
+use crate::uv_handler::find_or_download_uv;
+use shared::footer::{FOOTER_SIZE, MAGIC_BYTES};
+use shared::PYCRUCIBLE_RUNNER_NAME;
 
-pub const FOOTER_SIZE: usize = 16;
-pub const MAGIC_BYTES: &[u8] = b"PYCR";
 
-#[derive(Debug)]
-pub struct PayloadInfo {
-    pub offset: u64
-}
-
-pub fn read_footer() -> io::Result<PayloadInfo> {
-    #[cfg(not(target_os = "windows"))]
-    let exe_path = std::env::current_exe()?.parent().unwrap().join("runner");
-    #[cfg(target_os = "windows")]
-    let exe_path = std::env::current_exe()?.parent().unwrap().join("runner.exe");
-
-    let mut file = fs::File::open(exe_path)?;
-    let file_size = file.metadata()?.len();
-    
-    if file_size < FOOTER_SIZE as u64 {
-        return Err(io::Error::new(io::ErrorKind::InvalidData, "No footer found"));
-    }
-    
-    // Read footer
-    let mut footer = [0u8; FOOTER_SIZE];
-    file.seek(SeekFrom::End(-(FOOTER_SIZE as i64)))?;
-    file.read_exact(&mut footer)?;
-
-    // Validate magic bytes
-    if &footer[0..4] != MAGIC_BYTES {
-        return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid magic bytes"));
-    }
-
-    // Extract offset (8 bytes)
-    let offset = u64::from_le_bytes(footer[4..12].try_into().unwrap());
-
-    Ok(PayloadInfo { offset })
+pub fn find_manifest_file(source_dir: &Path) -> PathBuf  {
+    let manifest_path = if source_dir.join("pyproject.toml").exists() {
+        source_dir.join("pyproject.toml")
+    } else if source_dir.join("requirements.txt").exists() {
+        source_dir.join("requirements.txt")
+    } else if source_dir.join("pylock.toml").exists() {
+        source_dir.join("pylock.toml")
+    } else if source_dir.join("setup.py").exists() {
+        source_dir.join("setup.py")
+    } else if source_dir.join("setup.cfg").exists() {
+        source_dir.join("setup.cfg")
+    } else {
+        eprintln!("No manifest file found in the source directory. \nManifest files can be pyproject.toml, requirements.txt, pylock.toml, setup.py or setup.cfg");
+        source_dir.join("") // Default to empty string if none found;
+    };
+    manifest_path
 }
 
 pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_config: config::ProjectConfig, uv_path: PathBuf, output_path: &Path) -> io::Result<()> {
-    let current_exe = std::env::current_exe()?;
-    fs::copy(&current_exe, output_path)?;
+    let runner_binary = std::env::current_exe()?.parent().unwrap().join(PYCRUCIBLE_RUNNER_NAME);
+    fs::copy(&runner_binary, output_path)?;
     debug_println!("[payload.embed_payload] - Copied itself to output path");
 
     // Create a memory buffer for the ZIP
@@ -66,7 +49,7 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
     debug_println!("[payload.embed_payload] - Zip finalized");
 
     // Open output file in append mode (the copied executable)
-    let mut file = OpenOptions::new()
+    let mut file: fs::File = OpenOptions::new()
         .write(true)
         .append(true)
         .open(output_path)?;
@@ -81,51 +64,9 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
     let mut footer = Vec::with_capacity(FOOTER_SIZE);
     footer.extend_from_slice(MAGIC_BYTES);
     footer.extend_from_slice(&offset.to_le_bytes());
-    footer.extend_from_slice(&(payload.len() as u32).to_le_bytes());
 
     file.write_all(&footer)?;
 
-    Ok(())
-}
-
-fn find_or_download_uv(uv_path: PathBuf, zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>, options: FileOptions<'_, ()>) -> Result<(), io::Error> {
-    debug_println!("[payload.embed_payload] - Looking for uv");
-    let exe_dir = std::env::current_exe()?.parent().unwrap().to_path_buf();
-    let local_uv = if uv_path.exists() {
-        debug_println!("[payload.embed_payload] - uv found at specified path, using it");
-        uv_path
-    } else {
-        // Try to find uv in system PATH
-        if let Some(path) = which::which("uv").ok() {
-            debug_println!("[payload.embed_payload] - uv found in system PATH at {:?}", path);
-            path
-        } else {
-            debug_println!("[payload.embed_payload] - uv not found in system PATH, looking for local uv");
-            exe_dir.join("uv")
-        }
-    };
-    let uv_path = if local_uv.exists() {
-        debug_println!("[payload.embed_payload] - uv found locally, using it");
-        local_uv
-    } else {
-        // Download `uv` and copy it to zip
-        debug_println!("[payload.embed_payload] - uv not found locally, downloading ...");
-        let target: Option<CrossTarget> = None; // We're running locally
-        download_binary_and_unpack(target)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?
-    };
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs::metadata(&uv_path)?.permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(&uv_path, perms)?;
-        debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
-    }
-    zip.start_file("uv", options)?;
-    let mut uv_file = fs::File::open(&uv_path)?;
-    io::copy(&mut uv_file, zip)?;
-    debug_println!("[payload.embed_payload] - Added uv to zip");
     Ok(())
 }
 
@@ -161,54 +102,7 @@ fn copy_source_to_zip(source_files: &[PathBuf], manifest_path: &Path, zip: &mut 
     Ok(())
 }
 
-pub fn extract_payload(info: &PayloadInfo, target_dir: &Path) -> io::Result<()> {
-    let exe_path = std::env::current_exe()?;
-    let mut file = fs::File::open(exe_path)?;
-    
-    // Determine the size of the payload
-    let mut footer = [0u8; FOOTER_SIZE];
-    file.seek(SeekFrom::End(-(FOOTER_SIZE as i64)))?;
-    file.read_exact(&mut footer)?;
-    let size = u32::from_le_bytes(footer[12..16].try_into().unwrap());
-    let info = PayloadInfo { offset: info.offset };
 
-    // Read payload
-    file.seek(SeekFrom::Start(info.offset))?;
-    let mut payload_data = vec![0u8; size as usize];
-    file.read_exact(&mut payload_data)?;
-
-    // Extract payload
-    let reader = std::io::Cursor::new(payload_data);
-    let mut archive = zip::ZipArchive::new(reader)?;
-    
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)?;
-        let outpath = target_dir.join(file.name());
-        
-        if let Some(parent) = outpath.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        
-        let mut outfile = fs::File::create(&outpath)?;
-        std::io::copy(&mut file, &mut outfile)?;
-
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let mut perms = fs::metadata(&outpath)?.permissions();
-            // Set execute permission for UV binary
-            if file.name().contains("uv") && !file.name().ends_with("/") {
-                perms.set_mode(0o755);
-            } else {
-                // Set read/write permissions for Python files
-                perms.set_mode(0o644);
-            }
-            fs::set_permissions(&outpath, perms)?;
-        }
-    }
-
-    Ok(())
-}
 
 // #[cfg(test)]
 // mod tests {

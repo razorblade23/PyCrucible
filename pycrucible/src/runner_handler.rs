@@ -1,20 +1,15 @@
 use std::env;
 use std::fs;
-use std::io::{self, Write};
-use std::path::{Path, PathBuf};
+use std::io;
+use std::path::PathBuf;
 use std::os::unix::fs::PermissionsExt;
+use shared::PYCRUCIBLE_RUNNER_NAME;
 
 
 const RUNNER_GITHUB_OWNER: &str = "razorblade23";
 const RUNNER_GITHUB_REPO: &str = "PyCrucible";
-const RUNNER_VERSION: &str = "v0.3.0"; // Change as needed
+const RUNNER_VERSION: &str = "v0.3.0";
 
-
-
-#[cfg(target_os = "windows")]
-const RUNNER_NAME: &str = "pycr_runner.exe";
-#[cfg(not(target_os = "windows"))]
-const RUNNER_NAME: &str = "pycr_runner";
 
 fn get_executable_dir() -> io::Result<PathBuf> {
     let exe_path = env::current_exe()?;
@@ -22,7 +17,7 @@ fn get_executable_dir() -> io::Result<PathBuf> {
 }
 
 fn runner_path() -> io::Result<PathBuf> {
-    Ok(get_executable_dir()?.join(RUNNER_NAME))
+    Ok(get_executable_dir()?.join(PYCRUCIBLE_RUNNER_NAME))
 }
 
 pub fn is_runner_present() -> bool {
@@ -30,16 +25,9 @@ pub fn is_runner_present() -> bool {
 }
 
 fn github_runner_url() -> String {
-    let asset_name = if cfg!(target_os = "windows") {
-        "pycr_runner.exe"
-    } else if cfg!(target_os = "macos") {
-        "pycr_runner_macos"
-    } else {
-        "pycr_runner"
-    };
     format!(
         "https://github.com/{}/{}/releases/download/{}/{}",
-        GITHUB_OWNER, GITHUB_REPO, RUNNER_VERSION, asset_name
+        RUNNER_GITHUB_OWNER, RUNNER_GITHUB_REPO, RUNNER_VERSION, PYCRUCIBLE_RUNNER_NAME
     )
 }
 
@@ -69,7 +57,7 @@ pub fn ensure_runner_present() -> Result<(), Box<dyn std::error::Error>> {
     if !is_runner_present() {
         println!("pycr_runner not found, downloading...");
         download_runner()?;
-        println!("pycr_runner downloaded.");
+        println!("pycr_runner downloaded.");    
     }
     Ok(())
 }
