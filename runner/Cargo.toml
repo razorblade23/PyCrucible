@@ -10,10 +10,3 @@ toml = "0.8"
 zip = { version = "3", default-features = false }
 tempfile = "3"
 git2 = { version = "0.20", default-features = false, features = ["https"] }
-
-[profile.release]
-strip = true
-opt-level = "z"
-lto = true
-codegen-units = 1
-panic = "abort"

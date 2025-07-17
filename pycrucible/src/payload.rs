@@ -2,11 +2,10 @@ use std::fs::{self, OpenOptions};
 use std::io::{self, Write, Seek, SeekFrom, Cursor};
 use std::path::{Path, PathBuf};
 use zip::{write::FileOptions, ZipWriter};
-use crate::config;
+use crate::{config, runner_handler};
 use crate::debug_println;
 use crate::uv_handler::find_or_download_uv;
 use shared::footer::{FOOTER_SIZE, MAGIC_BYTES};
-use shared::PYCRUCIBLE_RUNNER_NAME;
 
 
 pub fn find_manifest_file(source_dir: &Path) -> PathBuf  {
@@ -28,9 +27,8 @@ pub fn find_manifest_file(source_dir: &Path) -> PathBuf  {
 }
 
 pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_config: config::ProjectConfig, uv_path: PathBuf, output_path: &Path) -> io::Result<()> {
-    let runner_binary = std::env::current_exe()?.parent().unwrap().join(PYCRUCIBLE_RUNNER_NAME);
-    fs::copy(&runner_binary, output_path)?;
-    debug_println!("[payload.embed_payload] - Copied itself to output path");
+    let _ = runner_handler::extract_runner(output_path)?;
+    debug_println!("[payload.embed_payload] - Runner extracted to output path");
 
     // Create a memory buffer for the ZIP
     let mut cursor = Cursor::new(Vec::new());

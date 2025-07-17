@@ -3,6 +3,7 @@ mod payload;
 mod uv_handler;
 mod runner_handler;
 
+use std::format;
 use shared::Cli;
 use shared::spinner::{create_spinner_with_message, stop_and_persist_spinner_with_message};
 use std::io;
@@ -68,15 +69,6 @@ fn main() -> io::Result<()> {
         std::process::exit(1);
     }
     debug_println!("[main] - Payload path: {:?} | Output path: {:?} | Manifest path: {:?}", payload_path, output_path, manifest_path);
-    
-    // Now to take care of runner binary
-    let runner_present = runner_handler::ensure_runner_present();
-    if runner_present.is_err() {
-        eprintln!("Failed to ensure runner presence: {:?}", runner_present.err());
-        std::process::exit(1);
-    }
-    debug_println!("[main] - Runner is present");
-
 
     // Embed the project and create new binary
     embed_source(&payload_path, &output_path, cli.uv_path)?;
