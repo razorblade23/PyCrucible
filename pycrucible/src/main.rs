@@ -1,7 +1,7 @@
 mod project;
 mod payload;
 mod uv_handler;
-mod runner_handler;
+mod runner;
 
 use std::format;
 use shared::Cli;

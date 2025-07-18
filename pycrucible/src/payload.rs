@@ -2,7 +2,7 @@ use std::fs::{self, OpenOptions};
 use std::io::{self, Write, Seek, SeekFrom, Cursor};
 use std::path::{Path, PathBuf};
 use zip::{write::FileOptions, ZipWriter};
-use crate::{config, runner_handler};
+use crate::{config, runner};
 use crate::debug_println;
 use crate::uv_handler::find_or_download_uv;
 use shared::footer::{FOOTER_SIZE, MAGIC_BYTES};
@@ -27,7 +27,7 @@ pub fn find_manifest_file(source_dir: &Path) -> PathBuf  {
 }
 
 pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_config: config::ProjectConfig, uv_path: PathBuf, output_path: &Path) -> io::Result<()> {
-    let _ = runner_handler::extract_runner(output_path)?;
+    let _ = runner::extract_runner(output_path)?;
     debug_println!("[payload.embed_payload] - Runner extracted to output path");
 
     // Create a memory buffer for the ZIP

@@ -7,7 +7,7 @@ const RUNNER_BIN: &[u8] = include_bytes!("../../target/release/pycrucible_runner
 #[cfg(not(target_os = "windows"))]
 const RUNNER_BIN: &[u8] = include_bytes!("../../target/release/pycrucible_runner");
 
-pub fn  extract_runner(output_path: &Path) -> io::Result<()> {
+pub fn extract_runner(output_path: &Path) -> io::Result<()> {
     std::fs::write(&output_path, RUNNER_BIN)?;
     // Set executable permissions on Unix
     #[cfg(unix)]
