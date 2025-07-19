@@ -5,7 +5,6 @@ use zip::{write::FileOptions, ZipWriter};
 use crate::{config, runner};
 use crate::debug_println;
 use crate::uv_handler::find_or_download_uv;
-use shared::footer::{FOOTER_SIZE, MAGIC_BYTES};
 
 
 pub fn find_manifest_file(source_dir: &Path) -> PathBuf  {
@@ -37,7 +36,7 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
 
     copy_source_to_zip(source_files, manifest_path, &mut zip, options)?;
 
-    create_pycrucible_config_file(project_config, &mut zip, options)?;
+    create_pycrucible_config_file(&project_config, &mut zip, options)?;
 
     find_or_download_uv(uv_path, &mut zip, options)?;
 
@@ -58,17 +57,18 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
     // Write payload
     file.write_all(&payload)?;
 
-    // Create and write footer
-    let mut footer = Vec::with_capacity(FOOTER_SIZE);
-    footer.extend_from_slice(MAGIC_BYTES);
-    footer.extend_from_slice(&offset.to_le_bytes());
-
+    
+    // Write footer
+    let footer = shared::footer::create_footer(
+        project_config.options.extract_to_temp, 
+        offset
+    );
     file.write_all(&footer)?;
 
     Ok(())
 }
 
-fn create_pycrucible_config_file(project_config: config::ProjectConfig, zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>, options: FileOptions<'_, ()>) -> Result<(), io::Error> {
+fn create_pycrucible_config_file(project_config: &config::ProjectConfig, zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>, options: FileOptions<'_, ()>) -> Result<(), io::Error> {
     let project_config_toml = toml::to_string(&project_config)
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
     let mut pycrucible_file = Cursor::new(project_config_toml);

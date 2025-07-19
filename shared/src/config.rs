@@ -109,9 +109,13 @@ impl Default for SourceConfig {
 
 #[derive(serde::Serialize, Debug, Deserialize, Clone)]
 pub struct ToolOptions {
+    #[serde(default)]
     pub debug: bool,
+    #[serde(default)]
     pub extract_to_temp: bool,
+    #[serde(default)]
     pub delete_after_run: bool,
+    #[serde(default)]
     pub offline_mode: bool,
 }
 impl Default for ToolOptions {
@@ -156,11 +160,11 @@ impl ProjectConfig {
         let tbl = doc.get("tool")
             .and_then(|t| t.get("pycrucible"))
             .ok_or("no [tool.pycrucible] section")?;
-
         // Re-serialize just that sub-table so we can leverage
         // the existing `ProjectConfig` derive.
         let slice = toml::to_string(tbl).map_err(|e| e.to_string())?;
-        toml::from_str(&slice).map_err(|e| e.to_string())
+        let config = toml::from_str(&slice).map_err(|e| e.to_string());
+        config
     }
 }
 

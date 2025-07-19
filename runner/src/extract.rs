@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use shared::config::load_project_config;
 use shared::footer::PayloadInfo;
 use crate::repository::RepositoryHandler;
+use tempfile::tempdir;
 
 
 fn extract_from_binary(info: &PayloadInfo) -> Option<Vec<u8>> {
@@ -67,7 +68,7 @@ fn extract_payload(info: &PayloadInfo, target_dir: &Path) -> io::Result<()> {
 }
 
 
-pub fn prepare_and_extract_payload(create_temp_dir: bool) -> Option<PathBuf> {
+pub fn prepare_and_extract_payload() -> Option<PathBuf> {
     const PAYLOAD_NAME: &str = "pycrucible_payload";
     let payload_info = shared::footer::read_footer();
     if let Err(e) = payload_info {
@@ -75,11 +76,10 @@ pub fn prepare_and_extract_payload(create_temp_dir: bool) -> Option<PathBuf> {
         return None;
     }
 
-    let project_dir = if create_temp_dir {
-        // Creating temp directory
-        let temp_dir = std::env::temp_dir().join(PAYLOAD_NAME);
-        fs::create_dir_all(&temp_dir).ok()?;
-        temp_dir
+    let extract_to_temp = payload_info.as_ref().unwrap().extraction_flag;
+
+    let project_dir = if extract_to_temp {
+        tempdir().unwrap().into_path().join(PAYLOAD_NAME)
     } else {
         let exe_path = std::env::current_exe().ok()?;
         let current_dir = exe_path.parent().unwrap().join(PAYLOAD_NAME);

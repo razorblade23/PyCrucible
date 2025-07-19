@@ -2,9 +2,11 @@
 entrypoint = "src/main.py"
 
 # Optional
-[tool]
-extract_to_temp = true
-delete_after_run = false
+[options]
+debug: false
+extract_to_temp: false
+delete_after_run: false
+offline_mode: false
 
 # Optional
 [source]
