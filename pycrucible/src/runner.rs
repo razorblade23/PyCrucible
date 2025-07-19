@@ -2,10 +2,7 @@ use crate::debug_println;
 use std::path::Path;
 use std::io;
 
-#[cfg(target_os = "windows")]
-const RUNNER_BIN: &[u8] = include_bytes!("../../target/release/pycrucible_runner.exe");
-#[cfg(not(target_os = "windows"))]
-const RUNNER_BIN: &[u8] = include_bytes!("../../target/release/pycrucible_runner");
+const RUNNER_BIN: &[u8] = include!(concat!(env!("OUT_DIR"), "/runner_bin.rs"));
 
 pub fn extract_runner(output_path: &Path) -> io::Result<()> {
     std::fs::write(&output_path, RUNNER_BIN)?;
