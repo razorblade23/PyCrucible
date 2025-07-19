@@ -2,7 +2,12 @@ use crate::debug_println;
 use std::path::Path;
 use std::io;
 
+#[cfg(not(rust_analyzer))]
 include!(concat!(env!("OUT_DIR"), "/runner_bin.rs"));
+
+// fallback stub for VSCode
+#[cfg(rust_analyzer)]
+pub const RUNNER_BIN: &[u8] = b"";
 
 pub fn extract_runner(output_path: &Path) -> io::Result<()> {
     std::fs::write(&output_path, RUNNER_BIN)?;

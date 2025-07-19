@@ -3,48 +3,52 @@ use std::fs;
 use std::path::PathBuf;
 
 fn main() {
-    // Target triple, e.g., aarch64-apple-darwin
-    let target = env::var("TARGET").expect("Missing TARGET env var");
-    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("Missing CARGO_MANIFEST_DIR"));
+    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let profile = env::var("PROFILE").unwrap(); // "release" or "debug"
 
-    // Determine correct filename based on OS
-    let bin_name = if target.contains("windows") {
+    let target_env = env::var("CARGO_BUILD_TARGET").ok();
+    let target = target_env.as_deref().unwrap_or("");
+
+    let bin_name = if cfg!(windows) {
         "pycrucible_runner.exe"
     } else {
         "pycrucible_runner"
     };
 
-    // Construct absolute path to runner binary
-    let runner_path = manifest_dir
-        .join("..")               // into workspace root
-        .join("target")
-        .join(&target)
-        .join("release")
-        .join(bin_name);
+    // Determine path to runner binary
+    let runner_path = if !target.is_empty() {
+        // cross-compiled (e.g., in CI)
+        manifest_dir
+            .join("..")
+            .join("target")
+            .join(target)
+            .join(&profile)
+            .join(bin_name)
+    } else {
+        // local dev build
+        manifest_dir
+            .join("..")
+            .join("target")
+            .join(&profile)
+            .join(bin_name)
+    };
 
-    // Ensure it exists before continuing
     if !runner_path.exists() {
-        panic!(
-            "[build.rs] Expected runner binary not found at: {}.\nMake sure 'pycrucible_runner' is built first.",
-            runner_path.display()
-        );
+        panic!("Please build pycrucible_runner first.");
     }
 
-    // Escape the full path for `include_bytes!` (we use raw string syntax)
-    let runner_path_str = runner_path.to_str().expect("Path contains invalid UTF-8");
+    let runner_path_str = runner_path.to_str().expect("Path not UTF-8");
 
-    // Write the generated file into OUT_DIR
-    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("Missing OUT_DIR env var"));
-    let dest = out_dir.join("runner_bin.rs");
-
+    let dest_file = out_dir.join("runner_bin.rs");
     fs::write(
-        &dest,
+        &dest_file,
         format!(
-            r#"pub const RUNNER_BIN: &[u8] = include_bytes!(r"{runner_path}");"#,
-            runner_path = runner_path_str
+            r#"pub const RUNNER_BIN: &[u8] = include_bytes!(r"{path}");"#,
+            path = runner_path_str,
         ),
-    ).expect("Failed to write runner_bin.rs");
+    )
+    .expect("Failed to write runner_bin.rs");
 
-    // Tell Cargo to re-run this script if the runner binary changes
-    println!("cargo:rerun-if-changed={}", runner_path_str);
+    println!("cargo:rerun-if-changed={}", runner_path.display());
 }
