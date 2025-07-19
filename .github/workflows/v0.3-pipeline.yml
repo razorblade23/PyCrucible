@@ -1,0 +1,160 @@
+name: Build and Smoke test PyCrucible v0.3.x
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+    branches: [v0.3.0]
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Run Tests (linux/x64)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run tests
+        run: cargo test --verbose
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: test
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ----- Linux -----
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bin_ext: ""
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            bin_ext: ""
+          # ----- Windows -----
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin_ext: ".exe"
+          - runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            bin_ext: ".exe"
+          # ----- macOS -----
+          - runner: macos-13
+            target: x86_64-apple-darwin
+            bin_ext: ""
+          - runner: macos-14
+            target: aarch64-apple-darwin
+            bin_ext: ""
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build runner
+        run: cargo build --release -p pycrucible_runner --target ${{ matrix.target }}
+      - name: Build pycrucible
+        run: cargo build --release -p pycrucible --target ${{ matrix.target }}
+
+      - name: Package binary
+        shell: bash
+        run: |
+          VERSION=${{ github.ref_name }}
+          BIN_NAME=pycrucible${{ matrix.bin_ext }}
+          OUT_NAME=pycrucible_${VERSION}_${{ matrix.target }}${{ matrix.bin_ext }}
+          cp target/${{ matrix.target }}/release/$BIN_NAME $OUT_NAME
+          echo "OUT_NAME=$OUT_NAME" >> $GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.OUT_NAME }}
+          path: ${{ env.OUT_NAME }}
+
+  run_test_app:
+    name: Smoke Test PyCrucible
+    needs: build
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ----- Linux -----
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bin_ext: ""
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            bin_ext: ""
+          # ----- Windows -----
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin_ext: ".exe"
+          - runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            bin_ext: ".exe"
+          # ----- macOS -----
+          - runner: macos-13
+            target: x86_64-apple-darwin
+            bin_ext: ""
+          - runner: macos-14
+            target: aarch64-apple-darwin
+            bin_ext: ""
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Clone example project
+        run: git clone https://github.com/JamesParrott/simple-python-project-for-PyCrucible
+
+      - name: Copy PyCrucible binary into example project
+        shell: bash
+        run: cp ./pycrucible_*/* simple-python-project-for-PyCrucible
+
+      - name: Make binary executable (linux)
+        if: runner.os != 'Windows'
+        run: chmod +x simple-python-project-for-PyCrucible/pycrucible_*
+
+      - name: Run PyCrucible
+        working-directory: simple-python-project-for-PyCrucible
+        run: |
+          ./pycrucible_${{ github.ref_name }}_${{ matrix.target }}${{ matrix.bin_ext }} -e . -o cowsay${{ matrix.bin_ext }} --debug
+
+      - name: Smoke-test generated artifact
+        working-directory: simple-python-project-for-PyCrucible
+        run: ./cowsay${{ matrix.bin_ext }}
