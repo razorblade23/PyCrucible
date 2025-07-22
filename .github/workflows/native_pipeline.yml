@@ -86,8 +86,10 @@ jobs:
             target
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
+      - name: Build runner
+        run: cargo build --release -p pycrucible_runner --target ${{ matrix.target }}
+      - name: Build pycrucible
+        run: cargo build --release -p pycrucible --target ${{ matrix.target }}
 
       - name: Package binary
         shell: bash
