@@ -18,7 +18,7 @@ fn main() {
 
     // Determine path to runner binary
     let runner_path = if !target.is_empty() {
-        // cross-compiled (e.g., in CI)
+        println!("Using target: {}", target);
         manifest_dir
             .join("..")
             .join("target")
