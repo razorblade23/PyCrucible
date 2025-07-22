@@ -3,6 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 
 fn main() {
+    println!("cargo::rustc-check-cfg=cfg(rust_analyzer)");
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let profile = env::var("PROFILE").unwrap(); // "release" or "debug"

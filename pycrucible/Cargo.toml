@@ -3,6 +3,9 @@ name = "pycrucible"
 version = "0.3.0"
 edition = "2024"
 
+[package.metadata.rust-analyzer]
+cfg = ["rust_analyzer"]
+
 [dependencies]
 shared = { path = "../shared" }
 walkdir = "2.4"
