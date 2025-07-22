@@ -2,9 +2,10 @@ mod project;
 mod payload;
 mod uv_handler;
 mod runner;
+mod cli;
 
 use std::format;
-use shared::Cli;
+use cli::Cli;
 use shared::spinner::{create_spinner_with_message, stop_and_persist_spinner_with_message};
 use std::io;
 use std::path::Path;

@@ -1,7 +1,6 @@
 pub mod config;
 pub mod spinner;
 pub mod debuging;
-pub mod cli;
 pub mod footer;
 
 pub use config::*;
