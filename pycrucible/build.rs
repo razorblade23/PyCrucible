@@ -22,7 +22,7 @@ fn main() {
         manifest_dir
             .join("..")
             .join("target")
-            .join(target)
+            .join(&target)
             .join(&profile)
             .join(bin_name)
     } else {
