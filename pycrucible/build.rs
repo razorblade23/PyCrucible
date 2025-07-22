@@ -35,7 +35,7 @@ fn main() {
     };
 
     if !runner_path.exists() {
-        panic!("Please build pycrucible_runner first. Tried path: {}", runner_path.display());
+        panic!("Please build pycrucible_runner first. Tried path: {}, target: {}", runner_path.display(), target);
     }
 
     let runner_path_str = runner_path.to_str().expect("Path not UTF-8");
