@@ -7,7 +7,7 @@ fn main() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let profile = env::var("PROFILE").unwrap(); // "release" or "debug"
 
-    let target_env = env::var("CARGO_BUILD_TARGET").ok();
+    let target_env = env::var("TARGET").ok();
     let target = target_env.as_deref().unwrap_or("");
 
     let bin_name = if cfg!(windows) {
