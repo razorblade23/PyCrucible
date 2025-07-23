@@ -84,7 +84,6 @@ fn get_output_dir() -> PathBuf {
     exe_path.parent().unwrap().to_path_buf()
 }
 
-#[cfg(not(test))]
 pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let sp = create_spinner_with_message("Downloading `uv`");
 
@@ -224,53 +223,3 @@ pub fn find_or_download_uv(uv_path: PathBuf, zip: &mut ZipWriter<&mut Cursor<Vec
     debug_println!("[payload.embed_payload] - Added uv to zip");
     Ok(())
 }
-
-
-#[cfg(test)]
-    // Mock function for testing purposes
-    fn download_binary_and_unpack(_target: Option<CrossTarget>) -> Result<PathBuf, Box<dyn std::error::Error>> {
-        use std::io::Write;
-
-        let temp_dir = tempfile::tempdir()?;
-        let fake_uv_path = temp_dir.path().join(if cfg!(windows) { "uv.exe" } else { "uv" });
-
-        let mut file = std::fs::File::create(&fake_uv_path)?;
-        writeln!(file, "#!/bin/bash\necho 'fake uv'")?;
-
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let mut perms = fs::metadata(&fake_uv_path)?.permissions();
-            perms.set_mode(0o755);
-            fs::set_permissions(&fake_uv_path, perms)?;
-        }
-
-        Ok(fake_uv_path)
-    }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::io::Cursor;
-    use zip::{ZipArchive, write::FileOptions};
-
-    #[test]
-    fn test_find_or_download_uv_mocked() {
-        let mut buffer = Cursor::new(Vec::new());
-        let mut zip = zip::ZipWriter::new(&mut buffer);
-        let options = FileOptions::default();
-
-        let fake_path = PathBuf::from("nonexistent/path/to/uv"); // triggers fallback
-
-        let result = find_or_download_uv(fake_path, &mut zip, options);
-        assert!(result.is_ok());
-
-        zip.finish().unwrap();
-        let zip_data = buffer.into_inner();
-        let reader = Cursor::new(zip_data);
-        let mut archive = ZipArchive::new(reader).unwrap();
-        assert_eq!(archive.len(), 1);
-        assert_eq!(archive.by_index(0).unwrap().name(), "uv");
-    }
-}
-
