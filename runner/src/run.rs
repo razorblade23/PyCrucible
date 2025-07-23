@@ -1,9 +1,9 @@
 use std::path::Path;
 use std::process::Command;
 use std::path::PathBuf;
-use std::io;
+use std::{self, io};
 
-use shared::config::load_project_config;
+use shared::config::{load_project_config, ProjectConfig};
 
 fn find_manifest_file(project_dir: &Path) -> io::Result<PathBuf> {
     let manifest_files = [
@@ -27,12 +27,59 @@ fn find_manifest_file(project_dir: &Path) -> io::Result<PathBuf> {
     ))
 }
 
+fn apply_env_from_config(config: &ProjectConfig) {
+    if let Some(env_config) = &config.env {
+        if let Some(vars) = &env_config.variables {
+            for (k, v) in vars {
+                unsafe { std::env::set_var(k, v) }; // Set env variables - not thread safe
+            }
+        }
+    }
+}
+
+fn prepare_hooks (config: &ProjectConfig) -> (String, String) {
+    // Figure out if there is a hooks section in the config
+    // Borrow the hooks if present
+    let hooks = config.hooks.as_ref();
+
+    let (pre_hook, post_hook) = hooks
+        .map(|h| (
+            h.pre_run.clone().unwrap_or_default(),
+            h.post_run.clone().unwrap_or_default(),
+        ))
+        .unwrap_or((String::new(), String::new()));
+
+    (pre_hook, post_hook)
+}
+
+fn run_uv_command(
+    project_dir: &Path,
+    command: &str,
+    args: &[&str],
+) -> io::Result<()> {
+    let uv_path = project_dir.join("uv");
+    let status = Command::new(&uv_path)
+        .arg(command)
+        .args(args)
+        .current_dir(project_dir)
+        .status()?;
+    
+    if !status.success() {
+        return Err(io::Error::new(
+            io::ErrorKind::Other,
+            format!("Command `uv {}` failed", command),
+        ));
+    }
+    
+    Ok(())
+}
+
+
 pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
     // Verify Python files exist
     let config = load_project_config(&project_dir.to_path_buf());
-    let entrypoint = config.package.entrypoint;
+    let entrypoint = &config.package.entrypoint;
     let entry_point_path = project_dir.join(&entrypoint);
-    let uv_path = project_dir.join("uv");
 
     // Find manifest file
     let manifest_path = find_manifest_file(project_dir)?;
@@ -44,78 +91,34 @@ pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
         ));
     }
 
-    // Create a virtual environment
-    let status = Command::new(&uv_path)
-        .arg("venv")
-        .arg("-qq")
-        .current_dir(&project_dir)
-        .status()?;
-    if !status.success() {
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, "uv sync failed"));
-    }
+    // Apply environment variables from config (unsafe but we are single-threaded so it should be fine)
+    apply_env_from_config(&config);
 
-    // Run uv pip sync with proper environment
-    let status = Command::new(&uv_path)
-        .arg("pip")
-        .arg("install")
-        .arg("-qq")
-        .arg("--requirements")
-        .arg(manifest_path)
-        .current_dir(&project_dir)
-        .status()?;
-    if !status.success() {
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, "uv sync failed"));
-    }
+    // Create virtual environment
+    let _venv = run_uv_command(project_dir, "venv", &["-qq"])?;
 
-    // Figure out if there is a hooks section in the config
-    let hooks = if config.hooks.is_some() {
-        config.hooks
-    } else {
-        None
-    };
-
-    let (pre_hook, post_hook) = hooks.map(|h| {
-        (
-            h.pre_run.unwrap_or_default(),
-            h.post_run.unwrap_or_default(),
-        )
-    }).unwrap_or((String::new(), String::new()));
+    // Sincronize the virtual environment with the manifest file
+    let _pip_sync = run_uv_command(project_dir, "pip", &["install", "-qq", "--requirements", manifest_path.to_str().unwrap()])?;
+    
+    // Grab the hooks from config and unwrap them to a tuple
+    let (pre_hook, post_hook) = prepare_hooks(&config);
+    
 
     // Run pre-hook if specified
     if !pre_hook.is_empty() {
-        let status = Command::new(&uv_path)
-            .arg("run")
-            .arg(pre_hook)
-            .current_dir(&project_dir)
-            .status()?;
-        if !status.success() {
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to run pre-hook"));
-        }
+        let _prehook = run_uv_command(project_dir, "run", &[pre_hook.as_str()])?;
     }
 
     // Run the main application
-    let status = Command::new(&uv_path)
-        .arg("run")
-        .arg(entrypoint)
-        .current_dir(&project_dir)
-        .status()?;
-    if !status.success() {
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, "Main application failed"));
-    }
+    let _main = run_uv_command(project_dir, "run", &[entrypoint])?;
+    
 
     // Run post-hook if specified
     if !post_hook.is_empty() {
-        let status = Command::new(&uv_path)
-            .arg("run")
-            .arg(post_hook)
-            .current_dir(&project_dir)
-            .status()?;
-        if !status.success() {
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, "Failed to run post-hook"));
-        }
+        let _prehook = run_uv_command(project_dir, "run", &[post_hook.as_str()])?;
     }
 
-    // Clean up if delete_after_run is set or extract_to_temp is true
+    // Clean up if delete_after_run is set or extract_to_temp is set
     if config.options.delete_after_run || config.options.extract_to_temp {
         if project_dir.exists() {
             std::fs::remove_dir_all(project_dir)?;
