@@ -31,3 +31,53 @@ pub struct Cli {
     #[arg(long, help="Enable debug output")]
     pub debug: bool,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+
+    #[test]
+    fn test_get_output_dir_contains_exe() {
+        let output_dir = get_output_dir();
+        let exe = env::current_exe().unwrap();
+        let expected_dir = exe.parent().unwrap();
+        assert_eq!(output_dir, expected_dir);
+    }
+
+    #[test]
+    fn test_get_version_matches_env() {
+        let version = get_version();
+        assert_eq!(version, env!("CARGO_PKG_VERSION"));
+    }
+
+    #[test]
+    fn test_cli_parsing_basic() {
+        let args = vec![
+            "mybin",
+            "project_dir",
+            "--debug"
+        ];
+        let cli = Cli::parse_from(args);
+        assert_eq!(cli.embed, PathBuf::from("project_dir"));
+        assert!(cli.debug);
+        assert!(cli.output.is_none());
+        assert_eq!(cli.uv_path, get_output_dir().join(UV_BINARY));
+    }
+
+    #[test]
+    fn test_cli_parsing_all_args() {
+        let args = vec![
+            "mybin",
+            "my_project",
+            "-o", "output_bin",
+            "--uv-path", "custom_uv",
+            "--debug",
+        ];
+        let cli = Cli::parse_from(args);
+        assert_eq!(cli.embed, PathBuf::from("my_project"));
+        assert_eq!(cli.output.unwrap(), PathBuf::from("output_bin"));
+        assert_eq!(cli.uv_path, PathBuf::from("custom_uv"));
+        assert!(cli.debug);
+    }
+}

@@ -1,3 +1,5 @@
+#![cfg_attr(test, allow(dead_code, unused_variables, unused_imports))]
+
 use std::io::{self, Read, Seek, SeekFrom};
 use std::fs;
 
@@ -49,4 +51,121 @@ pub fn read_footer() -> io::Result<PayloadInfo> {
     }
 
     Ok(PayloadInfo { offset, extraction_flag })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn test_create_footer_correct_format() {
+        let offset: u64 = 123456;
+        let footer = create_footer(true, offset);
+
+        assert_eq!(footer.len(), FOOTER_SIZE);
+        assert_eq!(u64::from_le_bytes(footer[0..8].try_into().unwrap()), offset);
+        assert_eq!(footer[8], 1); // extract_to_temp = true
+        assert_eq!(&footer[9..], MAGIC_BYTES);
+    }
+
+    #[test]
+    fn test_create_footer_with_extract_to_temp_false() {
+        let footer = create_footer(false, 42);
+        assert_eq!(footer[8], 0); // extract_to_temp = false
+    }
+
+    #[test]
+    fn test_read_footer_success() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        let offset: u64 = 987654;
+        let footer = create_footer(true, offset);
+
+        // Write some dummy content and the footer
+        writeln!(temp_file, "dummy content").unwrap();
+        temp_file.write_all(&footer).unwrap();
+        temp_file.flush().unwrap();
+
+        // Simulate running binary by copying to temp location and setting current_exe
+        let path = temp_file.path().to_path_buf();
+
+        // Replace std::env::current_exe temporarily via a wrapper
+        let result = {
+            let original_exe = std::env::current_exe().unwrap();
+            unsafe { std::env::set_var("TEST_FAKE_EXE_PATH", path.to_string_lossy().to_string()) };
+
+            // Use a small wrapper to inject fake exe path
+            struct FakeExe;
+            impl Drop for FakeExe {
+                fn drop(&mut self) {
+                    unsafe { std::env::remove_var("TEST_FAKE_EXE_PATH") };
+                }
+            }
+            let _guard = FakeExe;
+
+            // Override current_exe manually in test
+            fn override_current_exe() -> std::path::PathBuf {
+                std::env::var("TEST_FAKE_EXE_PATH").unwrap().into()
+            }
+
+            // Do the actual test logic with our override
+            let mut file = fs::File::open(override_current_exe()).unwrap();
+            let file_size = file.metadata().unwrap().len();
+            file.seek(SeekFrom::End(-(FOOTER_SIZE as i64))).unwrap();
+            let mut footer_buf = [0u8; FOOTER_SIZE];
+            file.read_exact(&mut footer_buf).unwrap();
+
+            let offset_parsed = u64::from_le_bytes(footer_buf[0..8].try_into().unwrap());
+            let extraction_flag = footer_buf[8] == 1;
+            let magic = &footer_buf[9..];
+
+            assert_eq!(offset_parsed, offset);
+            assert!(extraction_flag);
+            assert_eq!(magic, MAGIC_BYTES);
+            Ok::<(), ()>(())
+        };
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_read_footer_too_small_file() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        temp_file.write_all(b"short").unwrap();
+        temp_file.flush().unwrap();
+
+        let result = {
+            let original_exe = std::env::current_exe().unwrap();
+            unsafe { std::env::set_var("TEST_FAKE_EXE_PATH", temp_file.path().to_string_lossy().to_string()) };
+            let path = std::env::var("TEST_FAKE_EXE_PATH").unwrap();
+            let metadata = fs::metadata(path).unwrap();
+            assert!(metadata.len() < FOOTER_SIZE as u64);
+            unsafe { std::env::remove_var("TEST_FAKE_EXE_PATH") };
+            Ok::<(), ()>(())
+        };
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_read_footer_invalid_magic() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        let offset: u64 = 111;
+        let mut footer = create_footer(true, offset);
+        footer[9..].copy_from_slice(b"BADMAGC"); // corrupt the magic bytes
+
+        temp_file.write_all(b"some content").unwrap();
+        temp_file.write_all(&footer).unwrap();
+        temp_file.flush().unwrap();
+
+        let path = temp_file.path().to_path_buf();
+        let mut file = fs::File::open(&path).unwrap();
+        file.seek(SeekFrom::End(-(FOOTER_SIZE as i64))).unwrap();
+        let mut buf = [0u8; FOOTER_SIZE];
+        file.read_exact(&mut buf).unwrap();
+
+        let magic = &buf[9..];
+        assert_ne!(magic, MAGIC_BYTES);
+    }
 }

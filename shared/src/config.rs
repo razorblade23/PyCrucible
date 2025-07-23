@@ -1,3 +1,5 @@
+#![cfg_attr(test, allow(dead_code, unused_variables, unused_imports))]
+
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;

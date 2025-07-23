@@ -1,3 +1,5 @@
+#![cfg_attr(test, allow(dead_code, unused_variables, unused_imports))]
+
 use std::env;
 use std::fs::File;
 use std::io::copy;
@@ -10,7 +12,6 @@ use shared::spinner::{create_spinner_with_message, stop_and_persist_spinner_with
 use std::fs;
 use std::io::{self, Cursor};
 use zip::{write::FileOptions, ZipWriter};
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CrossTarget {
@@ -83,6 +84,7 @@ fn get_output_dir() -> PathBuf {
     exe_path.parent().unwrap().to_path_buf()
 }
 
+#[cfg(not(test))]
 pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let sp = create_spinner_with_message("Downloading `uv`");
 
@@ -181,6 +183,7 @@ pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf
     Ok(uv_binary_path)
 }
 
+
 pub fn find_or_download_uv(uv_path: PathBuf, zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>, options: FileOptions<'_, ()>) -> Result<(), io::Error> {
     debug_println!("[payload.embed_payload] - Looking for uv");
     let exe_dir = std::env::current_exe()?.parent().unwrap().to_path_buf();
@@ -223,96 +226,51 @@ pub fn find_or_download_uv(uv_path: PathBuf, zip: &mut ZipWriter<&mut Cursor<Vec
 }
 
 
+#[cfg(test)]
+    // Mock function for testing purposes
+    fn download_binary_and_unpack(_target: Option<CrossTarget>) -> Result<PathBuf, Box<dyn std::error::Error>> {
+        use std::io::Write;
 
+        let temp_dir = tempfile::tempdir()?;
+        let fake_uv_path = temp_dir.path().join(if cfg!(windows) { "uv.exe" } else { "uv" });
 
+        let mut file = std::fs::File::create(&fake_uv_path)?;
+        writeln!(file, "#!/bin/bash\necho 'fake uv'")?;
 
-// #[cfg(test)]
-// mod tests {
-//     use std::fs;
-//     use super::*;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(&fake_uv_path)?.permissions();
+            perms.set_mode(0o755);
+            fs::set_permissions(&fake_uv_path, perms)?;
+        }
 
-//     #[test]
-//     fn test_cross_target_from_str() {
-//         assert_eq!(
-//             CrossTarget::from_str("x86_64-unknown-linux-gnu").unwrap(),
-//             CrossTarget::LinuxX86_64
-//         );
-//         assert_eq!(
-//             CrossTarget::from_str("x86_64-pc-windows-gnu").unwrap(),
-//             CrossTarget::WindowsX86_64
-//         );
-//         assert!(CrossTarget::from_str("unsupported-target").is_err());
-//     }
+        Ok(fake_uv_path)
+    }
 
-//     #[test]
-//     fn test_cross_target_to_uv_artifact_name() {
-//         assert_eq!(
-//             CrossTarget::LinuxX86_64.to_uv_artifact_name(),
-//             "uv-x86_64-unknown-linux-gnu.tar.gz"
-//         );
-//         assert_eq!(
-//             CrossTarget::WindowsX86_64.to_uv_artifact_name(),
-//             "uv-x86_64-pc-windows-msvc.zip"
-//         );
-//     }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Cursor;
+    use zip::{ZipArchive, write::FileOptions};
 
-//     #[test]
-//     fn test_get_architecture_with_target() {
-//         let arch = get_architecture(Some(CrossTarget::LinuxX86_64));
-//         assert_eq!(
-//             arch,
-//             Some("uv-x86_64-unknown-linux-gnu.tar.gz".to_string())
-//         );
-//         let arch = get_architecture(Some(CrossTarget::WindowsX86_64));
-//         assert_eq!(
-//             arch,
-//             Some("uv-x86_64-pc-windows-msvc.zip".to_string())
-//         );
-//     }
+    #[test]
+    fn test_find_or_download_uv_mocked() {
+        let mut buffer = Cursor::new(Vec::new());
+        let mut zip = zip::ZipWriter::new(&mut buffer);
+        let options = FileOptions::default();
 
-//     #[test]
-//     fn test_find_manifest_file_priority() {
-//         let temp_dir = tempfile::tempdir().unwrap();
-//         let dir = temp_dir.path();
+        let fake_path = PathBuf::from("nonexistent/path/to/uv"); // triggers fallback
 
-//         // pyproject.toml
-//         let pyproject = dir.join("pyproject.toml");
-//         fs::File::create(&pyproject).unwrap();
-//         assert_eq!(find_manifest_file(dir), pyproject);
+        let result = find_or_download_uv(fake_path, &mut zip, options);
+        assert!(result.is_ok());
 
-//         // requirements.txt
-//         fs::remove_file(&pyproject).unwrap();
-//         let reqs = dir.join("requirements.txt");
-//         fs::File::create(&reqs).unwrap();
-//         assert_eq!(find_manifest_file(dir), reqs);
+        zip.finish().unwrap();
+        let zip_data = buffer.into_inner();
+        let reader = Cursor::new(zip_data);
+        let mut archive = ZipArchive::new(reader).unwrap();
+        assert_eq!(archive.len(), 1);
+        assert_eq!(archive.by_index(0).unwrap().name(), "uv");
+    }
+}
 
-//         // pylock.toml
-//         fs::remove_file(&reqs).unwrap();
-//         let pylock = dir.join("pylock.toml");
-//         fs::File::create(&pylock).unwrap();
-//         assert_eq!(find_manifest_file(dir), pylock);
-
-//         // setup.py
-//         fs::remove_file(&pylock).unwrap();
-//         let setup_py = dir.join("setup.py");
-//         fs::File::create(&setup_py).unwrap();
-//         assert_eq!(find_manifest_file(dir), setup_py);
-
-//         // setup.cfg
-//         fs::remove_file(&setup_py).unwrap();
-//         let setup_cfg = dir.join("setup.cfg");
-//         fs::File::create(&setup_cfg).unwrap();
-//         assert_eq!(find_manifest_file(dir), setup_cfg);
-
-//         // None found
-//         fs::remove_file(&setup_cfg).unwrap();
-//         let empty = dir.join("");
-//         assert_eq!(find_manifest_file(dir), empty);
-//     }
-
-//     #[test]
-//     fn test_get_output_dir_returns_parent() {
-//         let out = get_output_dir();
-//         assert!(out.is_dir());
-//     }
-// }
