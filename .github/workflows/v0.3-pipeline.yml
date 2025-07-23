@@ -33,8 +33,12 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Run tests
-        run: cargo test --verbose
+      - name: Run tests for PyCrucible Runner (no tests, but we need to built it first)
+        run: cargo test --verbose -p pycrucible_runner --target x86_64-unknown-linux-gnu
+      - name: Run tests for PyCrucible
+        run: cargo test --verbose -p pycrucible --target x86_64-unknown-linux-gnu
+      - name: Run tests for Shared Library
+        run: cargo test --verbose -p shared --target x86_64-unknown-linux-gnu
 
   build:
     name: Build ${{ matrix.target }}
