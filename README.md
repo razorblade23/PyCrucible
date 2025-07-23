@@ -33,8 +33,11 @@ You can download pre-made binaries for your system from [Github Releases](https:
 3. Change directory to be inside of a project
 ```cd PyCrucible```
 
-4. Build the binary
-```cargo build --release```
+4. Build Runner
+```cargo build -p pycrucible_runner --release```
+
+5. Build Pycrucible
+```cargo build -p pycrucible --release```
 
 > [!NOTE]
 > The resulting binary will be in `target/release/pycrucible`.
@@ -42,7 +45,7 @@ You can download pre-made binaries for your system from [Github Releases](https:
 ## How to use `PyCrucible`
 All you need for starting is a single `main.py` file with some code.
 
-Run `pip install pycrucible`. This will download and install PyCrucible.
+Follow the installation of. This will download and install PyCrucible.
 
 Change directory into your project and run
 #### Linux and MacOS
