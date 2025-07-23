@@ -10,7 +10,7 @@ What this means is that you get a single binary, which can then be transfered to
 Only internet connection required. No python installation needed. You run the executable and it takes care of everything.
 
 ## Documentation
-Better documentation can be found at [docs](https://pycrucible.razorblade23.dev).
+Documentation can be found at [PyCrucible docs](https://pycrucible.razorblade23.dev).
 
 ## How to get `PyCrucible`
 There are a couple of ways to get PyCrucible.
@@ -24,7 +24,7 @@ pip install pycrucible
 ### Using `Github Releases`
 You can download pre-made binaries for your system from [Github Releases](https://github.com/razorblade23/PyCrucible/releases/latest) page
 
-### Downloading and building the source code
+### Downloading and building from source code
 1. Ensure you have [Rust](https://www.rust-lang.org/) installed.
 
 2. Clone the repository
@@ -47,15 +47,18 @@ Run `pip install pycrucible`. This will download and install PyCrucible.
 Change directory into your project and run
 #### Linux and MacOS
 ```bash
-pycrucible -e . -o -/launcher
+pycrucible .
 ```
 
 #### Windows
 ```bash
-pycrucible -e . -o -/launcher.exe
+pycrucible .
 ```
 
 This will embed your project and produce a new binary which we called `launcher` (or `launcher.exe` on Windows).
+> [!TIP]
+> This is default. To configure the output path and name of your binary, use `-o` or `--output` flag. 
+> Example: `pycrucible -o ./myapp .` (or `pycrucible -o ./myapp.exe`)
 
 This is now all you need to distribute your python project to other people.
 
@@ -75,12 +78,8 @@ Options:
           Output path for the new binary when using --embed
       --uv-path <UV_PATH>
           Path to `uv` executable. If not found, it will be downloaded automatically [default: `.`]
-      --extract-to-temp
-          Extract Python project to a temporary directory when running
       --debug
           Enable debug output
-      --delete-after-run <DELETE_AFTER_RUN>
-          Delete extracted files after running. Note: requires re-downloading dependencies on each run [default: false]
   -h, --help
           Print help
   -V, --version
@@ -89,7 +88,7 @@ Options:
 
 
 ## How to configure `PyCrucible`
-Configuration can be set in two ways:
+Configuration can be set in two files:
 - `pycrucible.toml`
 - `pyproject.toml`
 
@@ -192,31 +191,31 @@ If any of these configuration options is not used, it will be replaced with defa
     - [x] Windows support
     - [x] macOS support (testing)
     - [x] Linux support
+- **Small overhead**:
+    - [x] Runner binary that embeds your project is **just 2 MB**. This ofcourse grows with embedding `uv` and your project.
 - **Configurable**: 
     - [ ] Use `pycrucible.toml` or `pyproject.toml` to customize embedding details
         - [x] entrypoint
         - [x] include/exlude files
-        - [ ] arguments to `uv`
-        - [ ] env variables
+        - [x] arguments to `uv`
+        - [x] env variables
+        - [x] update source code from github
         - [x] pre and post run hooks (python scripts)
         - [ ] offline mode
-        - [ ] extract to temporary directory
-        - [ ] remove extracted files after running
+        - [x] extract to temporary directory (removes temporary directory after running automaticly)
+        - [x] remove extracted files after running
     - [x] Support for multiple ways of defining requirements
-        - [x] `uv` initialized `pyproject.toml`
+        - [x] `uv` initialized `pyproject.toml` (This is preffered !)
         - [x] `requirements.txt`
         - [x] `pylock.toml`
         - [x] `setup.py`
         - [x] `setup.cfg`
     - [x] Load the project as a directory
-    - [ ] Load the project as .zip archive
 - **Tests**:
-    - [x] Unit tests cover configuration, extraction, and hook execution
-- **Source Update**:
-    - [x] Initiate an update of source code pulling from GitHub
-
+    - [x] Unit tests covering as much as i can make it
 
 ## Thanks to
 The idea is inspired by [Packaged](https://packaged.live/).
 
-Thanks to all the briliant developers at `Astral` - they did awesome job with [uv](https://astral.sh/blog/uv)
+Thanks to all the briliant developers at `Astral`.
+They did awesome job with [uv](https://astral.sh/blog/uv).
