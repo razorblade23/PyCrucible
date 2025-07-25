@@ -18,10 +18,10 @@ fn get_version() -> &'static str {
 #[derive(Parser, Debug)]
 #[command(author = AUTHOR, version = get_version(), about = ABOUT, long_about = None)]
 pub struct Cli {
-    #[arg(help = "Directory containing Python project to embed.", value_name = "DIR")]
+    #[arg(short = 'e', long, help = "Directory containing Python project to embed.", value_name = "DIR")]
     pub embed: PathBuf,
 
-    #[arg(short = 'o', long, help="Output path for the new binary. If not  specified, defaults to `./launcher`.")]
+    #[arg(short = 'o', long, help="Output path for the new binary. If not specified, defaults to `./launcher`.")]
     pub output: Option<PathBuf>,
     
     #[arg(long, help="Path to `uv` executable. If not found, it will be downloaded automatically")]

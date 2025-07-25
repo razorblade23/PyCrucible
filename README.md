@@ -1,13 +1,15 @@
-![Poster image of PyCrucible](/PyCrucible_poster.png)
+![Poster image of PyCrucible](/assets/PyCrucible_poster.png)
 
 ## Overview
+This tool runs a Python application using the UV binary. It extracts your application, optionally reads configuration from pycrucible.toml or pyproject.toml, and uses uv to execute it in an ephemeral environment.
 
-This tool runs a Python application with a help of UV binary. It extracts your application, loads an optional configuration from `pycrucible.toml` or `pyproject.toml`, and uses `uv` to run your app in an ephemeral environment.
+## What does this mean?
+You get a single self-contained binary that can be distributed across machines running the same platform. No Python installation is required - just an internet connection. Run the executable, and it takes care of the rest.
 
-### What this means?
-What this means is that you get a single binary, which can then be transfered to other machines running the same platform.
-
-Only internet connection required. No python installation needed. You run the executable and it takes care of everything.
+> [!NOTE]
+> This readme is for version v0.3.x. A few important changes has been made, but mostly to the better use of tool.
+>
+> You can see all the changes in [CHANGELOG FILE](https://github.com/razorblade23/PyCrucible/blob/main/CHANGELOG.md).
 
 ## Documentation
 Documentation can be found at [PyCrucible docs](https://pycrucible.razorblade23.dev).
@@ -45,23 +47,16 @@ You can download pre-made binaries for your system from [Github Releases](https:
 ## How to use `PyCrucible`
 All you need for starting is a single `main.py` file with some code.
 
-Follow the installation of. This will download and install PyCrucible.
-
-Change directory into your project and run
-#### Linux and MacOS
+If you installed it using `pip` you can just run it with:
 ```bash
-pycrucible .
+pycrucible -e .
 ```
 
-#### Windows
-```bash
-pycrucible .
-```
-
-This will embed your project and produce a new binary which we called `launcher` (or `launcher.exe` on Windows).
+This will embed your project and produce a new binary which is by default called `launcher` (or `launcher.exe` on Windows).
 > [!TIP]
-> This is default. To configure the output path and name of your binary, use `-o` or `--output` flag. 
-> Example: `pycrucible -o ./myapp .` (or `pycrucible -o ./myapp.exe`)
+> To configure the output path and name of your binary, use `-o` or `--output` flag.
+>
+> Example: `pycrucible -e . -o ./myapp` (or `pycrucible -e . -o ./myapp.exe`)
 
 This is now all you need to distribute your python project to other people.
 
@@ -112,6 +107,11 @@ entrypoint = "src/main.py"
 # or
 entry = "src/main.py"
 
+[options]
+debug = false
+extract_to_temp = false
+delete_after_run = false
+
 [package.patterns]
 include = [
     "**/*.py",
@@ -131,6 +131,12 @@ In `pyproject.toml` you would define configuration like this:
 entrypoint = "src/main.py"
 # or
 entry = "src/main.py"
+
+[tool.pycrucible.options]
+debug = false
+extract_to_temp = false
+delete_after_run = false
+offline_mode = false
 
 [tool.pycrucible.patterns]
 include = [

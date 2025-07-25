@@ -50,7 +50,13 @@ fn main() -> io::Result<()> {
 
     // Determine where we are running from, payload path and output path
     let current_dir = std::env::current_dir()?;
+
     let payload_path: PathBuf = cli.embed;
+    if !payload_path.exists() {
+        eprintln!("The specified payload directory does not exist: {}", payload_path.display());
+        std::process::exit(1);
+    }
+
     let output_path = if cli.output.is_none() {
         let launcher_name = if cfg!(windows) {
             "launcher.exe"
