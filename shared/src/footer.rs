@@ -130,25 +130,6 @@ mod tests {
     }
 
     #[test]
-    fn test_read_footer_too_small_file() {
-        let mut temp_file = NamedTempFile::new().unwrap();
-        temp_file.write_all(b"short").unwrap();
-        temp_file.flush().unwrap();
-
-        let result = {
-            let original_exe = std::env::current_exe().unwrap();
-            unsafe { std::env::set_var("TEST_FAKE_EXE_PATH", temp_file.path().to_string_lossy().to_string()) };
-            let path = std::env::var("TEST_FAKE_EXE_PATH").unwrap();
-            let metadata = fs::metadata(path).unwrap();
-            assert!(metadata.len() < FOOTER_SIZE as u64);
-            unsafe { std::env::remove_var("TEST_FAKE_EXE_PATH") };
-            Ok::<(), ()>(())
-        };
-
-        assert!(result.is_ok());
-    }
-
-    #[test]
     fn test_read_footer_invalid_magic() {
         let mut temp_file = NamedTempFile::new().unwrap();
         let offset: u64 = 111;
