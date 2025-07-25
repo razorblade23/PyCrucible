@@ -120,6 +120,10 @@ exclude = [
     "**/__pycache__/**",
 ]
 
+[env]
+FOO = "foo"
+BAR = "bar"
+
 [hooks]
 pre_run = "some_script.py"
 post_run = "some_other_script.py"
@@ -145,6 +149,10 @@ include = [
 exclude = [
     "**/__pycache__/**",
 ]
+
+[tool.pycrucible.env]
+FOO = "foo"
+BAR = "bar"
 
 [tool.pycrucible.hooks]
 pre_run = "some_script.py"
@@ -175,6 +183,12 @@ update_strategy = "pull"
 ```python
 entrypoint = "main.py"
 
+# Options
+debug = false
+extract_to_temp = false
+delete_after_run = false
+
+# Patterns
 patterns.include = [
     "**/*.py",
 ]
@@ -187,9 +201,13 @@ patterns.exclude = [
     "**/*.pyd"
 ]
 
+# Source repository (GitHub)
 source = None
-uv = None
+
+# Enviroment variables
 env = None
+
+# Pre and post run hooks
 hooks = None
 ```
 If any of these configuration options is not used, it will be replaced with default value.
