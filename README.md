@@ -1,13 +1,18 @@
-![Poster image of PyCrucible](/PyCrucible_poster.png)
+![Poster image of PyCrucible](/assets/PyCrucible_poster.png)
 
 ## Overview
+This tool runs a Python application using the UV binary. It extracts your application, optionally reads configuration from pycrucible.toml or pyproject.toml, and uses uv to execute it in an ephemeral environment.
 
-This tool runs a Python application with a help of UV binary. It extracts your application, loads an optional configuration from `pycrucible.toml` or `pyproject.toml`, and uses `uv` to run your app in an ephemeral environment.
+## What does this mean?
+You get a single self-contained binary that can be distributed across machines running the same platform. No Python installation is required - just an internet connection. Run the executable, and it takes care of the rest.
 
-### What this means?
-What this means is that you get a single binary, which can then be transfered to other machines running the same platform.
+> [!NOTE]
+> This readme is for version v0.3.x. A few important changes has been made, but mostly to the better use of tool.
+>
+> You can see all the changes in [CHANGELOG FILE](https://github.com/razorblade23/PyCrucible/blob/main/CHANGELOG.md).
 
-Only internet connection required. No python installation needed. You run the executable and it takes care of everything.
+## Documentation
+Documentation can be found at [PyCrucible docs](https://pycrucible.razorblade23.dev).
 
 ## Documentation
 Better documentation can be found at [docs](https://pycrucible.razorblade23.dev).
@@ -24,7 +29,7 @@ pip install pycrucible
 ### Using `Github Releases`
 You can download pre-made binaries for your system from [Github Releases](https://github.com/razorblade23/PyCrucible/releases/latest) page
 
-### Downloading and building the source code
+### Downloading and building from source code
 1. Ensure you have [Rust](https://www.rust-lang.org/) installed.
 
 2. Clone the repository
@@ -33,8 +38,11 @@ You can download pre-made binaries for your system from [Github Releases](https:
 3. Change directory to be inside of a project
 ```cd PyCrucible```
 
-4. Build the binary
-```cargo build --release```
+4. Build Runner
+```cargo build -p pycrucible_runner --release```
+
+5. Build Pycrucible
+```cargo build -p pycrucible --release```
 
 > [!NOTE]
 > The resulting binary will be in `target/release/pycrucible`.
@@ -42,20 +50,16 @@ You can download pre-made binaries for your system from [Github Releases](https:
 ## How to use `PyCrucible`
 All you need for starting is a single `main.py` file with some code.
 
-Run `pip install pycrucible`. This will download and install PyCrucible.
-
-Change directory into your project and run
-#### Linux and MacOS
+If you installed it using `pip` you can just run it with:
 ```bash
-pycrucible -e . -o -/launcher
+pycrucible -e .
 ```
 
-#### Windows
-```bash
-pycrucible -e . -o -/launcher.exe
-```
-
-This will embed your project and produce a new binary which we called `launcher` (or `launcher.exe` on Windows).
+This will embed your project and produce a new binary which is by default called `launcher` (or `launcher.exe` on Windows).
+> [!TIP]
+> To configure the output path and name of your binary, use `-o` or `--output` flag.
+>
+> Example: `pycrucible -e . -o ./myapp` (or `pycrucible -e . -o ./myapp.exe`)
 
 This is now all you need to distribute your python project to other people.
 
@@ -75,12 +79,8 @@ Options:
           Output path for the new binary when using --embed
       --uv-path <UV_PATH>
           Path to `uv` executable. If not found, it will be downloaded automatically [default: `.`]
-      --extract-to-temp
-          Extract Python project to a temporary directory when running
       --debug
           Enable debug output
-      --delete-after-run <DELETE_AFTER_RUN>
-          Delete extracted files after running. Note: requires re-downloading dependencies on each run [default: false]
   -h, --help
           Print help
   -V, --version
@@ -89,7 +89,7 @@ Options:
 
 
 ## How to configure `PyCrucible`
-Configuration can be set in two ways:
+Configuration can be set in two files:
 - `pycrucible.toml`
 - `pyproject.toml`
 
@@ -110,6 +110,11 @@ entrypoint = "src/main.py"
 # or
 entry = "src/main.py"
 
+[options]
+debug = false
+extract_to_temp = false
+delete_after_run = false
+
 [package.patterns]
 include = [
     "**/*.py",
@@ -117,6 +122,10 @@ include = [
 exclude = [
     "**/__pycache__/**",
 ]
+
+[env]
+FOO = "foo"
+BAR = "bar"
 
 [hooks]
 pre_run = "some_script.py"
@@ -130,6 +139,12 @@ entrypoint = "src/main.py"
 # or
 entry = "src/main.py"
 
+[tool.pycrucible.options]
+debug = false
+extract_to_temp = false
+delete_after_run = false
+offline_mode = false
+
 [tool.pycrucible.patterns]
 include = [
     "**/*.py",
@@ -137,6 +152,10 @@ include = [
 exclude = [
     "**/__pycache__/**",
 ]
+
+[tool.pycrucible.env]
+FOO = "foo"
+BAR = "bar"
 
 [tool.pycrucible.hooks]
 pre_run = "some_script.py"
@@ -167,6 +186,12 @@ update_strategy = "pull"
 ```python
 entrypoint = "main.py"
 
+# Options
+debug = false
+extract_to_temp = false
+delete_after_run = false
+
+# Patterns
 patterns.include = [
     "**/*.py",
 ]
@@ -179,9 +204,13 @@ patterns.exclude = [
     "**/*.pyd"
 ]
 
+# Source repository (GitHub)
 source = None
-uv = None
+
+# Enviroment variables
 env = None
+
+# Pre and post run hooks
 hooks = None
 ```
 If any of these configuration options is not used, it will be replaced with default value.
@@ -192,31 +221,31 @@ If any of these configuration options is not used, it will be replaced with defa
     - [x] Windows support
     - [x] macOS support (testing)
     - [x] Linux support
+- **Small overhead**:
+    - [x] Runner binary that embeds your project is **just 2 MB**. This ofcourse grows with embedding `uv` and your project.
 - **Configurable**: 
     - [ ] Use `pycrucible.toml` or `pyproject.toml` to customize embedding details
         - [x] entrypoint
         - [x] include/exlude files
-        - [ ] arguments to `uv`
-        - [ ] env variables
+        - [x] arguments to `uv`
+        - [x] env variables
+        - [x] update source code from github
         - [x] pre and post run hooks (python scripts)
         - [ ] offline mode
-        - [ ] extract to temporary directory
-        - [ ] remove extracted files after running
+        - [x] extract to temporary directory (removes temporary directory after running automaticly)
+        - [x] remove extracted files after running
     - [x] Support for multiple ways of defining requirements
-        - [x] `uv` initialized `pyproject.toml`
+        - [x] `uv` initialized `pyproject.toml` (This is preffered !)
         - [x] `requirements.txt`
         - [x] `pylock.toml`
         - [x] `setup.py`
         - [x] `setup.cfg`
     - [x] Load the project as a directory
-    - [ ] Load the project as .zip archive
 - **Tests**:
-    - [x] Unit tests cover configuration, extraction, and hook execution
-- **Source Update**:
-    - [x] Initiate an update of source code pulling from GitHub
-
+    - [x] Unit tests covering as much as i can make it
 
 ## Thanks to
 The idea is inspired by [Packaged](https://packaged.live/).
 
-Thanks to all the briliant developers at `Astral` - they did awesome job with [uv](https://astral.sh/blog/uv)
+Thanks to all the briliant developers at `Astral`.
+They did awesome job with [uv](https://astral.sh/blog/uv).

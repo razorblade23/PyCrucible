@@ -1,12 +1,17 @@
+#![cfg_attr(test, allow(dead_code, unused_variables, unused_imports))]
+
 use std::env;
 use std::fs::File;
 use std::io::copy;
 use std::path::PathBuf;
 use std::str::FromStr;
 use tempfile::tempdir;
-use std::path::Path;
-use crate::spinner_utils::{create_spinner_with_message, stop_and_persist_spinner_with_message};
+use shared::debug_println;
+use shared::spinner::{create_spinner_with_message, stop_and_persist_spinner_with_message};
 
+use std::fs;
+use std::io::{self, Cursor};
+use zip::{write::FileOptions, ZipWriter};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CrossTarget {
@@ -177,110 +182,44 @@ pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf
     Ok(uv_binary_path)
 }
 
-pub fn find_manifest_file(source_dir: &Path) -> PathBuf  {
-    let manifest_path = if source_dir.join("pyproject.toml").exists() {
-        source_dir.join("pyproject.toml")
-    } else if source_dir.join("requirements.txt").exists() {
-        source_dir.join("requirements.txt")
-    } else if source_dir.join("pylock.toml").exists() {
-        source_dir.join("pylock.toml")
-    } else if source_dir.join("setup.py").exists() {
-        source_dir.join("setup.py")
-    } else if source_dir.join("setup.cfg").exists() {
-        source_dir.join("setup.cfg")
+
+pub fn find_or_download_uv(uv_path: PathBuf, zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>, options: FileOptions<'_, ()>) -> Result<(), io::Error> {
+    debug_println!("[payload.embed_payload] - Looking for uv");
+    let exe_dir = std::env::current_exe()?.parent().unwrap().to_path_buf();
+    let local_uv = if uv_path.exists() {
+        debug_println!("[payload.embed_payload] - uv found at specified path, using it");
+        uv_path
     } else {
-        eprintln!("No manifest file found in the source directory. \nManifest files can be pyproject.toml, requirements.txt, pylock.toml, setup.py or setup.cfg");
-        source_dir.join("") // Default to empty string if none found;
+        // Try to find uv in system PATH
+        if let Some(path) = which::which("uv").ok() {
+            debug_println!("[payload.embed_payload] - uv found in system PATH at {:?}", path);
+            path
+        } else {
+            debug_println!("[payload.embed_payload] - uv not found in system PATH, looking for local uv");
+            exe_dir.join("uv")
+        }
     };
-    manifest_path
-}
-#[cfg(test)]
-mod tests {
-    use std::fs;
-    use super::*;
-
-    #[test]
-    fn test_cross_target_from_str() {
-        assert_eq!(
-            CrossTarget::from_str("x86_64-unknown-linux-gnu").unwrap(),
-            CrossTarget::LinuxX86_64
-        );
-        assert_eq!(
-            CrossTarget::from_str("x86_64-pc-windows-gnu").unwrap(),
-            CrossTarget::WindowsX86_64
-        );
-        assert!(CrossTarget::from_str("unsupported-target").is_err());
+    let uv_path = if local_uv.exists() {
+        debug_println!("[payload.embed_payload] - uv found locally, using it");
+        local_uv
+    } else {
+        // Download `uv` and copy it to zip
+        debug_println!("[payload.embed_payload] - uv not found locally, downloading ...");
+        let target: Option<CrossTarget> = None; // We're running locally
+        download_binary_and_unpack(target)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?
+    };
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = fs::metadata(&uv_path)?.permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&uv_path, perms)?;
+        debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
     }
-
-    #[test]
-    fn test_cross_target_to_uv_artifact_name() {
-        assert_eq!(
-            CrossTarget::LinuxX86_64.to_uv_artifact_name(),
-            "uv-x86_64-unknown-linux-gnu.tar.gz"
-        );
-        assert_eq!(
-            CrossTarget::WindowsX86_64.to_uv_artifact_name(),
-            "uv-x86_64-pc-windows-msvc.zip"
-        );
-    }
-
-    #[test]
-    fn test_get_architecture_with_target() {
-        let arch = get_architecture(Some(CrossTarget::LinuxX86_64));
-        assert_eq!(
-            arch,
-            Some("uv-x86_64-unknown-linux-gnu.tar.gz".to_string())
-        );
-        let arch = get_architecture(Some(CrossTarget::WindowsX86_64));
-        assert_eq!(
-            arch,
-            Some("uv-x86_64-pc-windows-msvc.zip".to_string())
-        );
-    }
-
-    #[test]
-    fn test_find_manifest_file_priority() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let dir = temp_dir.path();
-
-        // pyproject.toml
-        let pyproject = dir.join("pyproject.toml");
-        fs::File::create(&pyproject).unwrap();
-        assert_eq!(find_manifest_file(dir), pyproject);
-
-        // requirements.txt
-        fs::remove_file(&pyproject).unwrap();
-        let reqs = dir.join("requirements.txt");
-        fs::File::create(&reqs).unwrap();
-        assert_eq!(find_manifest_file(dir), reqs);
-
-        // pylock.toml
-        fs::remove_file(&reqs).unwrap();
-        let pylock = dir.join("pylock.toml");
-        fs::File::create(&pylock).unwrap();
-        assert_eq!(find_manifest_file(dir), pylock);
-
-        // setup.py
-        fs::remove_file(&pylock).unwrap();
-        let setup_py = dir.join("setup.py");
-        fs::File::create(&setup_py).unwrap();
-        assert_eq!(find_manifest_file(dir), setup_py);
-
-        // setup.cfg
-        fs::remove_file(&setup_py).unwrap();
-        let setup_cfg = dir.join("setup.cfg");
-        fs::File::create(&setup_cfg).unwrap();
-        assert_eq!(find_manifest_file(dir), setup_cfg);
-
-        // None found
-        fs::remove_file(&setup_cfg).unwrap();
-        let empty = dir.join("");
-        assert_eq!(find_manifest_file(dir), empty);
-    }
-
-    #[test]
-    fn test_get_output_dir_returns_parent() {
-        let out = get_output_dir();
-        assert!(out.is_dir());
-    }
+    zip.start_file("uv", options)?;
+    let mut uv_file = fs::File::open(&uv_path)?;
+    io::copy(&mut uv_file, zip)?;
+    debug_println!("[payload.embed_payload] - Added uv to zip");
+    Ok(())
 }

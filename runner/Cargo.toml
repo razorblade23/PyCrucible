@@ -1,0 +1,12 @@
+[package]
+name = "pycrucible_runner"
+version = "0.3.0"
+edition = "2024"
+
+[dependencies]
+shared = { path = "../shared" }
+
+toml = "0.8"
+zip = { version = "3", default-features = false }
+tempfile = "3"
+git2 = { version = "0.20", default-features = false, features = ["https"] }

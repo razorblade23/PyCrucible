@@ -1,7 +1,7 @@
 use std::path::Path;
 use git2::{Repository, FetchOptions};
-use crate::config::SourceConfig;
-use crate::debug_println;
+use shared::config::SourceConfig;
+use shared::debug_println;
 
 pub struct RepositoryHandler {
     repo: Option<Repository>,

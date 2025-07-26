@@ -1,10 +1,10 @@
-name: Build and Release PyCrucible (native)
+name: Build and Smoke test PyCrucible v0.3.x
 
 on:
   push:
     tags:
       - "v*.*.*"
-    branches: [main]
+    branches: [v0.3.0]
   release:
     types: [created]
 
@@ -33,12 +33,15 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Run tests
-        run: cargo test --verbose
+      - name: Build runner so that we can build PyCrucible
+        run: cargo build -p pycrucible_runner --target x86_64-unknown-linux-gnu
+      - name: Run tests for PyCrucible
+        run: cargo test --verbose -p pycrucible --target x86_64-unknown-linux-gnu
+      - name: Run tests for Shared Library
+        run: cargo test --verbose -p shared --target x86_64-unknown-linux-gnu
 
   build:
     name: Build ${{ matrix.target }}
-    if: github.event_name == 'release'
     needs: test
     runs-on: ${{ matrix.runner }}
 
@@ -86,8 +89,10 @@ jobs:
             target
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
+      - name: Build runner
+        run: cargo build --release -p pycrucible_runner --target ${{ matrix.target }}
+      - name: Build pycrucible
+        run: cargo build --release -p pycrucible --target ${{ matrix.target }}
 
       - name: Package binary
         shell: bash
@@ -106,7 +111,6 @@ jobs:
 
   run_test_app:
     name: Smoke Test PyCrucible
-    if: github.event_name == 'release'
     needs: build
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -158,7 +162,7 @@ jobs:
       - name: Smoke-test generated artifact
         working-directory: simple-python-project-for-PyCrucible
         run: ./cowsay${{ matrix.bin_ext }}
-  
+
   build_sdist:
     name: Build sdist for PyPI
     if: github.event_name == 'release'
@@ -271,7 +275,6 @@ jobs:
           skip-existing: true
           packages-dir: dist/
         continue-on-error: false
-
 
   release_to_gh:
     name: Publish Release to GitHub

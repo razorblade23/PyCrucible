@@ -1,3 +1,5 @@
+#![cfg_attr(test, allow(dead_code, unused_variables, unused_imports))]
+
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
@@ -107,11 +109,35 @@ impl Default for SourceConfig {
     }
 }
 
+#[derive(serde::Serialize, Debug, Deserialize, Clone)]
+pub struct ToolOptions {
+    #[serde(default)]
+    pub debug: bool,
+    #[serde(default)]
+    pub extract_to_temp: bool,
+    #[serde(default)]
+    pub delete_after_run: bool,
+    #[serde(default)]
+    pub offline_mode: bool,
+}
+impl Default for ToolOptions {
+    fn default() -> Self {
+        ToolOptions {
+            debug: false,
+            extract_to_temp: false,
+            delete_after_run: false,
+            offline_mode: false,
+        }
+    }
+}
+
 
 #[derive(serde::Serialize, Debug, Deserialize)]
 pub struct ProjectConfig {
     #[serde(flatten)]
     pub package: PackageConfig,
+    #[serde(default)]
+    pub options: ToolOptions,
     #[serde(default)]
     pub source: Option<SourceConfig>,
     #[serde(default)]
@@ -136,11 +162,11 @@ impl ProjectConfig {
         let tbl = doc.get("tool")
             .and_then(|t| t.get("pycrucible"))
             .ok_or("no [tool.pycrucible] section")?;
-
         // Re-serialize just that sub-table so we can leverage
         // the existing `ProjectConfig` derive.
         let slice = toml::to_string(tbl).map_err(|e| e.to_string())?;
-        toml::from_str(&slice).map_err(|e| e.to_string())
+        let config = toml::from_str(&slice).map_err(|e| e.to_string());
+        config
     }
 }
 
@@ -161,6 +187,7 @@ impl Default for ProjectConfig {
                     ],
                 },
             },
+            options: ToolOptions::default(),
             source: None,
             uv: None,
             env: None,

@@ -18,10 +18,10 @@ fn get_version() -> &'static str {
 #[derive(Parser, Debug)]
 #[command(author = AUTHOR, version = get_version(), about = ABOUT, long_about = None)]
 pub struct Cli {
-    #[arg(short = 'e', long, help = "Directory containing Python project to embed. When specified, creates a new binary with the embedded project")]
-    pub embed: Option<PathBuf>,
+    #[arg(short = 'e', long, help = "Directory containing Python project to embed.", value_name = "SOURCE_DIR")]
+    pub embed: PathBuf,
 
-    #[arg(short = 'o', long, help="Output path for the new binary when using --embed")]
+    #[arg(short = 'o', long, help="Output path for the new binary. If not specified, defaults to `./launcher`.")]
     pub output: Option<PathBuf>,
     
     #[arg(long, help="Path to `uv` executable. If not found, it will be downloaded automatically")]
@@ -30,11 +30,24 @@ pub struct Cli {
 
     #[arg(long, help="Enable debug output")]
     pub debug: bool,
+}
 
-    #[arg(long, help="Extract Python project to a temporary directory when running")]
-    pub extract_to_temp: bool,
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
 
-    #[arg(long, default_value = "false", help="Delete extracted files after running. Note: requires re-downloading dependencies on each run")]
-    pub delete_after_run: Option<String>,
+    #[test]
+    fn test_get_output_dir_contains_exe() {
+        let output_dir = get_output_dir();
+        let exe = env::current_exe().unwrap();
+        let expected_dir = exe.parent().unwrap();
+        assert_eq!(output_dir, expected_dir);
+    }
 
+    #[test]
+    fn test_get_version_matches_env() {
+        let version = get_version();
+        assert_eq!(version, env!("CARGO_PKG_VERSION"));
+    }
 }

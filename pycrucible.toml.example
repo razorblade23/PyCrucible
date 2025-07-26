@@ -2,6 +2,12 @@
 entrypoint = "src/main.py"
 
 # Optional
+[options]
+debug = false
+extract_to_temp = false
+delete_after_run = false
+
+# Optional
 [source]
 repository = "https://github.com/username/repo"
 branch = "main"  # Optional: Specify branch to use
@@ -27,14 +33,7 @@ exclude = [
 ]
 
 # Optional
-[uv] # NOT IMPLEMENTED
-args = [
-    "--system-site-packages",
-    "--python=3.11"
-]
-
-# Optional
-[env] # NOT IMPLEMENTED
+[env]
 PYTHONPATH = "src"
 DEBUG = "1"
 APP_ENV = "development"
