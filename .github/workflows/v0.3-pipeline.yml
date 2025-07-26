@@ -185,7 +185,7 @@ jobs:
 
       - name: Build sdist
         run: |
-          maturin sdist --out dist
+          maturin sdist --out dist --release --manifest-path pycrucible/Cargo.toml
 
       - name: Upload sdist as artifact
         uses: actions/upload-artifact@v4
@@ -233,7 +233,7 @@ jobs:
 
       - name: Build wheel
         run: |
-          maturin build --release --out dist --target ${{ matrix.target }}
+          maturin build --release --out dist --target ${{ matrix.target }} --manifest-path pycrucible/Cargo.toml
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
