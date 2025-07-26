@@ -14,6 +14,9 @@ You get a single self-contained binary that can be distributed across machines r
 ## Documentation
 Documentation can be found at [PyCrucible docs](https://pycrucible.razorblade23.dev).
 
+## Documentation
+Better documentation can be found at [docs](https://pycrucible.razorblade23.dev).
+
 ## How to get `PyCrucible`
 There are a couple of ways to get PyCrucible.
 
