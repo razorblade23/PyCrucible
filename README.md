@@ -11,11 +11,14 @@ You get a single self-contained binary that can be distributed across machines r
 >
 > You can see all the changes in [CHANGELOG FILE](https://github.com/razorblade23/PyCrucible/blob/main/CHANGELOG.md).
 
-## Documentation
-Documentation can be found at [PyCrucible docs](https://pycrucible.razorblade23.dev).
+> [!NOTE]
+> PyCrucible now has associated GitHub Action workflow which you can use.
+>
+> [GitHub Action marketplace](https://github.com/marketplace/actions/build-python-app-with-pycrucible).
+> [GitHub Repository](https://github.com/razorblade23/pycrucible-action)
 
 ## Documentation
-Better documentation can be found at [docs](https://pycrucible.razorblade23.dev).
+Documentation can be found at [PyCrucible docs](https://pycrucible.razorblade23.dev).
 
 ## How to get `PyCrucible`
 There are a couple of ways to get PyCrucible.
