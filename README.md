@@ -6,6 +6,10 @@ This tool runs a Python application using the UV binary. It extracts your applic
 ## What does this mean?
 You get a single self-contained binary that can be distributed across machines running the same platform. No Python installation is required - just an internet connection. Run the executable, and it takes care of the rest.
 
+# Community
+You can visit our community group on Telegram
+[PyCrucible Telegram Community](https://t.me/PyCrucibleCommunity)
+
 > [!NOTE]
 > This readme is for version v0.3.x. A few important changes has been made, but mostly to the better use of tool.
 >
