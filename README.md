@@ -223,6 +223,20 @@ hooks = None
 If any of these configuration options is not used, it will be replaced with default value.
 #### NOTE - `entrypoint` directive is required when using any configuration options.
 
+## Security / Code signing
+For users who want to verify the authenticity of the `builder` binary, we recommend code signing. This ensures that the binary you download has not been tampered with.
+Code signing will be automatic in next release of `PyCrucible`.
+
+
+The `builder` is the only distributed artifact; the Python projects themselves are provided by users at runtime.
+
+Signing the builder ensures the binary is authentic.
+
+Generated self-contained binaries (created by the builder) are not pre-signed — users may optionally sign them for their own distribution.
+
+> [!IMPORTANT]
+> Make sure you run code signing **after** embedding your project. This makes sure that embedded project also be part of the signiture.
+
 ## Features
 - **Cross-Platform**: 
     - [x] Windows support
