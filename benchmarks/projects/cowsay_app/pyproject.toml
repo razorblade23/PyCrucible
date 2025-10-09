@@ -1,0 +1,7 @@
+[project]
+name = "cowsay_app"
+version = "0.1.0"
+dependencies = []
+
+[tool.pycrucible]
+entry = "main.py"

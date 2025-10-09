@@ -1,0 +1,7 @@
+[project]
+name = "heavy_deps"
+version = "0.1.0"
+dependencies = ["numpy", "pandas", "matplotlib"]
+
+[tool.pycrucible]
+entry = "main.py"

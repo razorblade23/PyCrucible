@@ -1,0 +1,7 @@
+[project]
+name = "flask_app"
+version = "0.1.0"
+dependencies = ["flask"]
+
+[tool.pycrucible]
+entry = "app.py"

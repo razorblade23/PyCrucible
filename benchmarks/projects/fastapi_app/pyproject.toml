@@ -1,0 +1,7 @@
+[project]
+name = "fastapi_app"
+version = "0.1.0"
+dependencies = ["fastapi", "uvicorn"]
+
+[tool.pycrucible]
+entry = "app.py"

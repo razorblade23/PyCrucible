@@ -1,0 +1,7 @@
+[project]
+name = "pygame_app"
+version = "0.1.0"
+dependencies = ["pygame"]
+
+[tool.pycrucible]
+entry = "main.py"

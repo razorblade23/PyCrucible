@@ -1,0 +1,49 @@
+name: Run Benchmarks
+
+on:
+  push:
+    branches: [benchmarks]
+  pull_request:
+    branches: [main]
+
+jobs:
+  benchmark:
+    name: Run Benchmarks on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build PyCrucible runner in release mode
+        run: cargo build -p pycrucible_runner --release
+
+      - name: Build PyCrucible in release mode
+        run: cargo build -p pycrucible --release
+
+      - name: Copy release build to benchmarks directory
+        run: |
+          if [ -f target/release/pycrucible ]; then
+            cp target/release/pycrucible benchmarks/
+          elif [ -f target/release/pycrucible.exe ]; then
+            cp target/release/pycrucible.exe benchmarks/
+          else
+            echo "Built binary not found in target/release:"
+            ls -la target/release || true
+            exit 1
+          fi
+        shell: bash
+
+      - name: Run benchmarks
+        run: python benchmarks/run_benchmark.py
