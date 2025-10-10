@@ -38,7 +38,8 @@ def measure_project(name, project_dir):
                 print(err_gen)
 
     # Embed
-    embed_cmd = ["pycrucible", "-e", ".", "-o", f"projects/{project_dir}/{name}", "--debug"]
+    pycrucible_path = ROOT.parent / "target" / "release" / "pycrucible"
+    embed_cmd = [pycrucible_path, "-e", ".", "-o", f"projects/{project_dir}/{name}", "--debug"]
     t_embed, code, out, err = timed(embed_cmd, cwd=project_dir)
     result["embed_time"] = round(t_embed, 2)
     result["embed_success"] = (code == 0)
