@@ -47,4 +47,4 @@ jobs:
         shell: bash
 
       - name: Run benchmarks
-        run: python benchmarks/run_benchmark.py
+        run: python benchmarks/run_benchmarks.py
