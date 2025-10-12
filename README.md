@@ -122,7 +122,7 @@ debug = false
 extract_to_temp = false
 delete_after_run = false
 
-[package.patterns]
+[patterns]
 include = [
     "**/*.py",
 ]
@@ -168,6 +168,9 @@ BAR = "bar"
 pre_run = "some_script.py"
 post_run = "some_other_script.py"
 ```
+
+> [!TIP]
+> You can use `patterns` to include or exclude any arbitrary files, like HTML templates, Kivy layout files or any other arbitrary files needed for your application.
 
 ### Update your project from GitHub
 In configuration file its possible to set your GitHub repository, so the resulting binary will always check for update before running the application.
