@@ -172,6 +172,9 @@ post_run = "some_other_script.py"
 > [!TIP]
 > You can use `patterns` to include or exclude any arbitrary files, like HTML templates, Kivy layout files or any other arbitrary files needed for your application.
 
+> [!IMPORTANT]
+> There is no need for setting `PYTHONPATH` env variable as `uv` will take care of this. If this is really needed, `uv` will complain and you should also also set `UV_LINK_MODE="copy"` as env variable to mitigate the warning.
+
 ### Update your project from GitHub
 In configuration file its possible to set your GitHub repository, so the resulting binary will always check for update before running the application.
 
