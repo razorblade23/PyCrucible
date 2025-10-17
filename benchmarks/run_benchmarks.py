@@ -106,7 +106,7 @@ def measure_project(name, project_dir):
             pass
 
         # Run first time (cold start)
-    t1, code1, out1, err1 = timed([str(binary_path)])
+        t1, code1, out1, err1 = timed([str(binary_path)])
     # Uncomment these when you need to inspect run output
     # print(f"[run1 stdout]\n{out1}", flush=True)
     # print(f"[run1 stderr]\n{err1}", flush=True)
@@ -114,7 +114,7 @@ def measure_project(name, project_dir):
         result["run_first_success"] = (code1 == 0)
 
         # Run second time (warm cache)
-    t2, code2, out2, err2 = timed([str(binary_path)])
+        t2, code2, out2, err2 = timed([str(binary_path)])
     # Uncomment these when you need to inspect run output
     # print(f"[run2 stdout]\n{out2}", flush=True)
     # print(f"[run2 stderr]\n{err2}", flush=True)
