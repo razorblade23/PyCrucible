@@ -43,7 +43,6 @@ def measure_project(name, project_dir):
     t_embed, code, out, err = timed(embed_cmd, cwd=project_dir)
     result["embed_time"] = round(t_embed, 2)
     result["embed_success"] = (code == 0)
-    print(out, flush=True)
     if code != 0:
         print(err, flush=True)
 
