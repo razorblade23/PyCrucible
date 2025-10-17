@@ -42,9 +42,10 @@ def measure_project(name, project_dir):
     result["embed_success"] = (code == 0)
 
     # always print stdout/stderr for diagnosis
-    print(f"[embed stdout]\n{out}", flush=True)
-    print(f"[embed stderr]\n{err}", flush=True)
-    print(f"[embed exit code] {code}", flush=True)
+    # Commented out to reduce noise; uncomment while debugging if needed
+    # print(f"[embed stdout]\n{out}", flush=True)
+    # print(f"[embed stderr]\n{err}", flush=True)
+    # print(f"[embed exit code] {code}", flush=True)
 
     if not output_file.exists():
         # fallback: search project_dir/dist for newest file
@@ -52,7 +53,7 @@ def measure_project(name, project_dir):
         if candidates:
             candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
             binary_path = candidates[0]
-            print(f"[debug] fallback picked: {binary_path}", flush=True)
+            # print(f"[debug] fallback picked: {binary_path}", flush=True)
         else:
             binary_path = output_file
 
@@ -86,11 +87,14 @@ def measure_project(name, project_dir):
                     z = zipfile.ZipFile(io.BytesIO(data[pk:]))
                     embedded_files = z.namelist()
                 except zipfile.BadZipFile:
-                    print(f"[debug] found PK header at {pk} but failed to open zip", flush=True)
+                    # print(f"[debug] found PK header at {pk} but failed to open zip", flush=True)
+                    pass
             else:
-                print(f"[debug] no embedded PK zip header found in {binary_path}", flush=True)
+                # print(f"[debug] no embedded PK zip header found in {binary_path}", flush=True)
+                pass
         except Exception as e:
-            print(f"[debug] error while scanning for embedded zip: {e}", flush=True)
+            # print(f"[debug] error while scanning for embedded zip: {e}", flush=True)
+            pass
 
         result["embedded_files"] = embedded_files
         # write per-project embedded file list for easier artifact inspection
@@ -98,19 +102,22 @@ def measure_project(name, project_dir):
             if embedded_files:
                 (RESULTS_DIR / f"{name}_embedded_files.txt").write_text("\n".join(embedded_files))
         except Exception as e:
-            print(f"[debug] failed to write embedded files list: {e}", flush=True)
+            # print(f"[debug] failed to write embedded files list: {e}", flush=True)
+            pass
 
         # Run first time (cold start)
-        t1, code1, out1, err1 = timed([str(binary_path)])
-        print(f"[run1 stdout]\n{out1}", flush=True)
-        print(f"[run1 stderr]\n{err1}", flush=True)
+    t1, code1, out1, err1 = timed([str(binary_path)])
+    # Uncomment these when you need to inspect run output
+    # print(f"[run1 stdout]\n{out1}", flush=True)
+    # print(f"[run1 stderr]\n{err1}", flush=True)
         result["run_first_time"] = round(t1, 2)
         result["run_first_success"] = (code1 == 0)
 
         # Run second time (warm cache)
-        t2, code2, out2, err2 = timed([str(binary_path)])
-        print(f"[run2 stdout]\n{out2}", flush=True)
-        print(f"[run2 stderr]\n{err2}", flush=True)
+    t2, code2, out2, err2 = timed([str(binary_path)])
+    # Uncomment these when you need to inspect run output
+    # print(f"[run2 stdout]\n{out2}", flush=True)
+    # print(f"[run2 stderr]\n{err2}", flush=True)
         result["run_second_time"] = round(t2, 2)
         result["run_second_success"] = (code2 == 0)
     else:
