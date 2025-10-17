@@ -82,7 +82,7 @@ def main():
     results = []
     for proj in projects:
         path = ROOT / "projects" / proj
-        print(f"\n🏗️  Benchmarking {proj} ...")
+        print(f"\nBenchmarking {proj} ...", flush=True)
         results.append(measure_project(proj, path))
 
     if not RESULTS_DIR.exists():
@@ -98,7 +98,7 @@ def main():
     for r in results:
         md.append(f"| {r['project']} | {r.get('embed_time','?')} | "
                   f"{r.get('binary_size_mb','?')} | {r.get('run_first_time','?')} | "
-                  f"{r.get('run_second_time','?')} | {'✅' if r.get('embed_success') else '❌'} |")
+                  f"{r.get('run_second_time','?')} | {'OK' if r.get('embed_success') else 'Not OK'} |")
     (RESULTS_DIR / "results.md").write_text("\n".join(md))
     print("\n".join(md))
 
