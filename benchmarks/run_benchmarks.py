@@ -24,18 +24,18 @@ def measure_project(name, project_dir):
     if binary_path.exists():
         binary_path.unlink()
 
-    if name == "many_files":
-        return  # Skip for now
-        # Generate many files
-        gen_script = Path(project_dir) / "generate.py"
-        if gen_script.exists():
-            print("Generating many files...")
-            t_gen, code_gen, out_gen, err_gen = timed(["python3", str(gen_script)], cwd=project_dir)
-            result["generate_time"] = round(t_gen, 2)
-            if code_gen != 0:
-                result["error"] = "generation failed"
-                print(out_gen)
-                print(err_gen)
+    # if name == "many_files":
+    #     return  # Skip for now
+    #     # Generate many files
+    #     gen_script = Path(project_dir) / "generate.py"
+    #     if gen_script.exists():
+    #         print("Generating many files...")
+    #         t_gen, code_gen, out_gen, err_gen = timed(["python3", str(gen_script)], cwd=project_dir)
+    #         result["generate_time"] = round(t_gen, 2)
+    #         if code_gen != 0:
+    #             result["error"] = "generation failed"
+    #             print(out_gen)
+    #             print(err_gen)
 
     # Embed
     pycrucible_path = ROOT.parent / "target" / "release" / "pycrucible"
@@ -77,7 +77,7 @@ def main():
         "fastapi_app",
         "pygame_app",
         "heavy_deps",
-        "many_files"
+        # "many_files"
     ]
     results = []
     for proj in projects:
