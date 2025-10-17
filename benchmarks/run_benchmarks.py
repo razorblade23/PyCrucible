@@ -20,37 +20,36 @@ def timed(cmd, cwd=None):
 def measure_project(name, project_dir):
     """Run full PyCrucible cycle for one project."""
     result = {"project": name}
-    binary_path = Path(project_dir) / f"{name}"
-    if binary_path.exists():
-        binary_path.unlink()
-
-    # if name == "many_files":
-    #     return  # Skip for now
-    #     # Generate many files
-    #     gen_script = Path(project_dir) / "generate.py"
-    #     if gen_script.exists():
-    #         print("Generating many files...")
-    #         t_gen, code_gen, out_gen, err_gen = timed(["python3", str(gen_script)], cwd=project_dir)
-    #         result["generate_time"] = round(t_gen, 2)
-    #         if code_gen != 0:
-    #             result["error"] = "generation failed"
-    #             print(out_gen)
-    #             print(err_gen)
+    # ensure per-project output directory and unique absolute output file
+    project_dir = Path(project_dir)
+    dist_dir = project_dir / "dist"
+    dist_dir.mkdir(exist_ok=True)
+    output_file = dist_dir / name
+    # remove any previous file for a clean measurement
+    if output_file.exists():
+        output_file.unlink()
+    binary_path = output_file
 
     # Embed
     pycrucible_path = ROOT.parent / "target" / "release" / "pycrucible"
-    embed_cmd = [pycrucible_path, "-e", ".", "-o", f"{name}", "--debug"]
+    embed_cmd = [str(pycrucible_path), "-e", ".", "-o", str(output_file), "--debug"]
     t_embed, code, out, err = timed(embed_cmd, cwd=project_dir)
     result["embed_time"] = round(t_embed, 2)
     result["embed_success"] = (code == 0)
     if code != 0:
         print(err, flush=True)
 
-    if not binary_path.exists():
-        # Fallback: try finding binary
-        for f in Path(project_dir, "dist").glob("*"):
-            binary_path = f
-            break
+    # sanity/debug info: report where we expect the binary and whether it exists
+    print(f"[debug] expected output: {output_file} (exists={output_file.exists()})", flush=True)
+    if not output_file.exists():
+        # fallback: search project_dir/dist for *new* files (pick newest)
+        candidates = list((project_dir / "dist").glob("*"))
+        if candidates:
+            candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+            binary_path = candidates[0]
+            print(f"[debug] fallback picked: {binary_path}", flush=True)
+        else:
+            binary_path = output_file
 
     if binary_path.exists():
         result["binary_size_mb"] = round(binary_path.stat().st_size / 1_000_000, 2)
