@@ -43,9 +43,9 @@ def measure_project(name, project_dir):
     t_embed, code, out, err = timed(embed_cmd, cwd=project_dir)
     result["embed_time"] = round(t_embed, 2)
     result["embed_success"] = (code == 0)
-    print(out)
+    print(out, flush=True)
     if code != 0:
-        print(err)
+        print(err, flush=True)
 
     if not binary_path.exists():
         # Fallback: try finding binary
@@ -100,7 +100,7 @@ def main():
                   f"{r.get('binary_size_mb','?')} | {r.get('run_first_time','?')} | "
                   f"{r.get('run_second_time','?')} | {'OK' if r.get('embed_success') else 'Not OK'} |")
     (RESULTS_DIR / "results.md").write_text("\n".join(md))
-    print("\n".join(md))
+    print("\n".join(md), flush=True)
 
 if __name__ == "__main__":
     main()
