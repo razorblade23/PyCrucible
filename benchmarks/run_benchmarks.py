@@ -19,30 +19,33 @@ def timed(cmd, cwd=None):
 
 def measure_project(name, project_dir):
     """Run full PyCrucible cycle for one project."""
+    import hashlib
     result = {"project": name}
     # ensure per-project output directory and unique absolute output file
     project_dir = Path(project_dir)
     dist_dir = project_dir / "dist"
     dist_dir.mkdir(exist_ok=True)
-    output_file = dist_dir / name
-    # remove any previous file for a clean measurement
+    # use a timestamped filename to avoid accidental reuse/collision
+    output_file = dist_dir / f"{name}-{int(time.time()*1000)}"
+    # remove any previous file for a clean measurement (none expected with timestamp)
     if output_file.exists():
         output_file.unlink()
     binary_path = output_file
 
     # Embed
     pycrucible_path = ROOT.parent / "target" / "release" / "pycrucible"
-    embed_cmd = [str(pycrucible_path), "-e", ".", "-o", str(output_file), "--debug"]
+    embed_cmd = [str(pycrucible_path), "-e", str(project_dir), "-o", str(output_file), "--debug"]
     t_embed, code, out, err = timed(embed_cmd, cwd=project_dir)
     result["embed_time"] = round(t_embed, 2)
     result["embed_success"] = (code == 0)
-    if code != 0:
-        print(err, flush=True)
 
-    # sanity/debug info: report where we expect the binary and whether it exists
-    print(f"[debug] expected output: {output_file} (exists={output_file.exists()})", flush=True)
+    # always print stdout/stderr for diagnosis
+    print(f"[embed stdout]\n{out}", flush=True)
+    print(f"[embed stderr]\n{err}", flush=True)
+    print(f"[embed exit code] {code}", flush=True)
+
     if not output_file.exists():
-        # fallback: search project_dir/dist for *new* files (pick newest)
+        # fallback: search project_dir/dist for newest file
         candidates = list((project_dir / "dist").glob("*"))
         if candidates:
             candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
@@ -52,16 +55,32 @@ def measure_project(name, project_dir):
             binary_path = output_file
 
     if binary_path.exists():
-        result["binary_size_mb"] = round(binary_path.stat().st_size / 1_000_000, 2)
-        print(f"[debug] binary size: {result['binary_size_mb']} for {binary_path}", flush=True)
+        # detailed diagnostics
+        st = binary_path.stat()
+        size_bytes = st.st_size
+        mtime = st.st_mtime
+        # compute sha256 (only first/second run need this diagnostic)
+        h = hashlib.sha256()
+        with open(binary_path, "rb") as fh:
+            for chunk in iter(lambda: fh.read(8192), b""):
+                h.update(chunk)
+        sha = h.hexdigest()
+
+        print(f"[debug] binary: {binary_path} size={size_bytes} mtime={mtime} sha256={sha}", flush=True)
+        result["binary_size_mb"] = round(size_bytes / 1_000_000, 2)
+        result["binary_sha256"] = sha
 
         # Run first time (cold start)
         t1, code1, out1, err1 = timed([str(binary_path)])
+        print(f"[run1 stdout]\n{out1}", flush=True)
+        print(f"[run1 stderr]\n{err1}", flush=True)
         result["run_first_time"] = round(t1, 2)
         result["run_first_success"] = (code1 == 0)
 
         # Run second time (warm cache)
         t2, code2, out2, err2 = timed([str(binary_path)])
+        print(f"[run2 stdout]\n{out2}", flush=True)
+        print(f"[run2 stderr]\n{err2}", flush=True)
         result["run_second_time"] = round(t2, 2)
         result["run_second_success"] = (code2 == 0)
     else:
