@@ -4,6 +4,8 @@ import time
 import json
 import subprocess
 import shutil
+import io
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -67,8 +69,36 @@ def measure_project(name, project_dir):
         sha = h.hexdigest()
 
         print(f"[debug] binary: {binary_path} size={size_bytes} mtime={mtime} sha256={sha}", flush=True)
-        result["binary_size_mb"] = round(size_bytes / 1_000_000, 2)
+        # record exact bytes and a more-precise MiB value so small differences are visible
+        result["binary_size_bytes"] = size_bytes
+        # use MiB (1024*1024) and keep 3 decimal places
+        result["binary_size_mb"] = round(size_bytes / 1024.0 / 1024.0, 3)
         result["binary_sha256"] = sha
+
+        # Try to locate embedded zip inside the binary (look for PK signature)
+        embedded_files = []
+        try:
+            with open(binary_path, "rb") as bf:
+                data = bf.read()
+            pk = data.find(b"PK\x03\x04")
+            if pk != -1:
+                try:
+                    z = zipfile.ZipFile(io.BytesIO(data[pk:]))
+                    embedded_files = z.namelist()
+                except zipfile.BadZipFile:
+                    print(f"[debug] found PK header at {pk} but failed to open zip", flush=True)
+            else:
+                print(f"[debug] no embedded PK zip header found in {binary_path}", flush=True)
+        except Exception as e:
+            print(f"[debug] error while scanning for embedded zip: {e}", flush=True)
+
+        result["embedded_files"] = embedded_files
+        # write per-project embedded file list for easier artifact inspection
+        try:
+            if embedded_files:
+                (RESULTS_DIR / f"{name}_embedded_files.txt").write_text("\n".join(embedded_files))
+        except Exception as e:
+            print(f"[debug] failed to write embedded files list: {e}", flush=True)
 
         # Run first time (cold start)
         t1, code1, out1, err1 = timed([str(binary_path)])
@@ -112,12 +142,12 @@ def main():
 
     # Create markdown summary
     md = ["# PyCrucible Benchmark Results\n"]
-    md.append("| Project | Embed Time (s) | Size (MB) | First Run (s) | Second Run (s) | Success |")
+    md.append("| Project | Embed Time (s) | Size (MiB / bytes) | First Run (s) | Second Run (s) | Success |")
     md.append("|----------|----------------|-----------|---------------|----------------|----------|")
     for r in results:
-        md.append(f"| {r['project']} | {r.get('embed_time','?')} | "
-                  f"{r.get('binary_size_mb','?')} | {r.get('run_first_time','?')} | "
-                  f"{r.get('run_second_time','?')} | {'OK' if r.get('embed_success') else 'Not OK'} |")
+        size_mb = r.get('binary_size_mb', '?')
+        size_bytes = r.get('binary_size_bytes', '?')
+        md.append(f"| {r['project']} | {r.get('embed_time','?')} | {size_mb} MiB / {size_bytes} B | {r.get('run_first_time','?')} | {r.get('run_second_time','?')} | {'OK' if r.get('embed_success') else 'Not OK'} |")
     (RESULTS_DIR / "results.md").write_text("\n".join(md))
     print("\n".join(md), flush=True)
 
