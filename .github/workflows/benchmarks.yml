@@ -15,6 +15,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -48,3 +51,24 @@ jobs:
 
       - name: Run benchmarks
         run: python benchmarks/run_benchmarks.py
+
+      - name: Upload benchmark results (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pycrucible-benchmarks
+          path: benchmarks/results
+
+      # Optional: automatically update README.md with results.md
+      - name: Commit benchmark results into README.md
+        if: ${{ always() }}     # run even if previous steps failed so we still upload/commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # replace README.md with the results (or merge/insert as you prefer)
+          cp benchmarks/results/results.md benchmarks.md
+          git add benchmarks.md
+          # if nothing to commit, exit 0
+          git diff --staged --quiet && echo "No changes to commit" || git commit -m "ci: update benchmark results"
+          git push origin HEAD:${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
