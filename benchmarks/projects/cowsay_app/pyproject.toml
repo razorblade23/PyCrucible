@@ -5,3 +5,8 @@ dependencies = ["cowsay>=6.1"]
 
 [tool.pycrucible]
 entry = "main.py"
+
+[tool.pycrucible.options]
+debug = false
+extract_to_temp = false
+delete_after_run = false

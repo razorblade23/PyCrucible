@@ -5,3 +5,8 @@ dependencies = ["flask"]
 
 [tool.pycrucible]
 entry = "app.py"
+
+[tool.pycrucible.options]
+debug = false
+extract_to_temp = false
+delete_after_run = false
