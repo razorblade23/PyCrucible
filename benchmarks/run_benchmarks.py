@@ -39,7 +39,7 @@ def measure_project(name, project_dir):
 
     # Embed
     pycrucible_path = ROOT.parent / "target" / "release" / "pycrucible"
-    embed_cmd = [pycrucible_path, "-e", ".", "-o", f"./{name}", "--debug"]
+    embed_cmd = [pycrucible_path, "-e", ".", "-o", f"{name}", "--debug"]
     t_embed, code, out, err = timed(embed_cmd, cwd=project_dir)
     result["embed_time"] = round(t_embed, 2)
     result["embed_success"] = (code == 0)
@@ -84,6 +84,7 @@ def main():
         path = ROOT / "projects" / proj
         print(f"\nBenchmarking {proj} ...", flush=True)
         results.append(measure_project(proj, path))
+        print(f"Done benchmarking {proj}.\n", flush=True)
 
     if not RESULTS_DIR.exists():
         RESULTS_DIR.mkdir()
