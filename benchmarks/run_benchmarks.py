@@ -53,6 +53,7 @@ def measure_project(name, project_dir):
 
     if binary_path.exists():
         result["binary_size_mb"] = round(binary_path.stat().st_size / 1_000_000, 2)
+        print(f"[debug] binary size: {result['binary_size_mb']} for {binary_path}", flush=True)
 
         # Run first time (cold start)
         t1, code1, out1, err1 = timed([str(binary_path)])
