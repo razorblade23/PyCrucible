@@ -6,16 +6,23 @@ This tool runs a Python application using the UV binary. It extracts your applic
 ## What does this mean?
 You get a single self-contained binary that can be distributed across machines running the same platform. No Python installation is required - just an internet connection. Run the executable, and it takes care of the rest.
 
+# Community
+You can visit our community group on Telegram
+[PyCrucible Telegram Community](https://t.me/PyCrucibleCommunity)
+
 > [!NOTE]
 > This readme is for version v0.3.x. A few important changes has been made, but mostly to the better use of tool.
 >
 > You can see all the changes in [CHANGELOG FILE](https://github.com/razorblade23/PyCrucible/blob/main/CHANGELOG.md).
 
-## Documentation
-Documentation can be found at [PyCrucible docs](https://pycrucible.razorblade23.dev).
+> [!NOTE]
+> PyCrucible now has associated GitHub Action workflow which you can use.
+>
+> [GitHub Action marketplace](https://github.com/marketplace/actions/build-python-app-with-pycrucible).
+> [GitHub Repository](https://github.com/razorblade23/pycrucible-action)
 
 ## Documentation
-Better documentation can be found at [docs](https://pycrucible.razorblade23.dev).
+Documentation can be found at [PyCrucible docs](https://pycrucible.razorblade23.dev).
 
 ## How to get `PyCrucible`
 There are a couple of ways to get PyCrucible.
@@ -115,7 +122,7 @@ debug = false
 extract_to_temp = false
 delete_after_run = false
 
-[package.patterns]
+[patterns]
 include = [
     "**/*.py",
 ]
@@ -161,6 +168,12 @@ BAR = "bar"
 pre_run = "some_script.py"
 post_run = "some_other_script.py"
 ```
+
+> [!TIP]
+> You can use `patterns` to include or exclude any arbitrary files, like HTML templates, Kivy layout files or any other arbitrary files needed for your application.
+
+> [!IMPORTANT]
+> There is no need for setting `PYTHONPATH` env variable as `uv` will take care of this. If this is really needed, `uv` will complain and you should also also set `UV_LINK_MODE="copy"` as env variable to mitigate the warning.
 
 ### Update your project from GitHub
 In configuration file its possible to set your GitHub repository, so the resulting binary will always check for update before running the application.
@@ -215,6 +228,20 @@ hooks = None
 ```
 If any of these configuration options is not used, it will be replaced with default value.
 #### NOTE - `entrypoint` directive is required when using any configuration options.
+
+## Security / Code signing
+For users who want to verify the authenticity of the `builder` binary, we recommend code signing. This ensures that the binary you download has not been tampered with.
+Code signing will be automatic in next release of `PyCrucible`.
+
+
+The `builder` is the only distributed artifact; the Python projects themselves are provided by users at runtime.
+
+Signing the builder ensures the binary is authentic.
+
+Generated self-contained binaries (created by the builder) are not pre-signed — users may optionally sign them for their own distribution.
+
+> [!IMPORTANT]
+> Make sure you run code signing **after** embedding your project. This makes sure that embedded project also be part of the signiture.
 
 ## Features
 - **Cross-Platform**: 
