@@ -1,0 +1,26 @@
+[workspace]
+members = ["cargo:."]
+
+[workspace.metadata.dist.hooks]
+pre-build = ["cargo build -p pycrucible_runner --release"]
+
+
+# Config for 'dist'
+[dist]
+# The preferred dist version to use in CI (Cargo.toml SemVer syntax)
+cargo-dist-version = "0.30.0"
+# The installers to generate for each app
+installers = ["shell", "powershell", "msi"]
+# Target platforms to build apps for (Rust target-triple syntax)
+targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
+# Path that installers should place binaries in
+install-path = "CARGO_HOME"
+# Whether to install an updater program
+install-updater = false
+# CI backends to support
+ci = "github"
+ci-release-manifest = false
+allow-dirty = ["ci"]
+
+
+
