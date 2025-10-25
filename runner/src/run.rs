@@ -110,12 +110,11 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     }
 
     // Run the main application
-    // Prepare arguments: entrypoint followed by runtime args
     let mut args_vec: Vec<String> = Vec::with_capacity(1 + runtime_args.len());
     args_vec.push(entrypoint.clone());
     args_vec.extend(runtime_args);
 
-    // Convert to &[&str]
+
     let args_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
     let _main = run_uv_command(project_dir, "run", &args_refs)?;
     
