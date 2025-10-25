@@ -75,7 +75,7 @@ fn run_uv_command(
 }
 
 
-pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
+pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> io::Result<()> {
     // Verify Python files exist
     let config = load_project_config(&project_dir.to_path_buf());
     let entrypoint = &config.package.entrypoint;
@@ -110,7 +110,14 @@ pub fn run_extracted_project(project_dir: &Path) -> io::Result<()> {
     }
 
     // Run the main application
-    let _main = run_uv_command(project_dir, "run", &[entrypoint])?;
+    // Prepare arguments: entrypoint followed by runtime args
+    let mut args_vec: Vec<String> = Vec::with_capacity(1 + runtime_args.len());
+    args_vec.push(entrypoint.clone());
+    args_vec.extend(runtime_args);
+
+    // Convert to &[&str]
+    let args_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
+    let _main = run_uv_command(project_dir, "run", &args_refs)?;
     
 
     // Run post-hook if specified
