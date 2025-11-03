@@ -32,7 +32,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build runner
-        run: cargo build -p pycrucible_runner --target x86_64-unknown-linux-gnu
+        run: cargo build -p pycrucible_runner --release --target x86_64-unknown-linux-gnu
 
       - name: Run tests
         run: |
@@ -44,34 +44,68 @@ jobs:
     needs: test
     runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
         include:
+          # Linux
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+          - runner: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+          # Windows
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
+          - runner: windows-latest
+            target: aarch64-pc-windows-msvc
+          # macOS
           - runner: macos-13
             target: x86_64-apple-darwin
-            
+          - runner: macos-14
+            target: aarch64-apple-darwin
 
     steps:
       - uses: actions/checkout@v4
+
+      # Setup Rust
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
-      - name: Build pycrucible_runner binary
-        run: cargo build --release -p pycrucible_runner --target ${{ matrix.target }}
+      # Cache cargo registry, git, binaries and target dir
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-dist-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
 
+      # Install cargo-dist prebuilt
       - name: Install cargo-dist
-        run: cargo install cargo-dist --version 0.30.0
+        shell: bash
+        run: |
+          if ! command -v dist > /dev/null; then
+            curl -sSL https://github.com/axodotdev/cargo-dist/releases/download/v0.30.2/cargo-dist-installer.sh | sh
+          fi
+          dist --version
 
-      - name: Run cargo-dist build
-        run: dist build -a host
+      # Build runner first
+      - name: Build pycrucible_runner
+        run: cargo build -p pycrucible_runner --release --target ${{ matrix.target }}
 
+      # Build dist artifacts
+      - name: Build dist artifacts
+        env:
+          DIST_TARGET_DIR: target/${{ matrix.target }}
+        run: cargo dist build --target ${{ matrix.target }}
+
+      # Upload artifacts
       - name: Upload dist artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist-artifacts
-          path: target/distrib/${{ matrix.target }}/
+          name: dist-artifacts-${{ matrix.target }}
+          path: target/distrib/
 
   smoke-test:
     name: Smoke Test PyCrucible
@@ -85,14 +119,14 @@ jobs:
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             bin_ext: ""
-          - runner: ubuntu-24.04-arm
+          - runner: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             bin_ext: ""
           # Windows
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
             bin_ext: ".exe"
-          - runner: windows-11-arm
+          - runner: windows-latest
             target: aarch64-pc-windows-msvc
             bin_ext: ".exe"
           # macOS
@@ -106,7 +140,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: dist-artifacts
+          name: dist-artifacts-${{ matrix.target }}
           path: dist/
 
       - name: Clone example project
@@ -217,8 +251,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: dist-artifacts
-          path: target/distrib
+          name: dist-artifacts-${{ matrix.target }}
+          path: target/distrib/
 
       - name: Upload binaries to GitHub Release
         uses: softprops/action-gh-release@v1
