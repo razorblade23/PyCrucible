@@ -71,7 +71,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-artifacts
-          path: target/distrib/
+          path: target/distrib/${{ matrix.target }}/
 
   smoke-test:
     name: Smoke Test PyCrucible
@@ -218,7 +218,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: dist-artifacts
-          path: target/distrib/
+          path: target/distrib
 
       - name: Upload binaries to GitHub Release
         uses: softprops/action-gh-release@v1
