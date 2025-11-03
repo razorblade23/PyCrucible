@@ -1,4 +1,9 @@
 # v0.3.x
+## v0.3.1
+### Improvements
+- Added possibility to pass runtime arguments for running embedded binary
+- Replaced manual build proccess with `cargo-dist` for automated building and signing of binaries
+
 ## v0.3.0
 ### Improvements
 - Split one single binary to two binaries (embedder and runner). This reduced the size of the overhead to ~2 MB (from previous 9+ MB). Embedder has runner already embedded so you only really need the embedder to produce final binaries.
