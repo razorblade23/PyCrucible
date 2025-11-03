@@ -98,6 +98,7 @@ jobs:
       - name: Build dist artifacts
         env:
           DIST_TARGET_DIR: target/${{ matrix.target }}
+        shell: bash
         run:
           source $CARGO_HOME/env 
           cargo dist build --target ${{ matrix.target }}
