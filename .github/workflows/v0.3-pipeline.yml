@@ -55,10 +55,10 @@ jobs:
         run: cargo --list
 
       - name: Print out the plan for building
-        run: cargo dist plan
+        run: dist plan
 
       - name: Run cargo-dist build
-        run: cargo dist build
+        run: dist build
 
       - name: Upload dist artifacts
         uses: actions/upload-artifact@v4
