@@ -47,11 +47,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+
       - name: Install cargo-dist
         run: cargo install cargo-dist --version 0.30.0
+      
+      - name: List cargo commands
+        run: cargo --list
 
-      - name: Build pycrucible-runner
-        run: cargo build -p pycrucible_runner --release
+      - name: Print out the plan for building
+        run: cargo dist plan
 
       - name: Run cargo-dist build
         run: cargo dist build
