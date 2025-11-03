@@ -2,7 +2,7 @@
 members = ["cargo:."]
 
 [workspace.metadata.dist.hooks]
-pre-build = ["cargo build -p pycrucible_runner --release"]
+pre-build = ["cargo build -p pycrucible_runner --release --target $TARGET"]
 
 
 # Config for 'dist'
