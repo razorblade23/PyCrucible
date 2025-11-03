@@ -1,10 +1,19 @@
 [package]
 name = "pycrucible"
+description = "A cross-platform Python project embedder"
+repository = "https://github.com/razorblade23/PyCrucible"
+authors = ["razorblade23 <contact@razorblade23.dev>"]
 version = "0.3.0"
 edition = "2024"
 
 [package.metadata.rust-analyzer]
 cfg = ["rust_analyzer"]
+
+[package.metadata.wix]
+upgrade-guid = "475C45FC-43C9-4FB5-BD64-5B553513F1BF"
+path-guid = "A05059C3-3FD0-4382-A8A1-186B455AD63C"
+license = false
+eula = false
 
 [dependencies]
 shared = { path = "../shared" }

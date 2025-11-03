@@ -1,7 +1,19 @@
 [package]
 name = "pycrucible_runner"
+description = "A small Rust application to run PyCrucible-embedded Python projects"
+repository = "https://github.com/razorblade23/PyCrucible"
+authors = ["razorblade23 <contact@razorblade23.dev>"]
 version = "0.3.0"
 edition = "2024"
+
+[package.metadata.dist]
+dist = false
+
+[package.metadata.wix]
+upgrade-guid = "0398D2E6-24B9-4653-A85D-6CD71119A51A"
+path-guid = "20BFF3C5-396B-4431-BA0F-538D9B2E2D8B"
+license = false
+eula = false
 
 [dependencies]
 shared = { path = "../shared" }

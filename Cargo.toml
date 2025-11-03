@@ -13,3 +13,6 @@ lto = true
 codegen-units = 1
 panic = "abort"
 
+[profile.dist]
+inherits = "release"
+lto = "thin"
