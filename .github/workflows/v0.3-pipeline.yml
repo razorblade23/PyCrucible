@@ -54,10 +54,10 @@ jobs:
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
           # macOS
-          - runner: macos-15-aarch
-            target: aarch64-apple-darwin
+          - runner: macos-latest
+            target: aarch64-apple-ios
           - runner: macos-15-intel
-            target: intel-apple-darwin
+            target: x86_64-apple-ios
 
     steps:
       - uses: actions/checkout@v4
