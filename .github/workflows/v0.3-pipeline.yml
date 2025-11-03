@@ -50,8 +50,11 @@ jobs:
       - name: Install cargo-dist
         run: cargo install cargo-dist --version 0.30.0
 
+      - name: Build pycrucible-runner
+        run: cargo build -p pycrucible_runner --release
+
       - name: Run cargo-dist build
-        run: cargo dist build --release
+        run: cargo dist build
 
       - name: Upload dist artifacts
         uses: actions/upload-artifact@v4
