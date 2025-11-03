@@ -98,7 +98,9 @@ jobs:
       - name: Build dist artifacts
         env:
           DIST_TARGET_DIR: target/${{ matrix.target }}
-        run: cargo dist build --target ${{ matrix.target }}
+        run:
+          source $CARGO_HOME/env 
+          cargo dist build --target ${{ matrix.target }}
 
       # Upload artifacts
       - name: Upload dist artifacts
