@@ -10,16 +10,13 @@ You get a single self-contained binary that can be distributed across machines r
 You can visit our community group on Telegram
 [PyCrucible Telegram Community](https://t.me/PyCrucibleCommunity)
 
-> [!NOTE]
-> This readme is for version v0.3.x. A few important changes has been made, but mostly to the better use of tool.
->
-> You can see all the changes in [CHANGELOG FILE](https://github.com/razorblade23/PyCrucible/blob/main/CHANGELOG.md).
+# Changelog
+You can see latest changes at [CHANGELOG FILE](https://github.com/razorblade23/PyCrucible/blob/main/CHANGELOG.md).
 
-> [!NOTE]
-> PyCrucible now has associated GitHub Action workflow which you can use.
->
-> [GitHub Action marketplace](https://github.com/marketplace/actions/build-python-app-with-pycrucible).
-> [GitHub Repository](https://github.com/razorblade23/pycrucible-action)
+# Github Action
+PyCrucible has associated GitHub Action workflow which you can use to embed your python applications directly in CI.
+[GitHub Action marketplace](https://github.com/marketplace/actions/build-python-app-with-pycrucible).
+[GitHub Repository](https://github.com/razorblade23/pycrucible-action)
 
 ## Documentation
 Documentation can be found at [PyCrucible docs](https://pycrucible.razorblade23.dev).
