@@ -42,23 +42,30 @@ jobs:
   dist:
     name: Build Distributables (cargo-dist)
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+          - runner: macos-13
+            target: x86_64-apple-darwin
+            
 
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
 
+      - name: Build pycrucible_runner binary
+        run: cargo build --release -p pycrucible_runner --target ${{ matrix.target }}
+
       - name: Install cargo-dist
         run: cargo install cargo-dist --version 0.30.0
-      
-      - name: List cargo commands
-        run: cargo --list
-
-      - name: Print out the plan for building
-        run: dist plan
 
       - name: Run cargo-dist build
-        run: dist build
+        run: dist build -a host
 
       - name: Upload dist artifacts
         uses: actions/upload-artifact@v4
