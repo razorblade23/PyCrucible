@@ -81,13 +81,13 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-dist-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
 
-      # Install cargo-dist prebuilt
       - name: Install cargo-dist
         shell: bash
         run: |
           if ! command -v dist > /dev/null; then
             curl -sSL https://github.com/axodotdev/cargo-dist/releases/download/v0.30.2/cargo-dist-installer.sh | sh
           fi
+          source $CARGO_HOME/env
           dist --version
 
       # Build runner first
