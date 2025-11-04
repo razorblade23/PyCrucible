@@ -174,8 +174,7 @@ jobs:
       - name: Extract and copy binary
         shell: bash
         run: |
-          tar -xf dist/pycrucible-${{ matrix.target }}.tar.xz -C dist/
-          cp -r dist/pycrucible-${{ matrix.target }}${{ matrix.bin_ext }}/pycrucible-${{ matrix.target }}${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible
+          cp ./dist/pycrucible-${{ matrix.target }}${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible
 
       - name: Make binary executable (non-Windows)
         if: runner.os != 'Windows'
