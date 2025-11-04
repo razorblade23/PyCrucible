@@ -55,9 +55,9 @@ jobs:
             target: x86_64-pc-windows-msvc
           # macOS
           - runner: macos-latest
-            target: aarch64-apple-ios
+            target: aarch64-apple-darwin
           - runner: macos-15-intel
-            target: x86_64-apple-ios
+            target: x86_64-apple-darwin
 
     steps:
       - uses: actions/checkout@v4
