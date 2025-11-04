@@ -41,7 +41,7 @@ jobs:
 
   dist:
     name: Build Distributables (cargo-dist)
-    if: github.event_name == 'release'
+    # if: github.event_name == 'release'
     needs: test
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -51,14 +51,18 @@ jobs:
           # Linux
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            bin_ext: ""
           # Windows
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
+            bin_ext: ".exe"
           # macOS
           - runner: macos-latest
             target: aarch64-apple-darwin
+            bin_ext: ""
           - runner: macos-15-intel
             target: x86_64-apple-darwin
+            bin_ext: ""
 
     steps:
       - uses: actions/checkout@v4
@@ -96,9 +100,8 @@ jobs:
         shell: bash
         run: cargo build -p pycrucible_runner --release --target ${{ matrix.target }}
 
-      # Build dist artifacts
-      - name: Build dist artifacts
-        if: runner.os != 'Windows'
+      # Build global artifacts
+      - name: Build global artifacts
         env:
           DIST_TARGET_DIR: target/${{ matrix.target }}
         shell: bash
@@ -106,26 +109,39 @@ jobs:
           if [ -f "$CARGO_HOME/env" ]; then
             source "$CARGO_HOME/env"
           fi
-          cargo dist build --target ${{ matrix.target }}
+          dist build -a global
       
-      # Build dist artifacts
-      - name: Build dist artifacts (windows)
-        if: runner.os == 'Windows'
-        env:
-          DIST_TARGET_DIR: target/${{ matrix.target }}
-        shell: bash
-        run: |
-          if [ -f "$CARGO_HOME/env" ]; then
-            source "$CARGO_HOME/env"
-          fi
-          dist build --target ${{ matrix.target }}
-
-      # Upload artifacts
-      - name: Upload dist artifacts
+      # Upload global artifacts
+      - name: Upload global artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: pycrucible-${{ matrix.target }}
           path: target/distrib/
+
+
+      # Build local artifacts
+      - name: Build local artifacts
+        env:
+          DIST_TARGET_DIR: target/${{ matrix.target }}
+        shell: bash
+        run: |
+          if [ -f "$CARGO_HOME/env" ]; then
+            source "$CARGO_HOME/env"
+          fi
+          dist build -a local --target ${{ matrix.target }}
+
+      # Upload binary artifact
+      - name: Upload binary artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pycrucible-${{ matrix.target }}${{ matrix.bin_ext }}
+          path: target/distrib/pycrucible-${{ matrix.target }}/pycrucible${{ matrix.target }}
+      
+      # Upload archive artifact
+      - name: Upload archive artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pycrucible-${{ matrix.target }}${{ matrix.bin_ext }}
+          path: target/distrib/*.tar.xz
 
   smoke-test:
     name: Smoke Test PyCrucible
@@ -191,14 +207,24 @@ jobs:
     needs: [dist, smoke-test]
     runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
         include:
+          # Linux
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            bin_ext: ""
+          # Windows
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
-          - runner: macos-13
+            bin_ext: ".exe"
+          # macOS
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+            bin_ext: ""
+          - runner: macos-15-intel
             target: x86_64-apple-darwin
+            bin_ext: ""
 
     steps:
       - uses: actions/checkout@v4
@@ -272,7 +298,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: dist-artifacts-${{ matrix.target }}
+          name: pycrucible-${{ matrix.target }}
           path: target/distrib/
 
       - name: Upload binaries to GitHub Release
