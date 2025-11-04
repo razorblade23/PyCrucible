@@ -115,7 +115,7 @@ jobs:
       - name: Upload global artifacts
         uses: actions/upload-artifact@v4
         with:
-          path: target/distrib/
+          path: target/distrib/*
 
 
       # Build local artifacts
@@ -134,7 +134,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pycrucible-${{ matrix.target }}${{ matrix.bin_ext }}
-          path: target/distrib/pycrucible-${{ matrix.target }}/pycrucible${{ matrix.target }}
+          path: target/distrib/pycrucible-${{ matrix.target }}/pycrucible${{ matrix.bin_ext }}
       
       # Upload archive artifact
       - name: Upload archive artifacts
