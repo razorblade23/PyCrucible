@@ -85,10 +85,9 @@ jobs:
           fi
           if [ -f "$CARGO_HOME/env" ]; then
             source "$CARGO_HOME/env"
-          else
-            # WINDOWS FIX
-            export PATH="$CARGO_HOME/bin:$PATH"
           fi
+          # ensure PATH always has cargo bin even if env doesn't exist
+          export PATH="$CARGO_HOME/bin:$PATH"
           dist --version
 
       # Build runner first
