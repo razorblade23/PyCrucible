@@ -1,11 +1,8 @@
 /target
-/test
-/src_old
 v0.3_notes.md
 README_v0.3.md
+v0.3-test-pipe*
 *.sh
-src_*
 launcher
-*v0.3*
 src_*
 .DS_Store

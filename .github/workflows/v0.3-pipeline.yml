@@ -149,11 +149,11 @@ jobs:
             target: aarch64-pc-windows-msvc
             bin_ext: ".exe"
           # macOS
-          - runner: macos-13
-            target: x86_64-apple-darwin
-            bin_ext: ""
-          - runner: macos-14
+          - runner: macos-latest
             target: aarch64-apple-darwin
+            bin_ext: ""
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
             bin_ext: ""
 
     steps:
@@ -169,7 +169,7 @@ jobs:
         shell: bash
         run: |
           tar -xf dist/pycrucible-${{ matrix.target }}.tar.xz -C dist/
-          cp -r dist/pycrucible-${{ matrix.target }}${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible
+          cp -r dist/pycrucible-${{ matrix.target }}${{ matrix.bin_ext }}/pycrucible-${{ matrix.target }}${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible
 
       - name: Make binary executable (non-Windows)
         if: runner.os != 'Windows'
