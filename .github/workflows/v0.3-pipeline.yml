@@ -175,7 +175,7 @@ jobs:
         shell: bash
         run: |
           tar -xf dist/pycrucible-${{ matrix.target }}.tar.xz -C dist/
-          ls -l
+          ls -l ./dist
           cp ./dist/pycrucible-${{ matrix.target }}${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible
 
       - name: Make binary executable (non-Windows)
