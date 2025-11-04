@@ -88,6 +88,7 @@ jobs:
 
       # Build runner first
       - name: Build pycrucible_runner
+        shell: bash
         run: cargo build -p pycrucible_runner --release --target ${{ matrix.target }}
 
       # Build dist artifacts
