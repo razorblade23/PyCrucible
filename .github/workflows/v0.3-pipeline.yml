@@ -123,7 +123,7 @@ jobs:
       - name: Upload dist artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist-artifacts-${{ matrix.target }}
+          name: pycrucible-${{ matrix.target }}
           path: target/distrib/
 
   smoke-test:
