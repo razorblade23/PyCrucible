@@ -41,6 +41,7 @@ jobs:
 
   dist:
     name: Build Distributables (cargo-dist)
+    if: github.event_name == 'release'
     needs: test
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -128,6 +129,7 @@ jobs:
 
   smoke-test:
     name: Smoke Test PyCrucible
+    if: github.event_name == 'release'
     needs: dist
     runs-on: ${{ matrix.runner }}
     strategy:
