@@ -98,8 +98,10 @@ jobs:
         env:
           DIST_TARGET_DIR: target/${{ matrix.target }}
         shell: bash
-        run:
-          if [ -f "$CARGO_HOME/env" ]; then source "$CARGO_HOME/env"; fi
+        run: |
+          if [ -f "$CARGO_HOME/env" ]; then
+            source "$CARGO_HOME/env"
+          fi
           cargo dist build --target ${{ matrix.target }}
 
       # Upload artifacts
