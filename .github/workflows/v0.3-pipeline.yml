@@ -97,6 +97,7 @@ jobs:
 
       # Build dist artifacts
       - name: Build dist artifacts
+        if: runner.os != 'Windows'
         env:
           DIST_TARGET_DIR: target/${{ matrix.target }}
         shell: bash
@@ -105,6 +106,18 @@ jobs:
             source "$CARGO_HOME/env"
           fi
           cargo dist build --target ${{ matrix.target }}
+      
+      # Build dist artifacts
+      - name: Build dist artifacts (windows)
+        if: runner.os == 'Windows'
+        env:
+          DIST_TARGET_DIR: target/${{ matrix.target }}
+        shell: bash
+        run: |
+          if [ -f "$CARGO_HOME/env" ]; then
+            source "$CARGO_HOME/env"
+          fi
+          dist build --target ${{ matrix.target }}
 
       # Upload artifacts
       - name: Upload dist artifacts
