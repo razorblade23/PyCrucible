@@ -110,13 +110,6 @@ jobs:
             source "$CARGO_HOME/env"
           fi
           dist build -a global
-      
-      # Upload global artifacts
-      - name: Upload global artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          path: target/distrib/*
-
 
       # Build local artifacts
       - name: Build local artifacts
@@ -129,19 +122,17 @@ jobs:
           fi
           dist build -a local --target ${{ matrix.target }}
 
-      # Upload binary artifact
-      - name: Upload binary artifacts
+      # Upload artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: pycrucible-${{ matrix.target }}${{ matrix.bin_ext }}
-          path: target/distrib/pycrucible-${{ matrix.target }}/pycrucible${{ matrix.bin_ext }}
-      
-      # Upload archive artifact
-      - name: Upload archive artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: pycrucible-${{ matrix.target }}${{ matrix.bin_ext }}
-          path: target/distrib/*.tar.xz
+          name: pycrucible-${{ matrix.target }}
+          path: |
+            target/distrib/pycrucible-${{ matrix.target }}/pycrucible${{ matrix.bin_ext }}
+            target/distrib/pycrucible-install*
+            target/distrib/*.tar*
+            target/distrib/sha256.sum
+
 
   smoke-test:
     name: Smoke Test PyCrucible
