@@ -83,7 +83,9 @@ jobs:
           if ! command -v dist > /dev/null; then
             curl -sSL https://github.com/axodotdev/cargo-dist/releases/download/v0.30.2/cargo-dist-installer.sh | sh
           fi
-          source $CARGO_HOME/env
+          if [ -f "$CARGO_HOME/env" ]; then
+            source "$CARGO_HOME/env"
+          fi
           dist --version
 
       # Build runner first
@@ -97,7 +99,7 @@ jobs:
           DIST_TARGET_DIR: target/${{ matrix.target }}
         shell: bash
         run:
-          source $CARGO_HOME/env 
+          if [ -f "$CARGO_HOME/env" ]; then source "$CARGO_HOME/env"; fi
           cargo dist build --target ${{ matrix.target }}
 
       # Upload artifacts
