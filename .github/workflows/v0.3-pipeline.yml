@@ -165,6 +165,12 @@ jobs:
       - name: Clone example project
         run: git clone https://github.com/JamesParrott/simple-python-project-for-PyCrucible
 
+      - name: List contents of dist directory
+        shell: bash
+        run: |
+          cd ./dist
+          ls -l
+
       - name: Extract and copy binary
         shell: bash
         run: |
