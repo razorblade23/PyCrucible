@@ -138,15 +138,9 @@ jobs:
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             bin_ext: ""
-          - runner: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            bin_ext: ""
           # Windows
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
-            bin_ext: ".exe"
-          - runner: windows-latest
-            target: aarch64-pc-windows-msvc
             bin_ext: ".exe"
           # macOS
           - runner: macos-latest
@@ -175,7 +169,7 @@ jobs:
         shell: bash
         run: |
           ls -l ./dist
-          cp ./dist/pycrucible-${{ matrix.target }}/pycrucible${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible
+          cp ./dist/pycrucible-${{ matrix.target }}/pycrucible${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
 
       - name: Make binary executable (non-Windows)
         if: runner.os != 'Windows'
