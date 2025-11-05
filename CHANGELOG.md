@@ -3,6 +3,7 @@
 ### Improvements
 - Added possibility to pass runtime arguments for running embedded binary
 - Replaced manual build proccess with `cargo-dist` for automated building and signing of binaries
+- Deleted images from the root of project (duplicates) - thanks @EranYonai
 
 ## v0.3.0
 ### Improvements

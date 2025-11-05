@@ -122,21 +122,27 @@ jobs:
           fi
           dist build -a local --target ${{ matrix.target }}
 
+      # Prepare artifacts for upload
+      - name: Prepare artifacts for upload
+        shell: bash
+        run: |
+          mkdir curated
+          cp target/distrib/pycrucible-${{ matrix.target }}/pycrucible${{ matrix.bin_ext }} curated/
+          cp target/distrib/pycrucible-install* curated/ || true
+          cp target/distrib/*.tar* curated/ || true
+          cp target/distrib/sha256.sum curated/
+
       # Upload artifacts
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: pycrucible-${{ matrix.target }}
-          path: |
-            target/distrib/pycrucible-${{ matrix.target }}/pycrucible${{ matrix.bin_ext }}
-            target/distrib/pycrucible-install*
-            target/distrib/*.tar*
-            target/distrib/sha256.sum
+          path: curated
 
 
   smoke-test:
     name: Smoke Test PyCrucible
-    if: github.event_name == 'release'
+    # if: github.event_name == 'release'
     needs: dist
     runs-on: ${{ matrix.runner }}
     strategy:
