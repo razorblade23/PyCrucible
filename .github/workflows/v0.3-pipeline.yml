@@ -52,17 +52,21 @@ jobs:
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             bin_ext: ""
+            simple: linux
           # Windows
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
             bin_ext: ".exe"
+            simple: windows
           # macOS
           - runner: macos-latest
             target: aarch64-apple-darwin
             bin_ext: ""
+            simple: macos
           - runner: macos-15-intel
             target: x86_64-apple-darwin
             bin_ext: ""
+            simple: macos-intel
 
     steps:
       - uses: actions/checkout@v4
@@ -126,18 +130,29 @@ jobs:
       - name: Prepare artifacts for upload
         shell: bash
         run: |
-          mkdir curated
-          cp target/distrib/pycrucible-${{ matrix.target }}/pycrucible${{ matrix.bin_ext }} curated/
-          cp target/distrib/pycrucible-install* curated/ || true
-          cp target/distrib/*.tar* curated/ || true
-          cp target/distrib/sha256.sum curated/
+          mkdir global_artifacts
+          cp -u target/distrib/pycrucible-installer.sh global_artifacts/ || true
+          cp -u target/distrib/pycrucible-installer.ps1 global_artifacts/ || true
+          cp -u target/distrib/sha256.sum global_artifacts/ || true
+
+          mkdir target_artifacts
+          cp target/distrib/pycrucible-${{ matrix.target }}/pycrucible${{ matrix.bin_ext }} target_artifacts/
+          cp target/distrib/*.tar* target_artifacts/ || true
+
+      # Upload global artifacts
+      - name: Upload artifacts
+        if: matrix.simple == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: global_artifacts
+          path: global_artifacts
 
       # Upload artifacts
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: pycrucible-${{ matrix.target }}
-          path: curated
+          name: pycrucible-${{ matrix.simple }}
+          path: target_artifacts
 
 
   smoke-test:
@@ -153,22 +168,26 @@ jobs:
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             bin_ext: ""
+            simple: linux
           # Windows
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
             bin_ext: ".exe"
+            simple: windows
           # macOS
           - runner: macos-latest
             target: aarch64-apple-darwin
             bin_ext: ""
+            simple: macos
           - runner: macos-15-intel
             target: x86_64-apple-darwin
             bin_ext: ""
+            simple: macos-intel
 
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: pycrucible-${{ matrix.target }}
+          name: pycrucible-${{ matrix.simple }}
           path: dist/
 
       - name: Clone example project
@@ -184,7 +203,7 @@ jobs:
         shell: bash
         run: |
           ls -l ./dist
-          cp ./dist/pycrucible-${{ matrix.target }}/pycrucible${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
+          cp ./dist/pycrucible-${{ matrix.simple }}/pycrucible${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
 
       - name: Make binary executable (non-Windows)
         if: runner.os != 'Windows'
@@ -295,12 +314,16 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: pycrucible-${{ matrix.target }}
           path: target/distrib/
 
       - name: Upload binaries to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: target/distrib/**
+          files: |
+            target/distrib/global_artifacts/*
+            target/distrib/pycrucible-linux/*
+            target/distrib/pycrucible-windows/*
+            target/distrib/pycrucible-macos/*
+            target/distrib/pycrucible-macos-intel/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
