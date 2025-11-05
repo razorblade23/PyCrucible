@@ -134,8 +134,8 @@ jobs:
           cp -u target/distrib/pycrucible-installer.sh global_artifacts/ || true
           cp -u target/distrib/pycrucible-installer.ps1 global_artifacts/ || true
           cp -u target/distrib/sha256.sum global_artifacts/ || true
-          cp -u target/distib/pycrucible-${{ matrix.target }}/source.tar.gz global_artifacts/ || true
-          cp -u target/distib/pycrucible-${{ matrix.target }}/source.tar.gz.sha256 global_artifacts/ || true
+          cp -u target/distrib/pycrucible-${{ matrix.target }}/source.tar.gz global_artifacts/ || true
+          cp -u target/distrib/pycrucible-${{ matrix.target }}/source.tar.gz.sha256 global_artifacts/ || true
 
           mkdir target_artifacts
           cp target/distrib/pycrucible-${{ matrix.target }}/pycrucible${{ matrix.bin_ext }} target_artifacts/pycrucible-${{ matrix.target }}${{ matrix.bin_ext }}
