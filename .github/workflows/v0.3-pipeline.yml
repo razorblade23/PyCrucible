@@ -203,7 +203,7 @@ jobs:
         shell: bash
         run: |
           ls -l ./dist
-          cp ./dist/pycrucible-${{ matrix.simple }}/pycrucible${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
+          cp ./dist/pycrucible${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
 
       - name: Make binary executable (non-Windows)
         if: runner.os != 'Windows'
