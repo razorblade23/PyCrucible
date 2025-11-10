@@ -9,9 +9,6 @@ use tempfile::tempdir;
 use crate::debug_println;
 use crate::spinner::{create_spinner_with_message, stop_and_persist_spinner_with_message};
 
-use std::io::Cursor;
-use zip::{write::FileOptions, ZipWriter};
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CrossTarget {
     LinuxX86_64,

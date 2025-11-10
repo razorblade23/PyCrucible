@@ -79,7 +79,7 @@ pub fn prepare_and_extract_payload() -> Option<PathBuf> {
     let extract_to_temp = payload_info.as_ref().unwrap().extraction_flag;
 
     let project_dir = if extract_to_temp {
-        tempdir().unwrap().into_path().join(PAYLOAD_NAME)
+        tempdir().unwrap().keep().join(PAYLOAD_NAME)
     } else {
         let exe_path = std::env::current_exe().ok()?;
         let current_dir = exe_path.parent().unwrap().join(PAYLOAD_NAME);

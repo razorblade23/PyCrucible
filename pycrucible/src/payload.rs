@@ -56,7 +56,7 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
             debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
         }
         zip.start_file("uv", options)?;
-        let mut uv_file = fs::File::open(&uv_path)?;
+        let uv_file = fs::File::open(&uv_path)?;
         zip.write(uv_file.metadata()?.len().to_le_bytes().as_ref())?;
         // io::copy(&mut uv_file, zip)?;
         debug_println!("[payload.embed_payload] - Added uv to zip");
