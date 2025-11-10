@@ -2,6 +2,7 @@ use std::path::Path;
 use std::process::Command;
 use std::path::PathBuf;
 use std::{self, io};
+use shared::uv_handler::find_or_download_uv;
 
 use shared::config::{load_project_config, ProjectConfig};
 
@@ -57,7 +58,7 @@ fn run_uv_command(
     command: &str,
     args: &[&str],
 ) -> io::Result<()> {
-    let uv_path = project_dir.join("uv");
+    let uv_path = find_or_download_uv("./uv".into());
     let status = Command::new(&uv_path)
         .arg(command)
         .args(args)
@@ -97,12 +98,11 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     // Create virtual environment
     let _venv = run_uv_command(project_dir, "venv", &["-qq"])?;
 
-    // Sincronize the virtual environment with the manifest file
+    // Sync virtual environment with the manifest file
     let _pip_sync = run_uv_command(project_dir, "pip", &["install", "-qq", "--requirements", manifest_path.to_str().unwrap()])?;
     
     // Grab the hooks from config and unwrap them to a tuple
     let (pre_hook, post_hook) = prepare_hooks(&config);
-    
 
     // Run pre-hook if specified
     if !pre_hook.is_empty() {

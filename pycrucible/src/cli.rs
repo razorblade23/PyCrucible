@@ -28,6 +28,9 @@ pub struct Cli {
     #[arg(default_value_os_t = get_output_dir().join(UV_BINARY))]
     pub uv_path: PathBuf,
 
+    #[arg(long, help="Disable embedding `uv` binary into the output executable. This will require `uv` to be present alongside (or downloaded) the output binary at runtime.")]
+    pub no_uv_embed: bool,
+
     #[arg(long, help="Enable debug output")]
     pub debug: bool,
 }

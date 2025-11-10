@@ -6,11 +6,10 @@ use std::io::copy;
 use std::path::PathBuf;
 use std::str::FromStr;
 use tempfile::tempdir;
-use shared::debug_println;
-use shared::spinner::{create_spinner_with_message, stop_and_persist_spinner_with_message};
+use crate::debug_println;
+use crate::spinner::{create_spinner_with_message, stop_and_persist_spinner_with_message};
 
-use std::fs;
-use std::io::{self, Cursor};
+use std::io::Cursor;
 use zip::{write::FileOptions, ZipWriter};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -183,12 +182,12 @@ pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf
 }
 
 
-pub fn find_or_download_uv(uv_path: PathBuf, zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>, options: FileOptions<'_, ()>) -> Result<(), io::Error> {
+pub fn find_or_download_uv(cli_uv_path: PathBuf) -> PathBuf {
     debug_println!("[payload.embed_payload] - Looking for uv");
-    let exe_dir = std::env::current_exe()?.parent().unwrap().to_path_buf();
-    let local_uv = if uv_path.exists() {
+    let exe_dir = std::env::current_exe().expect("Could not find current working directory. Exiting ....").parent().unwrap().to_path_buf();
+    let local_uv = if cli_uv_path.exists() {
         debug_println!("[payload.embed_payload] - uv found at specified path, using it");
-        uv_path
+        cli_uv_path
     } else {
         // Try to find uv in system PATH
         if let Some(path) = which::which("uv").ok() {
@@ -203,23 +202,12 @@ pub fn find_or_download_uv(uv_path: PathBuf, zip: &mut ZipWriter<&mut Cursor<Vec
         debug_println!("[payload.embed_payload] - uv found locally, using it");
         local_uv
     } else {
-        // Download `uv` and copy it to zip
+        // Download `uv`
         debug_println!("[payload.embed_payload] - uv not found locally, downloading ...");
         let target: Option<CrossTarget> = None; // We're running locally
         download_binary_and_unpack(target)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+            .expect("Failed to download uv binary")
     };
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs::metadata(&uv_path)?.permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(&uv_path, perms)?;
-        debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
-    }
-    zip.start_file("uv", options)?;
-    let mut uv_file = fs::File::open(&uv_path)?;
-    io::copy(&mut uv_file, zip)?;
-    debug_println!("[payload.embed_payload] - Added uv to zip");
-    Ok(())
+    uv_path
 }

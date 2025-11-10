@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use zip::{write::FileOptions, ZipWriter};
 use crate::{config, runner};
 use crate::debug_println;
-use crate::uv_handler::find_or_download_uv;
+use shared::uv_handler::find_or_download_uv;
 
 
 pub fn find_manifest_file(source_dir: &Path) -> PathBuf  {
@@ -27,24 +27,8 @@ pub fn find_manifest_file(source_dir: &Path) -> PathBuf  {
     manifest_path
 }
 
-fn maybe_add_uv_to_zip(uv_path: PathBuf, zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>, options: FileOptions<'_, ()>) -> io::Result<()> {
-    #[cfg(not(test))]
-    {
-        find_or_download_uv(uv_path, zip, options)?;
-    }
 
-    #[cfg(test)]
-    {
-        // no-op in tests
-        let _ = uv_path; // silence unused warnings
-        let _ = zip;
-        let _ = options;
-    }
-
-    Ok(())
-}
-
-pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_config: config::ProjectConfig, uv_path: PathBuf, output_path: &Path) -> io::Result<()> {
+pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_config: config::ProjectConfig, uv_path: PathBuf, output_path: &Path, no_uv_embed: bool) -> io::Result<()> {
     let _ = runner::extract_runner(output_path)?;
     debug_println!("[payload.embed_payload] - Runner extracted to output path");
 
@@ -57,7 +41,26 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
 
     create_pycrucible_config_file(&project_config, &mut zip, options)?;
 
-    maybe_add_uv_to_zip(uv_path, &mut zip, options)?;
+    if no_uv_embed {
+        debug_println!("[payload.embed_payload] - Skipping uv embedding as per no_uv_embed flag");
+    } else {
+        debug_println!("[payload.embed_payload] - Embedding uv binary into payload");
+        let uv_path = find_or_download_uv(uv_path);
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(&uv_path)?.permissions();
+            perms.set_mode(0o755);
+            fs::set_permissions(&uv_path, perms)?;
+            debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
+        }
+        zip.start_file("uv", options)?;
+        let mut uv_file = fs::File::open(&uv_path)?;
+        zip.write(uv_file.metadata()?.len().to_le_bytes().as_ref())?;
+        // io::copy(&mut uv_file, zip)?;
+        debug_println!("[payload.embed_payload] - Added uv to zip");
+    }
 
     // Finalize ZIP
     zip.finish()?;
@@ -203,6 +206,7 @@ mod tests {
             project_config,
             uv_path.clone(),
             &output_path,
+            true,
         );
         assert!(result.is_ok(), "embed_payload should succeed");
         assert!(output_path.exists());

@@ -1,6 +1,5 @@
 mod project;
 mod payload;
-mod uv_handler;
 mod runner;
 mod cli;
 
@@ -14,7 +13,7 @@ use shared::config;
 use shared::{debuging, debug_println};
 use clap::Parser;
 
-fn embed_source(source_dir: &Path, output_path: &Path, uv_path: PathBuf) -> io::Result<()> {
+fn embed_source(source_dir: &Path, output_path: &Path, uv_path: PathBuf, no_uv_embed: bool) -> io::Result<()> {
     // Create ProjectConfig based on pycrucible-toml or default if there is no such file
     let project_config = config::load_project_config(&source_dir.to_path_buf());
     debug_println!("[main.embed_source] - Project config: {:?}", project_config);
@@ -39,7 +38,7 @@ fn embed_source(source_dir: &Path, output_path: &Path, uv_path: PathBuf) -> io::
     // Embed Python project into the binary
     let source_paths: Vec<_> = source_files.iter().map(|sf| sf.absolute_path.clone()).collect();
     debug_println!("[main.embed_source] - Starting embedding proccess");
-    payload::embed_payload(&source_paths, &manifest_path, project_config, uv_path, output_path)
+    payload::embed_payload(&source_paths, &manifest_path, project_config, uv_path, output_path, no_uv_embed)
 }
 
 
@@ -78,7 +77,7 @@ fn main() -> io::Result<()> {
     debug_println!("[main] - Payload path: {:?} | Output path: {:?} | Manifest path: {:?}", payload_path, output_path, manifest_path);
 
     // Embed the project and create new binary
-    embed_source(&payload_path, &output_path, cli.uv_path)?;
+    embed_source(&payload_path, &output_path, cli.uv_path, cli.no_uv_embed)?;
     println!("Successfully embedded Python project into new binary: {}", output_path.display());
 
     Ok(())
