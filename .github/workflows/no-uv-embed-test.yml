@@ -28,7 +28,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build runner
-        run: cargo build -p pycrucible_runner --release --target x86_64-unknown-linux-gnu
+        run: cargo build -p pycrucible_runner --target x86_64-unknown-linux-gnu
 
       - name: Run tests
         run: |
