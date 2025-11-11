@@ -83,8 +83,8 @@ jobs:
     - name: Extract and copy binary
       shell: bash
       run: |
-        ls ./target/${{ matrix.target }}
-        cp ./target/${{ matrix.target }}/pycrucible${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
+        ls ./target/${{ matrix.target }}/release
+        cp ./target/${{ matrix.target }}/release/pycrucible${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
 
     - name: Make binary executable (non-Windows)
       if: runner.os != 'Windows'
