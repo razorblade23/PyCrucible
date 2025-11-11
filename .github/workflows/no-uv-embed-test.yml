@@ -40,7 +40,7 @@ jobs:
     needs: test
     runs-on: ${{ matrix.runner }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
           # Linux
@@ -83,7 +83,7 @@ jobs:
     - name: Extract and copy binary
       shell: bash
       run: |
-        ls ./target
+        ls ./target/${{ matrix.target }}
         cp ./target/${{ matrix.target }}/pycrucible${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
 
     - name: Make binary executable (non-Windows)
