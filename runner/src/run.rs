@@ -2,7 +2,7 @@ use std::path::Path;
 use std::process::Command;
 use std::path::PathBuf;
 use std::{self, io};
-use shared::uv_handler::find_or_download_uv;
+use shared::uv_handler_v2::find_or_download_uv;
 use shared::{debuging, debug_println};
 
 use shared::config::{load_project_config, ProjectConfig};
@@ -59,7 +59,10 @@ fn run_uv_command(
     command: &str,
     args: &[&str],
 ) -> io::Result<()> {
-    let uv_path = find_or_download_uv("./uv".into());
+    let uv_path = find_or_download_uv(None).ok_or(io::Error::new(
+        io::ErrorKind::NotFound,
+        "Could not find or download uv binary",
+    ))?;
     let status = Command::new(&uv_path)
         .arg(command)
         .args(args)
