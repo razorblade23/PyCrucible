@@ -180,27 +180,27 @@ pub fn download_binary_and_unpack(target: Option<CrossTarget>) -> Result<PathBuf
 
 
 pub fn find_or_download_uv(cli_uv_path: PathBuf) -> PathBuf {
-    debug_println!("[payload.embed_payload] - Looking for uv");
+    debug_println!("[uv_handler.find_or_download_uv] - Looking for uv");
     let exe_dir = std::env::current_exe().expect("Could not find current working directory. Exiting ....").parent().unwrap().to_path_buf();
     let local_uv = if cli_uv_path.exists() {
-        debug_println!("[payload.embed_payload] - uv found at specified path, using it");
+        debug_println!("[find_or_download_uv.embed_payload] - uv found at specified path, using it");
         cli_uv_path
     } else {
         // Try to find uv in system PATH
         if let Some(path) = which::which("uv").ok() {
-            debug_println!("[payload.embed_payload] - uv found in system PATH at {:?}", path);
+            debug_println!("[uv_handler.find_or_download_uv] - uv found in system PATH at {:?}", path);
             path
         } else {
-            debug_println!("[payload.embed_payload] - uv not found in system PATH, looking for local uv");
+            debug_println!("[uv_handler.find_or_download_uv] - uv not found in system PATH, looking for local uv");
             exe_dir.join("uv")
         }
     };
     let uv_path = if local_uv.exists() {
-        debug_println!("[payload.embed_payload] - uv found locally, using it");
+        debug_println!("[uv_handler.find_or_download_uv] - uv found locally, using it");
         local_uv
     } else {
         // Download `uv`
-        debug_println!("[payload.embed_payload] - uv not found locally, downloading ...");
+        debug_println!("[uv_handler.find_or_download_uv] - uv not found locally, downloading ...");
         let target: Option<CrossTarget> = None; // We're running locally
         download_binary_and_unpack(target)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))

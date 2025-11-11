@@ -31,6 +31,9 @@ pub struct Cli {
     #[arg(long, help="Disable embedding `uv` binary into the output executable. This will require `uv` to be present alongside (or downloaded) the output binary at runtime.")]
     pub no_uv_embed: bool,
 
+    #[arg(long, help="Force re-download of `uv` binary even if it is already present at the specified or default location. Mostly useful for testing purposes.")]
+    pub force_uv_download: bool,
+
     #[arg(long, help="Enable debug output")]
     pub debug: bool,
 }

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use zip::{write::FileOptions, ZipWriter};
 use crate::{config, runner};
 use crate::debug_println;
-use shared::uv_handler::find_or_download_uv;
+use shared::uv_handler_v2::{find_or_download_uv, download_and_install_uv};
 
 
 pub fn find_manifest_file(source_dir: &Path) -> PathBuf  {
@@ -28,7 +28,7 @@ pub fn find_manifest_file(source_dir: &Path) -> PathBuf  {
 }
 
 
-pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_config: config::ProjectConfig, uv_path: PathBuf, output_path: &Path, no_uv_embed: bool) -> io::Result<()> {
+pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_config: config::ProjectConfig, cli_uv_path: PathBuf, output_path: &Path, no_uv_embed: bool, force_uv_download: bool) -> io::Result<()> {
     let _ = runner::extract_runner(output_path)?;
     debug_println!("[payload.embed_payload] - Runner extracted to output path");
 
@@ -41,25 +41,53 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
 
     create_pycrucible_config_file(&project_config, &mut zip, options)?;
 
-    if no_uv_embed {
-        debug_println!("[payload.embed_payload] - Skipping uv embedding as per no_uv_embed flag");
-    } else {
-        debug_println!("[payload.embed_payload] - Embedding uv binary into payload");
-        let uv_path = find_or_download_uv(uv_path);
-
+    if force_uv_download {
+        debug_println!("[payload.embed_payload] - Force uv download flag is set, re-downloading uv");
+        download_and_install_uv(&cli_uv_path);
+        let path = cli_uv_path.join("uv");
+        debug_println!("[payload.embed_payload] - uv binary found at {:?}", path);
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            let mut perms = fs::metadata(&uv_path)?.permissions();
+            let mut perms = fs::metadata(&path)?.permissions();
             perms.set_mode(0o755);
-            fs::set_permissions(&uv_path, perms)?;
+            fs::set_permissions(&path, perms)?;
             debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
         }
         zip.start_file("uv", options)?;
-        let uv_file = fs::File::open(&uv_path)?;
-        zip.write(uv_file.metadata()?.len().to_le_bytes().as_ref())?;
+        // let uv_file = fs::File::open(&uv_path)?;
+        zip.write(&fs::read(path)?);
         // io::copy(&mut uv_file, zip)?;
         debug_println!("[payload.embed_payload] - Added uv to zip");
+    } else {
+        if no_uv_embed {
+            debug_println!("[payload.embed_payload] - Skipping uv embedding as per no_uv_embed flag");
+        } else {
+            debug_println!("[payload.embed_payload] - Embedding uv binary into payload");
+            let uv_path = find_or_download_uv(Some(cli_uv_path));
+            match uv_path {
+                None => {
+                    eprintln!("Could not find or download uv binary. uv will be required at runtime.");
+                },
+                Some(path) => {
+                    debug_println!("[payload.embed_payload] - uv binary found at {:?}", path);
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        let mut perms = fs::metadata(&path)?.permissions();
+                        perms.set_mode(0o755);
+                        fs::set_permissions(&path, perms)?;
+                        debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
+                    }
+                    zip.start_file("uv", options)?;
+                    // let uv_file = fs::File::open(&uv_path)?;
+                    zip.write(&fs::read(path)?);
+                    // io::copy(&mut uv_file, zip)?;
+                    debug_println!("[payload.embed_payload] - Added uv to zip");
+                }
+            }
+    
+        }
     }
 
     // Finalize ZIP
@@ -207,6 +235,7 @@ mod tests {
             uv_path.clone(),
             &output_path,
             true,
+            false,
         );
         assert!(result.is_ok(), "embed_payload should succeed");
         assert!(output_path.exists());

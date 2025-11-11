@@ -3,6 +3,7 @@ use std::process::Command;
 use std::path::PathBuf;
 use std::{self, io};
 use shared::uv_handler::find_or_download_uv;
+use shared::{debuging, debug_println};
 
 use shared::config::{load_project_config, ProjectConfig};
 
@@ -75,7 +76,6 @@ fn run_uv_command(
     Ok(())
 }
 
-
 pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> io::Result<()> {
     // Verify Python files exist
     let config = load_project_config(&project_dir.to_path_buf());
@@ -90,6 +90,11 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
             io::ErrorKind::NotFound,
             format!("Entry point {} not found", entry_point_path.display())
         ));
+    }
+
+    if config.options.debug {
+        debuging::set_debug_mode(true);
+        debug_println!("[main.run_extracted_project] - Debug mode enabled");
     }
 
     // Apply environment variables from config (unsafe but we are single-threaded so it should be fine)
