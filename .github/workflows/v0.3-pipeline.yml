@@ -296,7 +296,7 @@ jobs:
               for PYBIN in /opt/python/cp3{9,10,11,12,13}-cp3{9,10,11,12,13}; do
                 echo Building with \$PYBIN...
                 \$PYBIN/bin/pip install --upgrade pip maturin
-                \$PYBIN/bin/maturin build --release --out dist --target x86_64-unknown-linux-gnu --compatibility manylinux_2_28
+                \$PYBIN/bin/maturin build --release --out dist --target x86_64-unknown-linux-gnu --compatibility manylinux_2_28 --manifest-path pycrucible/Cargo.toml
               done
             "
 

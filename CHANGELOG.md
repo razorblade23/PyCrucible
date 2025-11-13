@@ -1,4 +1,8 @@
 # v0.3.x
+## v0.3.4
+### Improvements
+- Fixing maturin `manylinux` build
+
 ## v0.3.3
 ### Improvements
 - `manylinux` compatible build with support for glibc 2.28 and multiple Python versions in PyPi builds

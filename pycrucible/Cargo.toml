@@ -3,7 +3,7 @@ name = "pycrucible"
 description = "A cross-platform Python project embedder"
 repository = "https://github.com/razorblade23/PyCrucible"
 authors = ["razorblade23 <contact@razorblade23.dev>"]
-version = "0.3.3"
+version = "0.3.4"
 edition = "2024"
 
 [package.metadata.rust-analyzer]
