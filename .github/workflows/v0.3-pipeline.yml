@@ -233,8 +233,8 @@ jobs:
 
   build-wheels:
     name: Build Wheels for PyPI
-    # if: github.event_name == 'release'
-    # needs: [dist, smoke-test]
+    if: github.event_name == 'release'
+    needs: [dist, smoke-test]
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
