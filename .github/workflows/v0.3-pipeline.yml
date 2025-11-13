@@ -292,6 +292,9 @@ jobs:
         run: |
           docker run --rm -v ${{ github.workspace }}:/io quay.io/pypa/manylinux_2_28_x86_64 \
             bash -c "
+              curl https://sh.rustup.rs -sSf | sh -s -- -y &&
+              source /root/.cargo/env &&
+              rustc --version &&
               cd /io
               for PYBIN in /opt/python/cp3{9,10,11,12,13}-cp3{9,10,11,12,13}; do
                 echo Building with \$PYBIN...
