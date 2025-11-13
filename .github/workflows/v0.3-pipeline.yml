@@ -292,6 +292,7 @@ jobs:
         run: |
           docker run --rm -v ${{ github.workspace }}:/io quay.io/pypa/manylinux_2_28_x86_64 \
             bash -c "
+              yum install -y openssl-devel pkg-config &&
               curl https://sh.rustup.rs -sSf | sh -s -- -y &&
               source /root/.cargo/env &&
               rustc --version &&
