@@ -21,4 +21,4 @@ shared = { path = "../shared" }
 toml = "0.8"
 zip = { version = "3", default-features = false }
 tempfile = "3"
-git2 = { version = "0.20", features = ["https"], default-features = false }
+git2 = { version = "0.20", default-features = false }
