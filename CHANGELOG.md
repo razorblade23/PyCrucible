@@ -1,8 +1,11 @@
 # v0.3.x
+## v0.3.3
+### Improvements
+- `manylinux` compatible build with support for glibc 2.28 and multiple Python versions in PyPi builds
+
 ## v0.3.2
 ### Improvements
 - Multiple `manylinux` compatible builds with support for glibc 2.28, 2.35 and 2.39 in PyPi builds
-
 
 ## v0.3.1
 ### Improvements

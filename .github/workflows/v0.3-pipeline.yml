@@ -293,7 +293,7 @@ jobs:
           docker run --rm -v ${{ github.workspace }}:/io quay.io/pypa/manylinux_2_28_x86_64 \
             bash -c "
               cd /io
-              for PYBIN in /opt/python/cp3{9,10,11,12}-cp3{9,10,11,12}; do
+              for PYBIN in /opt/python/cp3{9,10,11,12,13}-cp3{9,10,11,12,13}; do
                 echo Building with \$PYBIN...
                 \$PYBIN/bin/pip install --upgrade pip maturin
                 \$PYBIN/bin/maturin build --release --out dist --target x86_64-unknown-linux-gnu --compatibility manylinux_2_28
