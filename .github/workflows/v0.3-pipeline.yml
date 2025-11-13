@@ -243,6 +243,15 @@ jobs:
           # Linux
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            manylinux: manylinux_2_28
+            bin_ext: ""
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            manylinux: manylinux_2_35
+            bin_ext: ""
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            manylinux: manylinux_2_39
             bin_ext: ""
           # Windows
           - runner: windows-latest
@@ -286,8 +295,20 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y patchelf
 
-      - name: Build wheel
+      # Linux only: build inside manylinux container
+      - name: Build manylinux wheel
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/io quay.io/pypa/${{ matrix.manylinux }}_x86_64 \
+            bash -c "cd /io && maturin build --release --out dist --target x86_64-unknown-linux-gnu --compatibility ${{ matrix.manylinux }} --manifest-path pycrucible/Cargo.toml"
+
+      # Non-Linux: build natively
+      - name: Build native wheel
+        if: matrix.target != 'x86_64-unknown-linux-gnu'
         run: maturin build --release --out dist --target ${{ matrix.target }} --manifest-path pycrucible/Cargo.toml
+
+      # - name: Build wheel
+      #   run: maturin build --release --out dist --target ${{ matrix.target }} --manifest-path pycrucible/Cargo.toml
 
       - uses: actions/upload-artifact@v4
         with:
