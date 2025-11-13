@@ -245,14 +245,6 @@ jobs:
             target: x86_64-unknown-linux-gnu
             manylinux: manylinux_2_28
             bin_ext: ""
-          - runner: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            manylinux: manylinux_2_35
-            bin_ext: ""
-          - runner: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            manylinux: manylinux_2_39
-            bin_ext: ""
           # Windows
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
@@ -295,12 +287,18 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y patchelf
 
-      # Linux only: build inside manylinux container
       - name: Build manylinux wheel
         if: matrix.target == 'x86_64-unknown-linux-gnu'
         run: |
-          docker run --rm -v ${{ github.workspace }}:/io quay.io/pypa/${{ matrix.manylinux }}_x86_64 \
-            bash -c "cd /io && maturin build --release --out dist --target x86_64-unknown-linux-gnu --compatibility ${{ matrix.manylinux }} --manifest-path pycrucible/Cargo.toml"
+          docker run --rm -v ${{ github.workspace }}:/io quay.io/pypa/manylinux_2_28_x86_64 \
+            bash -c "
+              cd /io
+              for PYBIN in /opt/python/cp3{9,10,11,12}-cp3{9,10,11,12}; do
+                echo Building with \$PYBIN...
+                \$PYBIN/bin/pip install --upgrade pip maturin
+                \$PYBIN/bin/maturin build --release --out dist --target x86_64-unknown-linux-gnu --compatibility manylinux_2_28
+              done
+            "
 
       # Non-Linux: build natively
       - name: Build native wheel
