@@ -1,10 +1,14 @@
 # v0.3.x
+## v0.3.5 - v0.3.9
+### Fix
+- Fixing issue #40 with `uv` and multiple `-quiet` arguments. It seems to be contained to some versions of uv only.
+
 ## v0.3.4
-### Improvements
+### Fix
 - Fixing maturin `manylinux` build
 
 ## v0.3.3
-### Improvements
+### Fix
 - `manylinux` compatible build with support for glibc 2.28 and multiple Python versions in PyPi builds
 
 ## v0.3.2
