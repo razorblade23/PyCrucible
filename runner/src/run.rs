@@ -60,6 +60,7 @@ fn run_uv_command(
     let uv_path = project_dir.join("uv");
     let status = Command::new(&uv_path)
         .arg(command)
+        .arg("-q")
         .args(args)
         .current_dir(project_dir)
         .status()?;
@@ -95,10 +96,10 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     apply_env_from_config(&config);
 
     // Create virtual environment
-    let _venv = run_uv_command(project_dir, "venv", &["-qq"])?;
+    let _venv = run_uv_command(project_dir, "venv", &[])?;
 
     // Sincronize the virtual environment with the manifest file
-    let _pip_sync = run_uv_command(project_dir, "pip", &["install", "-qq", "--requirements", manifest_path.to_str().unwrap()])?;
+    let _pip_sync = run_uv_command(project_dir, "pip", &["install", "--requirements", manifest_path.to_str().unwrap()])?;
     
     // Grab the hooks from config and unwrap them to a tuple
     let (pre_hook, post_hook) = prepare_hooks(&config);
