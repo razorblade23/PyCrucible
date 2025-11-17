@@ -6,14 +6,14 @@ This tool runs a Python application using the UV binary. It extracts your applic
 ## What does this mean?
 You get a single self-contained binary that can be distributed across machines running the same platform. No Python installation is required - just an internet connection. Run the executable, and it takes care of the rest.
 
-# Community
+## Community
 You can visit our community group on Telegram
 [PyCrucible Telegram Community](https://t.me/PyCrucibleCommunity)
 
-# Changelog
+## Changelog
 You can see latest changes at [CHANGELOG FILE](https://github.com/razorblade23/PyCrucible/blob/main/CHANGELOG.md).
 
-# Github Action
+## Github Action
 PyCrucible has associated GitHub Action workflow which you can use to embed your python applications directly in CI.
 [GitHub Action marketplace](https://github.com/marketplace/actions/build-python-app-with-pycrucible).
 [GitHub Repository](https://github.com/razorblade23/pycrucible-action)
@@ -65,9 +65,17 @@ This will embed your project and produce a new binary which is by default called
 >
 > Example: `pycrucible -e . -o ./myapp` (or `pycrucible -e . -o ./myapp.exe`)
 
-This is now all you need to distribute your python project to other people.
+> [!TIP]
+> You can also use `pipx` or `uvx` to run the tool without installing it to your venv.
+>
+> Example with `pipx`: `pipx pycrucible -e .` | Example with `uvx`: `uvx pycrucible -e .`
 
-No python required on their end. Just this single binary.
+This is now **all you need** to distribute your python project to other people.
+
+**No python required on their end. Just this single binary.**
+
+> [!NOTE]
+> PyCrucible supports runtime arguments as of `v0.3.1`.
 
 Running `pycrucible --help` reveals more options:
 ```bash
