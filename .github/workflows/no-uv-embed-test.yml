@@ -92,4 +92,6 @@ jobs:
 
     - name: Smoke-test generated artifact
       working-directory: simple-python-project-for-PyCrucible
-      run: ./cowsay${{ matrix.bin_ext }}
+      run: |
+        ls
+        ./cowsay${{ matrix.bin_ext }}
