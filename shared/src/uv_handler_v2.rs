@@ -61,7 +61,7 @@ pub fn download_and_install_uv(install_path: &PathBuf) {
 }
 
 pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
-    println!("[uv_handler.find_or_download_uv] - Looking for uv");
+    debug_println!("[uv_handler.find_or_download_uv] - Looking for uv");
 
     let exe_dir = std::env::current_exe().expect("Could not find current working directory. Exiting ....").parent().unwrap().to_path_buf();
     let local_uv = if cli_uv_path.is_some() {
@@ -77,10 +77,10 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
         }
     };
     let uv_path = if local_uv.is_some() {
-        println!("[uv_handler.find_or_download_uv] - uv found locally, using it");
+        debug_println!("[uv_handler.find_or_download_uv] - uv found locally, using it");
         local_uv
     } else {
-        println!("[uv_handler.find_or_download_uv] - uv not found locally, downloading ...");
+        debug_println!("[uv_handler.find_or_download_uv] - uv not found locally, lets see if we have it cached ...");
         let home = dirs::home_dir().unwrap();
 
         let uv_install_root = home.join(".pycrucible").join("cache").join("uv");
@@ -93,7 +93,7 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
 
         // Try to find an existing candidate without consuming the vector so we can reuse it after download.
         if let Some(uv_bin) = candidates.iter().find(|p| p.exists()).cloned() {
-            debug_println!("[uv_handler.find_or_download_uv] - uv binary found at {:?}, no need to download.", uv_bin);
+            debug_println!("[uv_handler.find_or_download_uv] - uv binary found cached at {:?}, no need to download.", uv_bin);
             return Some(uv_bin);
         }
 

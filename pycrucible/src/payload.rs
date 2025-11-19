@@ -56,7 +56,7 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
         }
         zip.start_file("uv", options)?;
         // let uv_file = fs::File::open(&uv_path)?;
-        zip.write(&fs::read(path)?);
+        let _ = zip.write(&fs::read(path)?);
         // io::copy(&mut uv_file, zip)?;
         debug_println!("[payload.embed_payload] - Added uv to zip");
     } else {
@@ -81,7 +81,7 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
                     }
                     zip.start_file("uv", options)?;
                     // let uv_file = fs::File::open(&uv_path)?;
-                    zip.write(&fs::read(path)?);
+                    let _ = zip.write(&fs::read(path)?);
                     // io::copy(&mut uv_file, zip)?;
                     debug_println!("[payload.embed_payload] - Added uv to zip");
                 }

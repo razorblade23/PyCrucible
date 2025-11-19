@@ -63,7 +63,7 @@ fn run_uv_command(
         io::ErrorKind::NotFound,
         "Could not find or download uv binary",
     ))?;
-    println!("[main.run_uv_command] - Running `uv {}` in {:?}", command, project_dir);
+    debug_println!("[main.run_uv_command] - Running `uv {}` in {:?}", command, project_dir);
     let status = Command::new(&uv_path)
         .arg(command)
         .arg("-q")
@@ -84,14 +84,14 @@ fn run_uv_command(
 pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> io::Result<()> {
     // Verify Python files exist
     let config = load_project_config(&project_dir.to_path_buf());
-    println!("[main.run_extracted_project] - Loaded project configuration");
+    debug_println!("[main.run_extracted_project] - Loaded project configuration");
     let entrypoint = &config.package.entrypoint;
     let entry_point_path = project_dir.join(&entrypoint);
-    println!("[main.run_extracted_project] - Using entry point: {}", entrypoint);
+    debug_println!("[main.run_extracted_project] - Using entry point: {}", entrypoint);
 
     // Find manifest file
     let manifest_path = find_manifest_file(project_dir)?;
-    println!("[main.run_extracted_project] - Found manifest file at {:?}", manifest_path);
+    debug_println!("[main.run_extracted_project] - Found manifest file at {:?}", manifest_path);
     
     if !entry_point_path.exists() {
         return Err(io::Error::new(
@@ -107,28 +107,28 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
 
     // Apply environment variables from config (unsafe but we are single-threaded so it should be fine)
     apply_env_from_config(&config);
-    println!("[main.run_extracted_project] - Applied environment variables from configuration");
+    debug_println!("[main.run_extracted_project] - Applied environment variables from configuration");
 
     // Create virtual environment
-    println!("[main.run_extracted_project] - Creating virtual environment");
+    debug_println!("[main.run_extracted_project] - Creating virtual environment");
     let _venv = run_uv_command(project_dir, "venv", &[])?;
 
     // Sincronize the virtual environment with the manifest file
-    println!("[main.run_extracted_project] - Installing dependencies from manifest file");
+    debug_println!("[main.run_extracted_project] - Installing dependencies from manifest file");
     let _pip_sync = run_uv_command(project_dir, "pip", &["install", "--requirements", manifest_path.to_str().unwrap()])?;
     
     // Grab the hooks from config and unwrap them to a tuple
-    println!("[main.run_extracted_project] - Preparing pre and post hooks from configuration");
+    debug_println!("[main.run_extracted_project] - Preparing pre and post hooks from configuration");
     let (pre_hook, post_hook) = prepare_hooks(&config);
 
     // Run pre-hook if specified
-    println!("[main.run_extracted_project] - Running pre-hook if specified");
+    debug_println!("[main.run_extracted_project] - Running pre-hook if specified");
     if !pre_hook.is_empty() {
         let _prehook = run_uv_command(project_dir, "run", &[pre_hook.as_str()])?;
     }
 
     // Run the main application
-    println!("[main.run_extracted_project] - Running main application");
+    debug_println!("[main.run_extracted_project] - Running main application");
     let mut args_vec: Vec<String> = Vec::with_capacity(1 + runtime_args.len());
     args_vec.push(entrypoint.clone());
     args_vec.extend(runtime_args);
@@ -139,13 +139,13 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     
 
     // Run post-hook if specified
-    println!("[main.run_extracted_project] - Running post-hook if specified");
+    debug_println!("[main.run_extracted_project] - Running post-hook if specified");
     if !post_hook.is_empty() {
         let _prehook = run_uv_command(project_dir, "run", &[post_hook.as_str()])?;
     }
 
     // Clean up if delete_after_run is set or extract_to_temp is set
-    println!("[main.run_extracted_project] - Cleaning up extracted project if configured to do so");
+    debug_println!("[main.run_extracted_project] - Cleaning up extracted project if configured to do so");
     if config.options.delete_after_run || config.options.extract_to_temp {
         if project_dir.exists() {
             std::fs::remove_dir_all(project_dir)?;
