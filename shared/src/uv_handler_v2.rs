@@ -85,18 +85,22 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
         let sp = create_spinner_with_message("Downloading `uv` ...");
         download_and_install_uv(&uv_cache);
         stop_and_persist_spinner_with_message(sp, "Downloaded `uv` successfully");
-        
-        #[cfg(unix)]
-        {
-            use std::{fs, os::unix::fs::PermissionsExt};
-            let mut perms = fs::metadata(&uv_cache).expect("Could not get metadata").permissions();
-            // Set execute permission for UV binary
-            perms.set_mode(0o755);
-            fs::set_permissions(&exe_dir, perms).expect("Could not set execute permissions for uv binary");
-        }
 
         Some(uv_cache)
     };
+
+    #[cfg(unix)]
+        {
+            use std::{fs, os::unix::fs::PermissionsExt};
+            if let Some(ref path) = uv_path {
+                let mut perms = fs::metadata(path).expect("Could not get metadata").permissions();
+                // Set execute permission for UV binary
+                perms.set_mode(0o755);
+                fs::set_permissions(path, perms).expect("Could not set execute permissions for uv binary");
+                println!("[uv_handler.find_or_download_uv] - Set execute permissions for uv binary at {:?}", path);
+            }
+        }
+
     uv_path
 }
     
