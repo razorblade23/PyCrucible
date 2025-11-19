@@ -45,15 +45,15 @@ jobs:
             bin_ext: ""
             simple: linux
           # Windows
-          # - runner: windows-latest
-          #   target: x86_64-pc-windows-msvc
-          #   bin_ext: ".exe"
-          #   simple: windows
-          # # macOS
-          # - runner: macos-latest
-          #   target: aarch64-apple-darwin
-          #   bin_ext: ""
-          #   simple: macos
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin_ext: ".exe"
+            simple: windows
+          # macOS
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+            bin_ext: ""
+            simple: macos
 
     steps:
     - uses: actions/checkout@v4
