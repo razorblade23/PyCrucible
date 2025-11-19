@@ -64,16 +64,15 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
     println!("[uv_handler.find_or_download_uv] - Looking for uv");
     let exe_dir = std::env::current_exe().expect("Could not find current working directory. Exiting ....").parent().unwrap().to_path_buf();
     let local_uv = if cli_uv_path.is_some() {
-        println!("[find_or_download_uv.embed_payload] - uv found at specified path, using it");
         Some(cli_uv_path.unwrap())
+    } else if let Ok(path) = which::which("uv") {
+        Some(path)
     } else {
-        // Try to find uv in system PATH
-        if let Some(path) = which::which("uv").ok() {
-            println!("[uv_handler.find_or_download_uv] - uv found in system PATH at {:?}", path);
-            Some(path)
+        let local_uv_path = exe_dir.join("uv");
+        if local_uv_path.exists() {
+            Some(local_uv_path)
         } else {
-            println!("[uv_handler.find_or_download_uv] - uv not found in system PATH, looking for local uv");
-            Some(exe_dir.join("uv"))
+            None
         }
     };
     let uv_path = if local_uv.is_some() {
