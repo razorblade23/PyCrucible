@@ -63,6 +63,7 @@ fn run_uv_command(
         io::ErrorKind::NotFound,
         "Could not find or download uv binary",
     ))?;
+    println!("[main.run_uv_command] - Running `uv {}` in {:?}", command, project_dir);
     let status = Command::new(&uv_path)
         .arg(command)
         .arg("-q")
@@ -83,11 +84,14 @@ fn run_uv_command(
 pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> io::Result<()> {
     // Verify Python files exist
     let config = load_project_config(&project_dir.to_path_buf());
+    println!("[main.run_extracted_project] - Loaded project configuration");
     let entrypoint = &config.package.entrypoint;
     let entry_point_path = project_dir.join(&entrypoint);
+    println!("[main.run_extracted_project] - Using entry point: {}", entrypoint);
 
     // Find manifest file
     let manifest_path = find_manifest_file(project_dir)?;
+    println!("[main.run_extracted_project] - Found manifest file at {:?}", manifest_path);
     
     if !entry_point_path.exists() {
         return Err(io::Error::new(
