@@ -7,7 +7,7 @@ pub fn download_and_install_uv(install_path: &PathBuf) {
         // Download and run the install script via sh if unix-based OS
         let mut wget = Command::new("wget")
             .args(["-qO-", "https://astral.sh/uv/install.sh"])
-            .stdout(Stdio::null())
+            .stdout(Stdio::piped())
             .spawn()
             .expect("Failed to start wget");
 
@@ -34,7 +34,7 @@ pub fn download_and_install_uv(install_path: &PathBuf) {
                 "-ExecutionPolicy", "Bypass",
                 "-Command", "Invoke-RestMethod https://astral.sh/uv/install.ps1",
             ])
-            .stdout(Stdio::null())
+            .stdout(Stdio::piped())
             .spawn()
             .expect("Failed to start PowerShell script download");
 
