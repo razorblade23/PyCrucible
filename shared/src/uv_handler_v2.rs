@@ -62,6 +62,7 @@ pub fn download_and_install_uv(install_path: &PathBuf) {
 
 pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
     println!("[uv_handler.find_or_download_uv] - Looking for uv");
+
     let exe_dir = std::env::current_exe().expect("Could not find current working directory. Exiting ....").parent().unwrap().to_path_buf();
     let local_uv = if cli_uv_path.is_some() {
         Some(cli_uv_path.unwrap())
@@ -81,12 +82,15 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
     } else {
         println!("[uv_handler.find_or_download_uv] - uv not found locally, downloading ...");
         let home = dirs::home_dir().unwrap();
-        let uv_cache = home.join(".pycrucible").join("cache").join("uv");
+
+        let uv_install_root = home.join(".pycrucible").join("cache").join("uv");
+        let uv_bin = uv_install_root.join("bin").join("uv");
+
         let sp = create_spinner_with_message("Downloading `uv` ...");
-        download_and_install_uv(&uv_cache);
+        download_and_install_uv(&uv_install_root);
         stop_and_persist_spinner_with_message(sp, "Downloaded `uv` successfully");
 
-        Some(uv_cache)
+        Some(uv_bin)
     };
 
     #[cfg(unix)]
