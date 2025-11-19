@@ -97,11 +97,13 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
         {
             use std::{fs, os::unix::fs::PermissionsExt};
             if let Some(ref path) = uv_path {
-                let mut perms = fs::metadata(path).expect("Could not get metadata").permissions();
-                // Set execute permission for UV binary
-                perms.set_mode(0o755);
-                fs::set_permissions(path, perms).expect("Could not set execute permissions for uv binary");
-                println!("[uv_handler.find_or_download_uv] - Set execute permissions for uv binary at {:?}", path);
+                if path.parent().is_some() {
+                    let mut perms = fs::metadata(path.parent().unwrap()).expect("Could not get metadata").permissions();
+                    // Set execute permission for UV binary
+                    perms.set_mode(0o755);
+                    fs::set_permissions(path, perms).expect("Could not set execute permissions for uv binary");
+                    println!("[uv_handler.find_or_download_uv] - Set execute permissions for uv binary at {:?}", path);
+                }
             }
         }
 
