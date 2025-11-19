@@ -84,11 +84,25 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
         let home = dirs::home_dir().unwrap();
 
         let uv_install_root = home.join(".pycrucible").join("cache").join("uv");
-        let uv_bin = uv_install_root.join("bin").join("uv");
 
         let sp = create_spinner_with_message("Downloading `uv` ...");
         download_and_install_uv(&uv_install_root);
         stop_and_persist_spinner_with_message(sp, "Downloaded `uv` successfully");
+
+        let candidates = vec![
+            uv_install_root.join("uv"),
+            uv_install_root.join("uv.exe"),
+            uv_install_root.join("bin").join("uv"),
+            uv_install_root.join("bin").join("uv.exe"),
+        ];
+
+        let uv_bin = match candidates.into_iter().find(|p| p.exists()) {
+            Some(p) => p,
+            None => {
+            eprintln!("uv binary not found after installation.");
+            return None;
+            }
+        };
 
         Some(uv_bin)
     };
@@ -102,6 +116,12 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
             let mut perms = fs::metadata(path)
                 .expect("Could not stat uv binary")
                 .permissions();
+            let current_mode = perms.mode() & 0o777;
+            if current_mode == 0o755 {
+                println!("[uv_handler.find_or_download_uv] - uv permissions already 0o755, skipping chmod for {:?}", path);
+                return uv_path.clone();
+            }
+
             perms.set_mode(0o755);
             fs::set_permissions(path, perms)
                 .expect("Could not chmod uv binary");
