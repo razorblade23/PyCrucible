@@ -61,26 +61,26 @@ pub fn download_and_install_uv(install_path: &PathBuf) {
 }
 
 pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
-    debug_println!("[uv_handler.find_or_download_uv] - Looking for uv");
+    println!("[uv_handler.find_or_download_uv] - Looking for uv");
     let exe_dir = std::env::current_exe().expect("Could not find current working directory. Exiting ....").parent().unwrap().to_path_buf();
     let local_uv = if cli_uv_path.is_some() {
-        debug_println!("[find_or_download_uv.embed_payload] - uv found at specified path, using it");
+        println!("[find_or_download_uv.embed_payload] - uv found at specified path, using it");
         Some(cli_uv_path.unwrap())
     } else {
         // Try to find uv in system PATH
         if let Some(path) = which::which("uv").ok() {
-            debug_println!("[uv_handler.find_or_download_uv] - uv found in system PATH at {:?}", path);
+            println!("[uv_handler.find_or_download_uv] - uv found in system PATH at {:?}", path);
             Some(path)
         } else {
-            debug_println!("[uv_handler.find_or_download_uv] - uv not found in system PATH, looking for local uv");
+            println!("[uv_handler.find_or_download_uv] - uv not found in system PATH, looking for local uv");
             Some(exe_dir.join("uv"))
         }
     };
     let uv_path = if local_uv.is_some() {
-        debug_println!("[uv_handler.find_or_download_uv] - uv found locally, using it");
+        println!("[uv_handler.find_or_download_uv] - uv found locally, using it");
         local_uv
     } else {
-        debug_println!("[uv_handler.find_or_download_uv] - uv not found locally, downloading ...");
+        println!("[uv_handler.find_or_download_uv] - uv not found locally, downloading ...");
         let home = dirs::home_dir().unwrap();
         let uv_cache = home.join(".pycrucible").join("cache").join("uv");
         let sp = create_spinner_with_message("Downloading `uv` ...");
@@ -97,7 +97,6 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
             perms.set_mode(0o755);
             fs::set_permissions(&exe_dir, perms).expect("Could not set execute permissions for uv binary");
         }
-
     uv_path
 }
     
