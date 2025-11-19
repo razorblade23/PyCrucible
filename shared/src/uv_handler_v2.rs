@@ -88,6 +88,16 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
         stop_and_persist_spinner_with_message(sp, "Downloaded `uv` successfully");
         Some(uv_cache)
     };
+
+    #[cfg(unix)]
+        {
+            use std::{fs, os::unix::fs::PermissionsExt};
+            let mut perms = fs::metadata(&exe_dir).expect("No current directory found").permissions();
+            // Set execute permission for UV binary
+            perms.set_mode(0o755);
+            fs::set_permissions(&exe_dir, perms).expect("Could not set execute permissions for uv binary");
+        }
+
     uv_path
 }
     

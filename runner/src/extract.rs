@@ -42,11 +42,8 @@ fn extract_from_archive(target_dir: &Path, payload_data: Vec<u8>) -> Result<(), 
         {
             use std::os::unix::fs::PermissionsExt;
             let mut perms = fs::metadata(&outpath)?.permissions();
-            // Set execute permission for UV binary
-            if file.name().contains("uv") && !file.name().ends_with("/") {
-                perms.set_mode(0o755);
-            } else {
-                // Set read/write permissions for Python files
+            // Set read/write permissions for Python files
+            if !file.name().contains("uv") && !file.name().ends_with("/") {
                 perms.set_mode(0o644);
             }
             fs::set_permissions(&outpath, perms)?;
