@@ -2,7 +2,6 @@ pub mod config;
 pub mod spinner;
 pub mod debuging;
 pub mod footer;
-pub mod uv_handler;
 pub mod uv_handler_v2;
 
 pub use config::*;
