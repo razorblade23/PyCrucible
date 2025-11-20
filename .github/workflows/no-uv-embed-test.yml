@@ -74,24 +74,24 @@ jobs:
       run: cargo build -p pycrucible --release --target ${{ matrix.target }}
 
     - name: Clone example project
-      run: git clone https://github.com/JamesParrott/simple-python-project-for-PyCrucible
+      run: git clone https://github.com/razorblade23/test-project-for-PyCrucible
 
     - name: Extract and copy binary
       shell: bash
       run: |
         ls ./target/${{ matrix.target }}/release
-        cp ./target/${{ matrix.target }}/release/pycrucible${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
+        cp ./target/${{ matrix.target }}/release/pycrucible${{ matrix.bin_ext }} test-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
 
     - name: Make binary executable (non-Windows)
       if: runner.os != 'Windows'
-      run: chmod +x simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
+      run: chmod +x test-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
 
     - name: Run PyCrucible
-      working-directory: simple-python-project-for-PyCrucible
+      working-directory: test-project-for-PyCrucible
       run: ./pycrucible${{ matrix.bin_ext }} -e . -o cowsay${{ matrix.bin_ext }} --no-uv-embed --debug
 
     - name: Smoke-test generated artifact
-      working-directory: simple-python-project-for-PyCrucible
+      working-directory: test-project-for-PyCrucible
       run: |
         ls
         ./cowsay${{ matrix.bin_ext }}
