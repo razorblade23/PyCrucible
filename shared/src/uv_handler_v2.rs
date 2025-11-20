@@ -37,6 +37,7 @@ pub fn download_and_install_uv(install_path: &PathBuf) {
             .stdout(Stdio::piped())
             .spawn()
             .expect("Failed to start PowerShell script download");
+        let download_status = ps_download.wait().expect("Failed to wait for PowerShell download");
         println!("Download complete, executing installation...");
         let mut ps_execute = Command::new("powershell")
             .args([
@@ -51,7 +52,6 @@ pub fn download_and_install_uv(install_path: &PathBuf) {
             .spawn()
             .expect("Failed to start PowerShell script execution");
 
-        let download_status = ps_download.wait().expect("Failed to wait for PowerShell download");
         let execute_status = ps_execute.wait().expect("Failed to wait for PowerShell execution");
 
         if !download_status.success() || !execute_status.success() {
