@@ -27,36 +27,23 @@ pub fn download_and_install_uv(install_path: &PathBuf) {
     } else if cfg!(target_os = "windows") {
         // Download and run the install script via powershell if windows
         println!("Downloading and installing uv via PowerShell...");
-        let mut ps_download = Command::new("powershell")
+        Command::new("powershell")
             .args([
                 "-NoProfile",
                 "-NonInteractive",
                 "-ExecutionPolicy", "Bypass",
-                "-Command", "Invoke-RestMethod https://astral.sh/uv/install.ps1",
-            ])
-            .stdout(Stdio::piped())
-            .spawn()
-            .expect("Failed to start PowerShell script download");
-        let download_status = ps_download.wait().expect("Failed to wait for PowerShell download");
-        println!("Download complete, executing installation...");
-        let mut ps_execute = Command::new("powershell")
-            .args([
-                "-NoProfile",
-                "-NonInteractive",
-                "-ExecutionPolicy", "Bypass",
-                "-Command", "-", // Read script from stdin
+                "-Command",
+                "irm https://astral.sh/uv/install.ps1 | iex"
             ])
             .env("UV_UNMANAGED_INSTALL", install_path)
-            .stdin(Stdio::from(ps_download.stdout.take().unwrap()))
-            .stdout(Stdio::null())
-            .spawn()
-            .expect("Failed to start PowerShell script execution");
+            .status()
+            .expect("Failed to install uv");
 
-        let execute_status = ps_execute.wait().expect("Failed to wait for PowerShell execution");
+        // let execute_status = ps_execute.wait().expect("Failed to wait for PowerShell execution");
 
-        if !download_status.success() || !execute_status.success() {
-            eprintln!("UV installation failed.");
-        }
+        // if !download_status.success() || !execute_status.success() {
+        //     eprintln!("UV installation failed.");
+        // }
     } else {
         eprintln!("Unsupported OS for uv installation.");
     };
