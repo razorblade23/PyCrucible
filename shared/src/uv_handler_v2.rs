@@ -26,7 +26,7 @@ pub fn download_and_install_uv(install_path: &PathBuf) {
         }
     } else if cfg!(target_os = "windows") {
         // Download and run the install script via powershell if windows
-
+        println!("Downloading and installing uv via PowerShell...");
         let mut ps_download = Command::new("powershell")
             .args([
                 "-NoProfile",
@@ -37,7 +37,7 @@ pub fn download_and_install_uv(install_path: &PathBuf) {
             .stdout(Stdio::piped())
             .spawn()
             .expect("Failed to start PowerShell script download");
-
+        println!("Download complete, executing installation...");
         let mut ps_execute = Command::new("powershell")
             .args([
                 "-NoProfile",
