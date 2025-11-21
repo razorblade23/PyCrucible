@@ -75,10 +75,7 @@ fn run_uv_command(project_dir: &Path, command: &str, args: &[&str]) -> io::Resul
         .status()?;
 
     if !status.success() {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
-            format!("Command `uv {}` failed", command),
-        ));
+        return Err(io::Error::other(format!("Command `uv {}` failed", command)));
     }
 
     Ok(())

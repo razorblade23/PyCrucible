@@ -9,30 +9,30 @@ fn is_ci() -> bool {
 
 pub fn install_uv_windows(install_path: &PathBuf) -> Result<(), String> {
     if is_ci() {
-        debug_println("CI detected — using fallback UV binary download");
+        debug_println!("CI detected — using fallback UV binary download");
         download_uv_binary_for_windows(install_path);
         return Ok(());
     }
 
-    debug_println("Attempting UV install using PowerShell script...");
+    debug_println!("Attempting UV install using PowerShell script...");
 
     let script_result = install_uv_via_powershell_script(install_path);
 
     match script_result {
         Ok(_) => {
-            debug_println("UV installer script completed, checking if binary was created...");
+            debug_println!("UV installer script completed, checking if binary was created...");
             if uv_exists(install_path).is_some() {
-                debug_println("UV installed successfully via script.");
+                debug_println!("UV installed successfully via script.");
                 return Ok(());
             } else {
-                debug_println(
+                debug_println!(
                     "UV script exited OK but no binary found — falling back to direct download.",
                 );
             }
         }
         Err(err) => {
-            debug_println("UV installer script failed: {err}");
-            debug_println("Falling back to direct binary download...");
+            debug_println!("UV installer script failed: {err}");
+            debug_println!("Falling back to direct binary download...");
         }
     }
 
@@ -97,7 +97,7 @@ fn download_uv_binary_for_windows(install_path: &Path) {
             if !status.success() {
                 panic!("Direct download of uv.exe failed");
             }
-            debug_println("Downloaded uv archive to {:?}", uv_temp);
+            debug_println!("Downloaded uv archive to {:?}", uv_temp);
 
             extract_uv_from_zip_archive(&uv_temp, install_path)
                 .expect("Failed to extract uv from zip archive");
@@ -109,18 +109,18 @@ fn extract_uv_from_zip_archive(
     archive_path: &Path,
     install_path: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    debug_println("Extracting uv from archive {:?}", archive_path);
-    debug_println("Extracting uv to {:?}", install_path);
+    debug_println!("Extracting uv from archive {:?}", archive_path);
+    debug_println!("Extracting uv to {:?}", install_path);
     if !install_path.exists() {
-        debug_println("Filepath to cache do not exists, creating ...");
+        debug_println!("Filepath to cache do not exists, creating ...");
         std::fs::create_dir_all(install_path)?;
-        debug_println("Created install directory {:?}", install_path);
+        debug_println!("Created install directory {:?}", install_path);
     }
 
     // Open the archive file
     let file = File::open(archive_path)?;
     let mut archive = ZipArchive::new(file)?;
-    debug_println("Opened zip archive, contains {} files", archive.len());
+    debug_println!("Opened zip archive, contains {} files", archive.len());
 
     let uv_binary_path = install_path.join("uv.exe");
 
@@ -129,11 +129,11 @@ fn extract_uv_from_zip_archive(
         let mut file = archive.by_index(i)?;
 
         if file.name().contains("uv.exe") {
-            debug_println("Found uv.exe in archive at {}, extracting...", file.name());
+            debug_println!("Found uv.exe in archive at {}, extracting...", file.name());
             let mut outfile = File::create(&uv_binary_path)?;
-            debug_println("Created output file at {:?}", uv_binary_path);
+            debug_println!("Created output file at {:?}", uv_binary_path);
             io::copy(&mut file, &mut outfile)?;
-            debug_println("Extracted uv.exe to {:?}", uv_binary_path);
+            debug_println!("Extracted uv.exe to {:?}", uv_binary_path);
             return Ok(());
         }
     }

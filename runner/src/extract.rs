@@ -58,10 +58,7 @@ fn extract_from_archive(
 fn extract_payload(info: &PayloadInfo, target_dir: &Path) -> io::Result<()> {
     let payload_data = extract_from_binary(info);
     if payload_data.is_none() {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
-            "Failed to extract payload from binary",
-        ));
+        return Err(io::Error::other("Failed to extract payload from binary"));
     }
     let payload_data = payload_data.unwrap();
 

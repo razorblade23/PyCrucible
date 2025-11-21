@@ -51,14 +51,12 @@ impl RepositoryHandler {
 
                 // Clear directory
                 let entries = std::fs::read_dir(path).expect("Failed to read directory");
-                for entry in entries {
-                    if let Ok(entry) = entry {
-                        let path = entry.path();
-                        if path.is_dir() {
-                            std::fs::remove_dir_all(path).expect("Failed to remove directory");
-                        } else {
-                            std::fs::remove_file(path).expect("Failed to remove file");
-                        }
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_dir() {
+                        std::fs::remove_dir_all(path).expect("Failed to remove directory");
+                    } else {
+                        std::fs::remove_file(path).expect("Failed to remove file");
                     }
                 }
             }
