@@ -2,6 +2,15 @@ use std::{path::PathBuf, process::Command, process::Stdio};
 use crate::debug_println;
 use crate::spinner::{create_spinner_with_message, stop_and_persist_spinner_with_message};
 
+#[cfg(target_os = "windows")]
+use {
+    tempfile::tempdir,
+    zip::ZipArchive,
+    std::fs::File,
+    std::io::{self, Write},
+    std::path::Path,
+};
+
 fn is_ci() -> bool {
     std::env::var("CI").is_ok() || std::env::var("GITHUB_ACTIONS").is_ok()
 }
@@ -25,7 +34,7 @@ fn uv_exists(path: &PathBuf) -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "windows")]
-pub fn install_uv_windows(install_path: &PathBuf) -> Result<(), String> {
+fn install_uv_windows(install_path: &PathBuf) -> Result<(), String> {
     if is_ci() {
         println!("CI detected — using fallback UV binary download");
         download_uv_binary_for_windows(install_path);
@@ -83,25 +92,59 @@ fn install_uv_via_powershell_script(install_path: &PathBuf) -> Result<(), String
 }
 
 #[cfg(target_os = "windows")]
-fn download_uv_binary_for_windows(install_path: &PathBuf) {
-    let out = install_path.join("uv.exe");
+fn download_uv_binary_for_windows(install_path: &Path) {
+    let dir = tempdir();
+    match dir {
+        Err(e) => panic!("Failed to create temporary directory for uv download: {}", e),
+        Ok(d) => {
+            let uv_temp = d.path().join("uv-windows.zip");
+            let url = "https://github.com/astral-sh/uv/releases/download/0.9.11/uv-aarch64-pc-windows-msvc.zip";
+        
+            let status = Command::new("powershell")
+                .args([
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    &format!("Invoke-WebRequest '{}' -OutFile '{}'", url, uv_temp.display()),
+                ])
+                .status()
+                .expect("Failed to run PowerShell for binary download");
+        
+            if !status.success() {
+                panic!("Direct download of uv.exe failed");
+            }
 
-    let url = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.exe";
+            extract_uv_from_zip_archive(&uv_temp, install_path).expect("Failed to extract uv from zip archive");
 
-    let status = Command::new("powershell")
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-Command",
-            &format!("Invoke-WebRequest '{}' -OutFile '{}'", url, out.display()),
-        ])
-        .status()
-        .expect("Failed to run PowerShell for binary download");
-
-    if !status.success() {
-        panic!("Direct download of uv.exe failed");
-    }
+        },
+    };
 }
+
+#[cfg(target_os = "windows")]
+fn extract_uv_from_zip_archive(
+    archive_path: &Path,
+    install_path: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Open the archive file
+    let file = File::open(archive_path)?;
+    let mut archive = ZipArchive::new(file)?;
+
+    let uv_binary_path = install_path.join("uv.exe");
+
+    // Iterate through files inside the ZIP
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)?;
+
+        if file.name().contains("uv.exe") {
+            let mut outfile = File::create(&uv_binary_path)?;
+            io::copy(&mut file, &mut outfile)?;
+            return Ok(()); // We found and extracted it — done
+        }
+    }
+
+    Err("uv.exe not found in archive".into())
+}
+
 
 #[cfg(unix)]
 fn install_uv_unix(install_path: &PathBuf) -> Result<(), String> {
@@ -145,52 +188,52 @@ pub fn download_and_install_uv_v2(install_path: &PathBuf) {
     };
 }
 
-pub fn download_and_install_uv(install_path: &PathBuf) {
-    let _status = if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
-        // Download and run the install script via sh if unix-based OS
-        let mut wget = Command::new("wget")
-            .args(["-qO-", "https://astral.sh/uv/install.sh"])
-            .stdout(Stdio::piped())
-            .spawn()
-            .expect("Failed to start wget");
+// pub fn download_and_install_uv(install_path: &PathBuf) {
+//     let _status = if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
+//         // Download and run the install script via sh if unix-based OS
+//         let mut wget = Command::new("wget")
+//             .args(["-qO-", "https://astral.sh/uv/install.sh"])
+//             .stdout(Stdio::piped())
+//             .spawn()
+//             .expect("Failed to start wget");
 
-        let mut sh = Command::new("sh")
-            .env("UV_UNMANAGED_INSTALL", install_path)
-            .stdin(Stdio::from(wget.stdout.take().unwrap()))
-            .stdout(Stdio::null())
-            .spawn()
-            .expect("Failed to start shell");
+//         let mut sh = Command::new("sh")
+//             .env("UV_UNMANAGED_INSTALL", install_path)
+//             .stdin(Stdio::from(wget.stdout.take().unwrap()))
+//             .stdout(Stdio::null())
+//             .spawn()
+//             .expect("Failed to start shell");
 
-        let wget_status = wget.wait().expect("Failed to wait for wget");
-        let sh_status = sh.wait().expect("Failed to wait for sh");
+//         let wget_status = wget.wait().expect("Failed to wait for wget");
+//         let sh_status = sh.wait().expect("Failed to wait for sh");
 
-        if !wget_status.success() || !sh_status.success() {
-            eprintln!("Installation failed.");
-        }
-    } else if cfg!(target_os = "windows") {
-        // Download and run the install script via powershell if windows
-        println!("Downloading and installing uv via PowerShell...");
-        Command::new("powershell")
-            .args([
-                "-NoProfile",
-                "-NonInteractive",
-                "-ExecutionPolicy", "Bypass",
-                "-Command",
-                "irm https://astral.sh/uv/install.ps1 | iex"
-            ])
-            .env("UV_UNMANAGED_INSTALL", install_path)
-            .status()
-            .expect("Failed to install uv");
+//         if !wget_status.success() || !sh_status.success() {
+//             eprintln!("Installation failed.");
+//         }
+//     } else if cfg!(target_os = "windows") {
+//         // Download and run the install script via powershell if windows
+//         println!("Downloading and installing uv via PowerShell...");
+//         Command::new("powershell")
+//             .args([
+//                 "-NoProfile",
+//                 "-NonInteractive",
+//                 "-ExecutionPolicy", "Bypass",
+//                 "-Command",
+//                 "irm https://astral.sh/uv/install.ps1 | iex"
+//             ])
+//             .env("UV_UNMANAGED_INSTALL", install_path)
+//             .status()
+//             .expect("Failed to install uv");
 
-        // let execute_status = ps_execute.wait().expect("Failed to wait for PowerShell execution");
+//         // let execute_status = ps_execute.wait().expect("Failed to wait for PowerShell execution");
 
-        // if !download_status.success() || !execute_status.success() {
-        //     eprintln!("UV installation failed.");
-        // }
-    } else {
-        eprintln!("Unsupported OS for uv installation.");
-    };
-}
+//         // if !download_status.success() || !execute_status.success() {
+//         //     eprintln!("UV installation failed.");
+//         // }
+//     } else {
+//         eprintln!("Unsupported OS for uv installation.");
+//     };
+// }
 
 pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
     debug_println!("[uv_handler.find_or_download_uv] - Looking for uv");
