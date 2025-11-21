@@ -104,6 +104,11 @@ fn extract_uv_from_zip_archive(
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("Extracting uv from archive {:?}", archive_path);
     println!("Extracting uv to {:?}", install_path);
+    if !install_path.exists() {
+        println!("Filepath to cache do not exists, creating ...");
+        std::fs::create_dir_all(install_path)?;
+        println!("Created install directory {:?}", install_path);
+    }
     
     // Open the archive file
     let file = File::open(archive_path)?;
