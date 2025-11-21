@@ -127,12 +127,13 @@ fn extract_uv_from_zip_archive(
     archive_path: &Path,
     install_path: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // Open the archive file
     println!("Extracting uv from archive {:?}", archive_path);
     println!("Extracting uv to {:?}", install_path);
-
+    
+    // Open the archive file
     let file = File::open(archive_path)?;
     let mut archive = ZipArchive::new(file)?;
+    println!("Opened zip archive, contains {} files", archive.len());
 
     let uv_binary_path = install_path.join("uv.exe");
 
@@ -141,9 +142,12 @@ fn extract_uv_from_zip_archive(
         let mut file = archive.by_index(i)?;
 
         if file.name().contains("uv.exe") {
+            println!("Found uv.exe in archive at {}, extracting...", file.name());
             let mut outfile = File::create(&uv_binary_path)?;
+            println!("Created output file at {:?}", uv_binary_path);
             io::copy(&mut file, &mut outfile)?;
-            return Ok(()); // We found and extracted it — done
+            println!("Extracted uv.exe to {:?}", uv_binary_path);
+            return Ok(());
         }
     }
 
