@@ -4,7 +4,6 @@ use glob::Pattern;
 use std::collections::HashSet;
 use std::io;
 use std::path::{Path, PathBuf};
-use walkdir;
 
 use crate::config::{ProjectConfig, load_project_config};
 use crate::debug_println;
@@ -58,8 +57,8 @@ pub fn collect_source_files_with_config(
         .into_iter()
         .filter_map(|e| e.ok())
     {
-        if entry.file_type().is_file() {
-            if should_include_file(
+        if entry.file_type().is_file()
+            && should_include_file(
                 entry.path(),
                 &source_dir,
                 include_patterns,
@@ -79,7 +78,6 @@ pub fn collect_source_files_with_config(
                 seen_paths.insert(absolute_path.clone());
                 files.push(SourceFile { absolute_path });
             }
-        }
     }
     Ok(files)
 }

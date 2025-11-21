@@ -31,13 +31,12 @@ fn find_manifest_file(project_dir: &Path) -> io::Result<PathBuf> {
 }
 
 fn apply_env_from_config(config: &ProjectConfig) {
-    if let Some(env_config) = &config.env {
-        if let Some(vars) = &env_config.variables {
+    if let Some(env_config) = &config.env
+        && let Some(vars) = &env_config.variables {
             for (k, v) in vars {
                 unsafe { std::env::set_var(k, v) }; // Set env variables - not thread safe
             }
         }
-    }
 }
 
 fn prepare_hooks(config: &ProjectConfig) -> (String, String) {
@@ -86,7 +85,7 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     let config = load_project_config(&project_dir.to_path_buf());
     debug_println!("[main.run_extracted_project] - Loaded project configuration");
     let entrypoint = &config.package.entrypoint;
-    let entry_point_path = project_dir.join(&entrypoint);
+    let entry_point_path = project_dir.join(entrypoint);
     debug_println!(
         "[main.run_extracted_project] - Using entry point: {}",
         entrypoint
@@ -119,11 +118,11 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
 
     // Create virtual environment
     debug_println!("[main.run_extracted_project] - Creating virtual environment");
-    let _venv = run_uv_command(project_dir, "venv", &[])?;
+    run_uv_command(project_dir, "venv", &[])?;
 
     // Sincronize the virtual environment with the manifest file
     debug_println!("[main.run_extracted_project] - Installing dependencies from manifest file");
-    let _pip_sync = run_uv_command(
+    run_uv_command(
         project_dir,
         "pip",
         &["install", "--requirements", manifest_path.to_str().unwrap()],
@@ -138,7 +137,7 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     // Run pre-hook if specified
     debug_println!("[main.run_extracted_project] - Running pre-hook if specified");
     if !pre_hook.is_empty() {
-        let _prehook = run_uv_command(project_dir, "run", &[pre_hook.as_str()])?;
+        run_uv_command(project_dir, "run", &[pre_hook.as_str()])?;
     }
 
     // Run the main application
@@ -148,23 +147,22 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     args_vec.extend(runtime_args);
 
     let args_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
-    let _main = run_uv_command(project_dir, "run", &args_refs)?;
+    run_uv_command(project_dir, "run", &args_refs)?;
 
     // Run post-hook if specified
     debug_println!("[main.run_extracted_project] - Running post-hook if specified");
     if !post_hook.is_empty() {
-        let _prehook = run_uv_command(project_dir, "run", &[post_hook.as_str()])?;
+        run_uv_command(project_dir, "run", &[post_hook.as_str()])?;
     }
 
     // Clean up if delete_after_run is set or extract_to_temp is set
     debug_println!(
         "[main.run_extracted_project] - Cleaning up extracted project if configured to do so"
     );
-    if config.options.delete_after_run || config.options.extract_to_temp {
-        if project_dir.exists() {
+    if (config.options.delete_after_run || config.options.extract_to_temp)
+        && project_dir.exists() {
             std::fs::remove_dir_all(project_dir)?;
         }
-    }
 
     Ok(())
 }

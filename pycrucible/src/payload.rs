@@ -9,7 +9,8 @@ use std::path::{Path, PathBuf};
 use zip::{ZipWriter, write::FileOptions};
 
 pub fn find_manifest_file(source_dir: &Path) -> PathBuf {
-    let manifest_path = if source_dir.join("pyproject.toml").exists() {
+    
+    if source_dir.join("pyproject.toml").exists() {
         source_dir.join("pyproject.toml")
     } else if source_dir.join("requirements.txt").exists() {
         source_dir.join("requirements.txt")
@@ -24,8 +25,7 @@ pub fn find_manifest_file(source_dir: &Path) -> PathBuf {
             "No manifest file found in the source directory. \nManifest files can be pyproject.toml, requirements.txt, pylock.toml, setup.py or setup.cfg"
         );
         source_dir.join("") // Default to empty string if none found;
-    };
-    manifest_path
+    }
 }
 
 pub fn embed_payload(
@@ -37,7 +37,7 @@ pub fn embed_payload(
     no_uv_embed: bool,
     force_uv_download: bool,
 ) -> io::Result<()> {
-    let _ = runner::extract_runner(output_path)?;
+    runner::extract_runner(output_path)?;
     debug_println!("[payload.embed_payload] - Runner extracted to output path");
 
     // Create a memory buffer for the ZIP
@@ -69,36 +69,34 @@ pub fn embed_payload(
         let _ = zip.write(&fs::read(path)?);
         // io::copy(&mut uv_file, zip)?;
         debug_println!("[payload.embed_payload] - Added uv to zip");
+    } else if no_uv_embed {
+        debug_println!(
+            "[payload.embed_payload] - Skipping uv embedding as per no_uv_embed flag"
+        );
     } else {
-        if no_uv_embed {
-            debug_println!(
-                "[payload.embed_payload] - Skipping uv embedding as per no_uv_embed flag"
-            );
-        } else {
-            debug_println!("[payload.embed_payload] - Embedding uv binary into payload");
-            let uv_path = find_or_download_uv(Some(cli_uv_path));
-            match uv_path {
-                None => {
-                    eprintln!(
-                        "Could not find or download uv binary. uv will be required at runtime."
-                    );
+        debug_println!("[payload.embed_payload] - Embedding uv binary into payload");
+        let uv_path = find_or_download_uv(Some(cli_uv_path));
+        match uv_path {
+            None => {
+                eprintln!(
+                    "Could not find or download uv binary. uv will be required at runtime."
+                );
+            }
+            Some(path) => {
+                debug_println!("[payload.embed_payload] - uv binary found at {:?}", path);
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    let mut perms = fs::metadata(&path)?.permissions();
+                    perms.set_mode(0o755);
+                    fs::set_permissions(&path, perms)?;
+                    debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
                 }
-                Some(path) => {
-                    debug_println!("[payload.embed_payload] - uv binary found at {:?}", path);
-                    #[cfg(unix)]
-                    {
-                        use std::os::unix::fs::PermissionsExt;
-                        let mut perms = fs::metadata(&path)?.permissions();
-                        perms.set_mode(0o755);
-                        fs::set_permissions(&path, perms)?;
-                        debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
-                    }
-                    zip.start_file("uv", options)?;
-                    // let uv_file = fs::File::open(&uv_path)?;
-                    let _ = zip.write(&fs::read(path)?);
-                    // io::copy(&mut uv_file, zip)?;
-                    debug_println!("[payload.embed_payload] - Added uv to zip");
-                }
+                zip.start_file("uv", options)?;
+                // let uv_file = fs::File::open(&uv_path)?;
+                let _ = zip.write(&fs::read(path)?);
+                // io::copy(&mut uv_file, zip)?;
+                debug_println!("[payload.embed_payload] - Added uv to zip");
             }
         }
     }
@@ -110,7 +108,7 @@ pub fn embed_payload(
 
     // Open output file in append mode (the copied executable)
     let mut file: fs::File = OpenOptions::new()
-        .write(true)
+        
         .append(true)
         .open(output_path)?;
 
@@ -133,7 +131,7 @@ fn create_pycrucible_config_file(
     options: FileOptions<'_, ()>,
 ) -> Result<(), io::Error> {
     let project_config_toml = toml::to_string(&project_config)
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+        .map_err(|e| io::Error::other(e.to_string()))?;
     let mut pycrucible_file = Cursor::new(project_config_toml);
     zip.start_file("pycrucible.toml", options)?;
     io::copy(&mut pycrucible_file, zip)?;
