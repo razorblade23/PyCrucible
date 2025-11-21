@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use crate::repository::RepositoryHandler;
 use shared::config::load_project_config;
+use shared::debug_println;
 use shared::footer::PayloadInfo;
 use tempfile::tempdir;
 
@@ -76,7 +77,7 @@ pub fn prepare_and_extract_payload() -> Option<PathBuf> {
         eprintln!("Error reading footer: {:?}", e);
         return None;
     }
-    println!("[extract.prepare_and_extract_payload] - Read payload info from footer");
+    debug_println!("[extract.prepare_and_extract_payload] - Read payload info from footer");
     let extract_to_temp = payload_info.as_ref().unwrap().extraction_flag;
 
     let project_dir = if extract_to_temp {
@@ -87,7 +88,7 @@ pub fn prepare_and_extract_payload() -> Option<PathBuf> {
         fs::create_dir_all(&current_dir).ok()?;
         current_dir
     };
-    println!(
+    debug_println!(
         "[extract.prepare_and_extract_payload] - Extracting payload to {:?}",
         project_dir
     );
@@ -95,7 +96,7 @@ pub fn prepare_and_extract_payload() -> Option<PathBuf> {
     // Extracting payload
     let footer_info = payload_info.unwrap();
     extract_payload(&footer_info, &project_dir).ok()?;
-    println!("[extract.prepare_and_extract_payload] - Extracted payload successfully");
+    debug_println!("[extract.prepare_and_extract_payload] - Extracted payload successfully");
 
     // Check for source configuration and update if necessary
     let pycrucibletoml_path = project_dir.join("pycrucible.toml");

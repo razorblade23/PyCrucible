@@ -45,53 +45,6 @@ pub fn download_and_install_uv(install_path: &PathBuf) {
     };
 }
 
-// pub fn download_and_install_uv(install_path: &PathBuf) {
-//     let _status = if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
-//         // Download and run the install script via sh if unix-based OS
-//         let mut wget = Command::new("wget")
-//             .args(["-qO-", "https://astral.sh/uv/install.sh"])
-//             .stdout(Stdio::piped())
-//             .spawn()
-//             .expect("Failed to start wget");
-
-//         let mut sh = Command::new("sh")
-//             .env("UV_UNMANAGED_INSTALL", install_path)
-//             .stdin(Stdio::from(wget.stdout.take().unwrap()))
-//             .stdout(Stdio::null())
-//             .spawn()
-//             .expect("Failed to start shell");
-
-//         let wget_status = wget.wait().expect("Failed to wait for wget");
-//         let sh_status = sh.wait().expect("Failed to wait for sh");
-
-//         if !wget_status.success() || !sh_status.success() {
-//             eprintln!("Installation failed.");
-//         }
-//     } else if cfg!(target_os = "windows") {
-//         // Download and run the install script via powershell if windows
-//         println!("Downloading and installing uv via PowerShell...");
-//         Command::new("powershell")
-//             .args([
-//                 "-NoProfile",
-//                 "-NonInteractive",
-//                 "-ExecutionPolicy", "Bypass",
-//                 "-Command",
-//                 "irm https://astral.sh/uv/install.ps1 | iex"
-//             ])
-//             .env("UV_UNMANAGED_INSTALL", install_path)
-//             .status()
-//             .expect("Failed to install uv");
-
-//         // let execute_status = ps_execute.wait().expect("Failed to wait for PowerShell execution");
-
-//         // if !download_status.success() || !execute_status.success() {
-//         //     eprintln!("UV installation failed.");
-//         // }
-//     } else {
-//         eprintln!("Unsupported OS for uv installation.");
-//     };
-// }
-
 pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
     debug_println!("[uv_handler.find_or_download_uv] - Looking for uv");
 
@@ -161,20 +114,14 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
                     .expect("Could not stat uv binary")
                     .permissions();
                 let current_mode = perms.mode() & 0o777;
+                // Skip chmoding if permission is already set
                 if current_mode == 0o755 {
-                    println!(
-                        "[uv_handler.find_or_download_uv] - uv permissions already 0o755, skipping chmod for {:?}",
-                        path
-                    );
                     return uv_path.clone();
                 }
 
+                // Otherwise set permissions to execute the file
                 perms.set_mode(0o755);
                 fs::set_permissions(path, perms).expect("Could not chmod uv binary");
-                println!(
-                    "[uv_handler.find_or_download_uv] - Set executable permissions for uv at {:?}",
-                    path
-                );
             } else {
                 eprintln!("uv binary not found at {:?}", path);
             }
