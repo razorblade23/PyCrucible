@@ -1,4 +1,4 @@
-use crate::debuging::debug_println;
+use crate::debug_println;
 use crate::uv_handler::uv_exists;
 use std::{fs::File, io, path::Path, path::PathBuf, process::Command};
 use {tempfile::tempdir, zip::ZipArchive};
