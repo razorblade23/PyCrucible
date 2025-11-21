@@ -39,9 +39,7 @@ pub fn install_uv_windows(install_path: &PathBuf) -> Result<(), String> {
     download_uv_binary_for_windows(install_path);
 
     if !uv_exists(install_path).is_some() {
-        edebug_println(
-            "Failed both installer script AND fallback binary download. Cannot continue.",
-        );
+        eprintln!("Failed both installer script AND fallback binary download. Cannot continue.");
         return Err("Failed to install uv via both script and direct download.".to_string());
     }
     Ok(())
