@@ -41,7 +41,7 @@ pub fn install_uv_windows(install_path: &PathBuf) -> Result<(), String> {
             println!("UV installer script completed, checking if binary was created...");
             if uv_exists(install_path).is_some() {
                 println!("UV installed successfully via script.");
-                return;
+                return Ok(());
             } else {
                 println!("UV script exited OK but no binary found — falling back to direct download.");
             }
