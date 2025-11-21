@@ -11,10 +11,6 @@ use {
     std::path::Path,
 };
 
-fn is_ci() -> bool {
-    std::env::var("CI").is_ok() || std::env::var("GITHUB_ACTIONS").is_ok()
-}
-
 fn uv_exists(path: &PathBuf) -> Option<PathBuf> {
     let candidates = vec![
             path.join("uv"),
@@ -31,6 +27,11 @@ fn uv_exists(path: &PathBuf) -> Option<PathBuf> {
         }
     };
     Some(uv_bin)
+}
+
+#[cfg(target_os = "windows")]
+fn is_ci() -> bool {
+    std::env::var("CI").is_ok() || std::env::var("GITHUB_ACTIONS").is_ok()
 }
 
 #[cfg(target_os = "windows")]
@@ -113,6 +114,7 @@ fn download_uv_binary_for_windows(install_path: &Path) {
             if !status.success() {
                 panic!("Direct download of uv.exe failed");
             }
+            println!("Downloaded uv archive to {:?}", uv_temp);
 
             extract_uv_from_zip_archive(&uv_temp, install_path).expect("Failed to extract uv from zip archive");
 
@@ -126,6 +128,9 @@ fn extract_uv_from_zip_archive(
     install_path: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Open the archive file
+    println!("Extracting uv from archive {:?}", archive_path);
+    println!("Extracting uv to {:?}", install_path);
+
     let file = File::open(archive_path)?;
     let mut archive = ZipArchive::new(file)?;
 
