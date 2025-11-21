@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use zip::{write::FileOptions, ZipWriter};
 use crate::{config, runner};
 use crate::debug_println;
-use shared::uv_handler_v2::{find_or_download_uv, download_and_install_uv_v2};
+use shared::uv_handler::{find_or_download_uv, download_and_install_uv};
 
 
 pub fn find_manifest_file(source_dir: &Path) -> PathBuf  {
@@ -43,7 +43,7 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
 
     if force_uv_download {
         debug_println!("[payload.embed_payload] - Force uv download flag is set, re-downloading uv");
-        download_and_install_uv_v2(&cli_uv_path);
+        download_and_install_uv(&cli_uv_path);
         let path = cli_uv_path.join("uv");
         debug_println!("[payload.embed_payload] - uv binary found at {:?}", path);
         #[cfg(unix)]

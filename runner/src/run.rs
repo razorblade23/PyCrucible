@@ -2,7 +2,8 @@ use std::path::Path;
 use std::process::Command;
 use std::path::PathBuf;
 use std::{self, io};
-use shared::uv_handler_v2::find_or_download_uv;
+use shared::uv_handler::find_or_download_uv;
+// use shared::uv_handler_v2::find_or_download_uv;
 use shared::{debuging, debug_println};
 
 use shared::config::{load_project_config, ProjectConfig};
