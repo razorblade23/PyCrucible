@@ -3,12 +3,10 @@ use crate::spinner::{create_spinner_with_message, stop_and_persist_spinner_with_
 use std::path::PathBuf;
 
 pub fn uv_exists(path: &PathBuf) -> Option<PathBuf> {
-    let candidates = vec![
-        path.join("uv"),
+    let candidates = [path.join("uv"),
         path.join("uv.exe"),
         path.join("bin").join("uv"),
-        path.join("bin").join("uv.exe"),
-    ];
+        path.join("bin").join("uv.exe")];
 
     let uv_bin = match candidates.iter().find(|p| p.exists()).cloned() {
         Some(p) => p,
