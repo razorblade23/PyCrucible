@@ -2,6 +2,151 @@ use std::{path::PathBuf, process::Command, process::Stdio};
 use crate::debug_println;
 use crate::spinner::{create_spinner_with_message, stop_and_persist_spinner_with_message};
 
+fn is_ci() -> bool {
+    std::env::var("CI").is_ok() || std::env::var("GITHUB_ACTIONS").is_ok()
+}
+
+fn uv_exists(path: &PathBuf) -> Option<PathBuf> {
+    let candidates = vec![
+            path.join("uv"),
+            path.join("uv.exe"),
+            path.join("bin").join("uv"),
+            path.join("bin").join("uv.exe"),
+        ];
+
+    let uv_bin = match candidates.iter().find(|p| p.exists()).cloned() {
+        Some(p) => p,
+        None => {
+            eprintln!("uv binary not found.");
+            return None;
+        }
+    };
+    Some(uv_bin)
+}
+
+#[cfg(target_os = "windows")]
+pub fn install_uv_windows(install_path: &Path) -> Result<(), String> {
+    if is_ci() {
+        println!("CI detected — using fallback UV binary download");
+        download_uv_binary_for_windows(install_path);
+        return;
+    }
+
+    println!("Attempting UV install using PowerShell script...");
+
+    let script_result = install_uv_via_powershell_script(install_path);
+
+    match script_result {
+        Ok(_) => {
+            println!("UV installer script completed, checking if binary was created...");
+            if uv_exists(install_path) {
+                println!("UV installed successfully via script.");
+                return;
+            } else {
+                println!("UV script exited OK but no binary found — falling back to direct download.");
+            }
+        }
+        Err(err) => {
+            println!("UV installer script failed: {err}");
+            println!("Falling back to direct binary download...");
+        }
+    }
+
+    download_uv_binary_for_windows(install_path);
+
+    if !uv_exists(install_path) {
+        use std::f32::consts::E;
+
+        eprintln!("Failed both installer script AND fallback binary download. Cannot continue.");
+        return Err("Failed to install uv via both script and direct download.".to_string());
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn install_uv_via_powershell_script(install_path: &Path) -> Result<(), String> {
+    let status = Command::new("powershell")
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy", "Bypass",
+            "-Command",
+            "irm https://astral.sh/uv/install.ps1 | iex"
+        ])
+        .env("UV_UNMANAGED_INSTALL", install_path)
+        .status()
+        .map_err(|e| format!("Failed to spawn PowerShell: {e}"))?;
+
+    if !status.success() {
+        return Err(format!("PowerShell installer returned exit code {}", status));
+    }
+
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn download_uv_binary_for_windows(install_path: &PathBuf) {
+    let out = install_path.join("uv.exe");
+
+    let url = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.exe";
+
+    let status = Command::new("powershell")
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            &format!("Invoke-WebRequest '{}' -OutFile '{}'", url, out.display()),
+        ])
+        .status()
+        .expect("Failed to run PowerShell for binary download");
+
+    if !status.success() {
+        panic!("Direct download of uv.exe failed");
+    }
+}
+
+#[cfg(unix)]
+fn install_uv_unix(install_path: &PathBuf) -> Result<(), String> {
+    let mut curl = Command::new("curl")
+        .args(["-sL", "https://astral.sh/uv/install.sh"])
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start curl");
+
+    let mut sh = Command::new("sh")
+        .env("UV_UNMANAGED_INSTALL", install_path)
+        .stdin(Stdio::from(curl.stdout.take().unwrap()))
+        .stdout(Stdio::null())
+        .spawn()
+        .expect("Failed to start shell");
+
+    let curl_status = curl.wait().expect("Failed to wait for curl");
+    let sh_status = sh.wait().expect("Failed to wait for sh");
+
+    if !curl_status.success() || !sh_status.success() {
+        eprintln!("Installation failed.");
+        return Err("Installation of uv failed.".to_string());
+    }
+    Ok(())
+}
+
+pub fn download_and_install_uv_v2(install_path: &PathBuf) {
+    #[cfg(unix)]
+    {
+        let installation_status = install_uv_unix(install_path);
+        if installation_status.is_err() {
+            eprintln!("uv installation via script failed: {}", installation_status.err().unwrap());
+        }
+    };
+    #[cfg(target_os = "windows")]
+    {
+        let installation_status = install_uv_windows(install_path);
+        if installation_status.is_err() {
+            eprintln!("uv installation via script or direct download failed: {}", installation_status.err().unwrap());
+        }
+    };
+}
+
 pub fn download_and_install_uv(install_path: &PathBuf) {
     let _status = if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
         // Download and run the install script via sh if unix-based OS
@@ -73,34 +218,24 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
         let home = dirs::home_dir().unwrap();
 
         let uv_install_root = home.join(".pycrucible").join("cache").join("uv");
-        let candidates = vec![
-            uv_install_root.join("uv"),
-            uv_install_root.join("uv.exe"),
-            uv_install_root.join("bin").join("uv"),
-            uv_install_root.join("bin").join("uv.exe"),
-        ];
-
-        // Try to find an existing candidate without consuming the vector so we can reuse it after download.
-        if let Some(uv_bin) = candidates.iter().find(|p| p.exists()).cloned() {
-            debug_println!("[uv_handler.find_or_download_uv] - uv binary found cached at {:?}, no need to download.", uv_bin);
-            return Some(uv_bin);
+        
+        let uv_bin = uv_exists(&uv_install_root);
+        if uv_bin.is_some() {
+            debug_println!("[uv_handler.find_or_download_uv] - uv found cached at {:?}, using it", uv_bin.as_ref().unwrap());
+            return uv_bin;
         }
 
         debug_println!("[uv_handler.find_or_download_uv] - uv binary not found locally, proceeding to download.");
         let sp = create_spinner_with_message("Downloading `uv` ...");
-        download_and_install_uv(&uv_install_root);
+        download_and_install_uv_v2(&uv_install_root);
         stop_and_persist_spinner_with_message(sp, "Downloaded `uv` successfully");
 
-        // Search again after installation
-        let uv_bin = match candidates.iter().find(|p| p.exists()).cloned() {
-            Some(p) => p,
-            None => {
-                eprintln!("uv binary not found after installation.");
-                return None;
-            }
-        };
+        let uv_bin = uv_exists(&uv_install_root);        if uv_bin.is_some() {
+            debug_println!("[uv_handler.find_or_download_uv] - uv downloaded and found at {:?}, using it", uv_bin.as_ref().unwrap());
+            return uv_bin;
+        }
 
-        return Some(uv_bin);
+        return Some(uv_bin.expect("uv binary should exist after download"));
     };
 
     #[cfg(unix)]
