@@ -1,10 +1,8 @@
 use crate::debug_println;
-use std::path::Path;
 use std::io;
-
+use std::path::Path;
 
 include!(concat!(env!("OUT_DIR"), "/runner_bin.rs"));
-
 
 pub fn extract_runner(output_path: &Path) -> io::Result<()> {
     std::fs::write(&output_path, RUNNER_BIN)?;
@@ -23,9 +21,9 @@ pub fn extract_runner(output_path: &Path) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
     use std::fs;
     use std::io::Read;
+    use tempfile::tempdir;
 
     // Define a test-only RUNNER_BIN
     const TEST_RUNNER_BIN: &[u8] = b"#!/usr/bin/env python3\necho 'Hello, World!'";
@@ -52,7 +50,10 @@ mod tests {
 
         // Check contents
         let mut buf = Vec::new();
-        fs::File::open(&path).unwrap().read_to_end(&mut buf).unwrap();
+        fs::File::open(&path)
+            .unwrap()
+            .read_to_end(&mut buf)
+            .unwrap();
         assert_eq!(buf, TEST_RUNNER_BIN);
 
         // Check permissions (Unix only)

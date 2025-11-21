@@ -1,15 +1,14 @@
 #![cfg_attr(test, allow(dead_code, unused_variables, unused_imports))]
 
-use std::fs::{self, OpenOptions};
-use std::io::{self, Write, Seek, SeekFrom, Cursor};
-use std::path::{Path, PathBuf};
-use zip::{write::FileOptions, ZipWriter};
-use crate::{config, runner};
 use crate::debug_println;
-use shared::uv_handler::{find_or_download_uv, download_and_install_uv};
+use crate::{config, runner};
+use shared::uv_handler::{download_and_install_uv, find_or_download_uv};
+use std::fs::{self, OpenOptions};
+use std::io::{self, Cursor, Seek, SeekFrom, Write};
+use std::path::{Path, PathBuf};
+use zip::{ZipWriter, write::FileOptions};
 
-
-pub fn find_manifest_file(source_dir: &Path) -> PathBuf  {
+pub fn find_manifest_file(source_dir: &Path) -> PathBuf {
     let manifest_path = if source_dir.join("pyproject.toml").exists() {
         source_dir.join("pyproject.toml")
     } else if source_dir.join("requirements.txt").exists() {
@@ -21,14 +20,23 @@ pub fn find_manifest_file(source_dir: &Path) -> PathBuf  {
     } else if source_dir.join("setup.cfg").exists() {
         source_dir.join("setup.cfg")
     } else {
-        eprintln!("No manifest file found in the source directory. \nManifest files can be pyproject.toml, requirements.txt, pylock.toml, setup.py or setup.cfg");
+        eprintln!(
+            "No manifest file found in the source directory. \nManifest files can be pyproject.toml, requirements.txt, pylock.toml, setup.py or setup.cfg"
+        );
         source_dir.join("") // Default to empty string if none found;
     };
     manifest_path
 }
 
-
-pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_config: config::ProjectConfig, cli_uv_path: PathBuf, output_path: &Path, no_uv_embed: bool, force_uv_download: bool) -> io::Result<()> {
+pub fn embed_payload(
+    source_files: &[PathBuf],
+    manifest_path: &Path,
+    project_config: config::ProjectConfig,
+    cli_uv_path: PathBuf,
+    output_path: &Path,
+    no_uv_embed: bool,
+    force_uv_download: bool,
+) -> io::Result<()> {
     let _ = runner::extract_runner(output_path)?;
     debug_println!("[payload.embed_payload] - Runner extracted to output path");
 
@@ -42,7 +50,9 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
     create_pycrucible_config_file(&project_config, &mut zip, options)?;
 
     if force_uv_download {
-        debug_println!("[payload.embed_payload] - Force uv download flag is set, re-downloading uv");
+        debug_println!(
+            "[payload.embed_payload] - Force uv download flag is set, re-downloading uv"
+        );
         download_and_install_uv(&cli_uv_path);
         let path = cli_uv_path.join("uv");
         debug_println!("[payload.embed_payload] - uv binary found at {:?}", path);
@@ -61,14 +71,18 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
         debug_println!("[payload.embed_payload] - Added uv to zip");
     } else {
         if no_uv_embed {
-            debug_println!("[payload.embed_payload] - Skipping uv embedding as per no_uv_embed flag");
+            debug_println!(
+                "[payload.embed_payload] - Skipping uv embedding as per no_uv_embed flag"
+            );
         } else {
             debug_println!("[payload.embed_payload] - Embedding uv binary into payload");
             let uv_path = find_or_download_uv(Some(cli_uv_path));
             match uv_path {
                 None => {
-                    eprintln!("Could not find or download uv binary. uv will be required at runtime.");
-                },
+                    eprintln!(
+                        "Could not find or download uv binary. uv will be required at runtime."
+                    );
+                }
                 Some(path) => {
                     debug_println!("[payload.embed_payload] - uv binary found at {:?}", path);
                     #[cfg(unix)]
@@ -86,7 +100,6 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
                     debug_println!("[payload.embed_payload] - Added uv to zip");
                 }
             }
-    
         }
     }
 
@@ -107,18 +120,18 @@ pub fn embed_payload(source_files: &[PathBuf], manifest_path: &Path, project_con
     // Write payload
     file.write_all(&payload)?;
 
-    
     // Write footer
-    let footer = shared::footer::create_footer(
-        project_config.options.extract_to_temp, 
-        offset
-    );
+    let footer = shared::footer::create_footer(project_config.options.extract_to_temp, offset);
     file.write_all(&footer)?;
 
     Ok(())
 }
 
-fn create_pycrucible_config_file(project_config: &config::ProjectConfig, zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>, options: FileOptions<'_, ()>) -> Result<(), io::Error> {
+fn create_pycrucible_config_file(
+    project_config: &config::ProjectConfig,
+    zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>,
+    options: FileOptions<'_, ()>,
+) -> Result<(), io::Error> {
     let project_config_toml = toml::to_string(&project_config)
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
     let mut pycrucible_file = Cursor::new(project_config_toml);
@@ -128,20 +141,31 @@ fn create_pycrucible_config_file(project_config: &config::ProjectConfig, zip: &m
     Ok(())
 }
 
-fn copy_source_to_zip(source_files: &[PathBuf], manifest_path: &Path, zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>, options: FileOptions<'_, ()>) -> Result<(), io::Error> {
+fn copy_source_to_zip(
+    source_files: &[PathBuf],
+    manifest_path: &Path,
+    zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>,
+    options: FileOptions<'_, ()>,
+) -> Result<(), io::Error> {
     debug_println!("[payload.embed_payload] - Starting copy of source files to .zip");
     let source_dir = manifest_path.parent().unwrap().canonicalize()?;
     for source_file in source_files {
-        let relative_path = source_file.strip_prefix(&source_dir)
+        let relative_path = source_file
+            .strip_prefix(&source_dir)
             .unwrap_or(source_file.as_path());
         let relative_path = relative_path.to_string_lossy().replace("\\", "/");
-        debug_println!("[payload.embed_payload] - Copied {:?} with relative path {:?} to zip", source_file, relative_path);
+        debug_println!(
+            "[payload.embed_payload] - Copied {:?} with relative path {:?} to zip",
+            source_file,
+            relative_path
+        );
         let mut file = fs::File::open(source_file)?;
         zip.start_file(relative_path, options)?;
         io::copy(&mut file, zip)?;
     }
     let mut manifest_file = fs::File::open(manifest_path)?;
-    let manifest_file_name = manifest_path.file_name()
+    let manifest_file_name = manifest_path
+        .file_name()
         .and_then(|s| s.to_str())
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid manifest file name"))?;
     zip.start_file(manifest_file_name, options)?;
@@ -152,13 +176,17 @@ fn copy_source_to_zip(source_files: &[PathBuf], manifest_path: &Path, zip: &mut 
 
 #[cfg(test)]
 mod tests {
-    use std::fs::{self, File};
-    use std::io::{Seek, SeekFrom, Read};
-    use tempfile::tempdir;
     use super::*;
     use shared::footer::{FOOTER_SIZE, MAGIC_BYTES, PayloadInfo};
+    use std::fs::{self, File};
+    use std::io::{Read, Seek, SeekFrom};
+    use tempfile::tempdir;
 
-    fn extract_payload_from_file(info: &PayloadInfo, target_dir: &std::path::Path, exe_path: &std::path::Path) -> std::io::Result<()> {
+    fn extract_payload_from_file(
+        info: &PayloadInfo,
+        target_dir: &std::path::Path,
+        exe_path: &std::path::Path,
+    ) -> std::io::Result<()> {
         let mut file = File::open(exe_path)?;
         file.seek(SeekFrom::Start(info.offset))?;
 
@@ -253,7 +281,10 @@ mod tests {
         assert_eq!(magic, MAGIC_BYTES, "Magic bytes mismatch");
         assert!(extraction_flag, "Expected extract_to_temp flag to be true");
 
-        let info = PayloadInfo { offset, extraction_flag };
+        let info = PayloadInfo {
+            offset,
+            extraction_flag,
+        };
 
         let extract_dir = dir.path().join("extract");
         fs::create_dir(&extract_dir).unwrap();
@@ -266,5 +297,3 @@ mod tests {
         assert!(extract_dir.join("pycrucible.toml").exists());
     }
 }
-
-

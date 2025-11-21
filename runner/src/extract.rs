@@ -2,16 +2,15 @@ use std::fs;
 use std::io::{self, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
+use crate::repository::RepositoryHandler;
 use shared::config::load_project_config;
 use shared::footer::PayloadInfo;
-use crate::repository::RepositoryHandler;
 use tempfile::tempdir;
-
 
 fn extract_from_binary(info: &PayloadInfo) -> Option<Vec<u8>> {
     let exe_path = std::env::current_exe().ok()?;
     let mut file = fs::File::open(exe_path).ok()?;
-    
+
     let file_size = file.metadata().ok()?.len();
     let payload_offset = info.offset;
     let payload_size = file_size - shared::footer::FOOTER_SIZE as u64 - payload_offset;
@@ -23,18 +22,21 @@ fn extract_from_binary(info: &PayloadInfo) -> Option<Vec<u8>> {
     Some(payload_data)
 }
 
-fn extract_from_archive(target_dir: &Path, payload_data: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
+fn extract_from_archive(
+    target_dir: &Path,
+    payload_data: Vec<u8>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let reader = std::io::Cursor::new(payload_data);
     let mut archive = zip::ZipArchive::new(reader)?;
-    
+
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
         let outpath = target_dir.join(file.name());
-        
+
         if let Some(parent) = outpath.parent() {
             fs::create_dir_all(parent)?;
         }
-        
+
         let mut outfile = fs::File::create(&outpath)?;
         std::io::copy(&mut file, &mut outfile)?;
 
@@ -55,7 +57,10 @@ fn extract_from_archive(target_dir: &Path, payload_data: Vec<u8>) -> Result<(), 
 fn extract_payload(info: &PayloadInfo, target_dir: &Path) -> io::Result<()> {
     let payload_data = extract_from_binary(info);
     if payload_data.is_none() {
-        return Err(io::Error::new(io::ErrorKind::Other, "Failed to extract payload from binary"));
+        return Err(io::Error::new(
+            io::ErrorKind::Other,
+            "Failed to extract payload from binary",
+        ));
     }
     let payload_data = payload_data.unwrap();
 
@@ -63,7 +68,6 @@ fn extract_payload(info: &PayloadInfo, target_dir: &Path) -> io::Result<()> {
 
     Ok(())
 }
-
 
 pub fn prepare_and_extract_payload() -> Option<PathBuf> {
     const PAYLOAD_NAME: &str = "pycrucible_payload";
@@ -83,7 +87,10 @@ pub fn prepare_and_extract_payload() -> Option<PathBuf> {
         fs::create_dir_all(&current_dir).ok()?;
         current_dir
     };
-    println!("[extract.prepare_and_extract_payload] - Extracting payload to {:?}", project_dir);
+    println!(
+        "[extract.prepare_and_extract_payload] - Extracting payload to {:?}",
+        project_dir
+    );
 
     // Extracting payload
     let footer_info = payload_info.unwrap();
@@ -95,26 +102,37 @@ pub fn prepare_and_extract_payload() -> Option<PathBuf> {
     if pycrucibletoml_path.exists() {
         let project_config = load_project_config(&project_dir.to_path_buf());
         if let Some(source_config) = &project_config.source {
-            let sp = shared::spinner::create_spinner_with_message("Updating source code from repository...");
+            let sp = shared::spinner::create_spinner_with_message(
+                "Updating source code from repository...",
+            );
             let mut repo_handler = RepositoryHandler::new(source_config.clone());
-            
+
             match repo_handler.init_or_open(&project_dir) {
                 Ok(_) => {
                     if let Err(e) = repo_handler.update() {
-                        shared::spinner::stop_and_persist_spinner_with_message(sp, "Failed to update repository");
+                        shared::spinner::stop_and_persist_spinner_with_message(
+                            sp,
+                            "Failed to update repository",
+                        );
                         eprintln!("Error updating repository: {:?}", e);
                         std::process::exit(1);
                     }
-                    
-                    shared::spinner::stop_and_persist_spinner_with_message(sp, "Repository updated successfully");
+
+                    shared::spinner::stop_and_persist_spinner_with_message(
+                        sp,
+                        "Repository updated successfully",
+                    );
                 }
                 Err(e) => {
-                    shared::spinner::stop_and_persist_spinner_with_message(sp, "Failed to initialize repository");
+                    shared::spinner::stop_and_persist_spinner_with_message(
+                        sp,
+                        "Failed to initialize repository",
+                    );
                     eprintln!("Error initializing repository: {:?}", e);
                 }
             }
         }
     }
-    
+
     Some(project_dir)
 }

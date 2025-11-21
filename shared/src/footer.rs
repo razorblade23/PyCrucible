@@ -1,7 +1,7 @@
 #![cfg_attr(test, allow(dead_code, unused_variables, unused_imports))]
 
-use std::io::{self, Read, Seek, SeekFrom};
 use std::fs;
+use std::io::{self, Read, Seek, SeekFrom};
 
 pub const FOOTER_SIZE: usize = 16; // 8 offset + 1 flag + 7 magic
 pub const MAGIC_BYTES: &[u8] = b"PYCRUCI"; // 7 bytes
@@ -33,7 +33,10 @@ pub fn read_footer() -> io::Result<PayloadInfo> {
     let file_size = file.metadata()?.len();
 
     if file_size < FOOTER_SIZE as u64 {
-        return Err(io::Error::new(io::ErrorKind::InvalidData, "File too small to contain footer"));
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "File too small to contain footer",
+        ));
     }
 
     // Seek to the start of the footer
@@ -47,10 +50,16 @@ pub fn read_footer() -> io::Result<PayloadInfo> {
     let magic = &footer[9..];
 
     if magic != MAGIC_BYTES {
-        return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid magic bytes in footer"));
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "Invalid magic bytes in footer",
+        ));
     }
 
-    Ok(PayloadInfo { offset, extraction_flag })
+    Ok(PayloadInfo {
+        offset,
+        extraction_flag,
+    })
 }
 
 #[cfg(test)]

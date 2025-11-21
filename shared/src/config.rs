@@ -4,10 +4,8 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
 
-use std::path::{Path, PathBuf};
 use crate::debug_println;
-
-
+use std::path::{Path, PathBuf};
 
 #[derive(serde::Serialize, Debug, Deserialize)]
 pub struct FilePatterns {
@@ -56,9 +54,7 @@ pub struct UVConfig {
 }
 impl Default for UVConfig {
     fn default() -> Self {
-        UVConfig {
-            args: None,
-        }
+        UVConfig { args: None }
     }
 }
 
@@ -69,9 +65,7 @@ pub struct EnvConfig {
 }
 impl Default for EnvConfig {
     fn default() -> Self {
-        EnvConfig {
-            variables: None,
-        }
+        EnvConfig { variables: None }
     }
 }
 
@@ -131,7 +125,6 @@ impl Default for ToolOptions {
     }
 }
 
-
 #[derive(serde::Serialize, Debug, Deserialize)]
 pub struct ProjectConfig {
     #[serde(flatten)]
@@ -159,7 +152,8 @@ impl ProjectConfig {
         let raw = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
         let doc: toml::Value = toml::from_str(&raw).map_err(|e| e.to_string())?;
 
-        let tbl = doc.get("tool")
+        let tbl = doc
+            .get("tool")
             .and_then(|t| t.get("pycrucible"))
             .ok_or("no [tool.pycrucible] section")?;
         // Re-serialize just that sub-table so we can leverage
@@ -218,7 +212,6 @@ pub fn load_project_config(source_dir: &PathBuf) -> ProjectConfig {
         }
     }
 
-
     let pyproject = source_dir.join("pyproject.toml").canonicalize();
     if let Ok(pyproject) = pyproject {
         if pyproject.exists() {
@@ -242,13 +235,12 @@ pub fn load_project_config(source_dir: &PathBuf) -> ProjectConfig {
     ProjectConfig::default()
 }
 
-
 #[cfg(test)]
 mod tests {
+    use super::*;
     use std::fs::File;
     use std::io::Write;
     use tempfile::tempdir;
-    use super::*;
 
     #[test]
     fn test_file_patterns_default() {
@@ -268,7 +260,13 @@ mod tests {
     fn test_project_config_default() {
         let config = ProjectConfig::default();
         assert_eq!(config.package.entrypoint, "main.py");
-        assert!(config.package.patterns.include.contains(&"**/*.py".to_string()));
+        assert!(
+            config
+                .package
+                .patterns
+                .include
+                .contains(&"**/*.py".to_string())
+        );
         assert!(config.source.is_none());
         assert!(config.uv.is_none());
         assert!(config.env.is_none());
@@ -290,8 +288,20 @@ mod tests {
 
         let config = ProjectConfig::from_file(&file_path).unwrap();
         assert_eq!(config.package.entrypoint, "app.py");
-        assert!(config.package.patterns.include.contains(&"src/**/*.py".to_string()));
-        assert!(config.package.patterns.exclude.contains(&"tests/**/*".to_string()));
+        assert!(
+            config
+                .package
+                .patterns
+                .include
+                .contains(&"src/**/*.py".to_string())
+        );
+        assert!(
+            config
+                .package
+                .patterns
+                .exclude
+                .contains(&"tests/**/*".to_string())
+        );
     }
 
     #[test]
@@ -309,7 +319,13 @@ mod tests {
 
         let config = ProjectConfig::from_pyproject(&file_path).unwrap();
         assert_eq!(config.package.entrypoint, "main2.py");
-        assert!(config.package.patterns.include.contains(&"lib/**/*.py".to_string()));
+        assert!(
+            config
+                .package
+                .patterns
+                .include
+                .contains(&"lib/**/*.py".to_string())
+        );
     }
 
     #[test]

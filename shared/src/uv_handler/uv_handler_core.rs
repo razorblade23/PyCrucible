@@ -1,14 +1,14 @@
-use std::path::PathBuf;
 use crate::debug_println;
 use crate::spinner::{create_spinner_with_message, stop_and_persist_spinner_with_message};
+use std::path::PathBuf;
 
 pub fn uv_exists(path: &PathBuf) -> Option<PathBuf> {
     let candidates = vec![
-            path.join("uv"),
-            path.join("uv.exe"),
-            path.join("bin").join("uv"),
-            path.join("bin").join("uv.exe"),
-        ];
+        path.join("uv"),
+        path.join("uv.exe"),
+        path.join("bin").join("uv"),
+        path.join("bin").join("uv.exe"),
+    ];
 
     let uv_bin = match candidates.iter().find(|p| p.exists()).cloned() {
         Some(p) => p,
@@ -26,7 +26,10 @@ pub fn download_and_install_uv(install_path: &PathBuf) {
         use crate::uv_handler::uv_handler_unix::install_uv_unix;
         let installation_status = install_uv_unix(install_path);
         if installation_status.is_err() {
-            eprintln!("uv installation via script failed: {}", installation_status.err().unwrap());
+            eprintln!(
+                "uv installation via script failed: {}",
+                installation_status.err().unwrap()
+            );
         }
     };
     #[cfg(target_os = "windows")]
@@ -34,7 +37,10 @@ pub fn download_and_install_uv(install_path: &PathBuf) {
         use crate::uv_handler::uv_handler_windows::install_uv_windows;
         let installation_status = install_uv_windows(install_path);
         if installation_status.is_err() {
-            eprintln!("uv installation via script or direct download failed: {}", installation_status.err().unwrap());
+            eprintln!(
+                "uv installation via script or direct download failed: {}",
+                installation_status.err().unwrap()
+            );
         }
     };
 }
@@ -89,7 +95,11 @@ pub fn download_and_install_uv(install_path: &PathBuf) {
 pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
     debug_println!("[uv_handler.find_or_download_uv] - Looking for uv");
 
-    let exe_dir = std::env::current_exe().expect("Could not find current working directory. Exiting ....").parent().unwrap().to_path_buf();
+    let exe_dir = std::env::current_exe()
+        .expect("Could not find current working directory. Exiting ....")
+        .parent()
+        .unwrap()
+        .to_path_buf();
     let local_uv = if cli_uv_path.is_some() {
         Some(cli_uv_path.unwrap())
     } else if let Ok(path) = which::which("uv") {
@@ -106,24 +116,35 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
         debug_println!("[uv_handler.find_or_download_uv] - uv found locally, using it");
         local_uv
     } else {
-        debug_println!("[uv_handler.find_or_download_uv] - uv not found locally, lets see if we have it cached ...");
+        debug_println!(
+            "[uv_handler.find_or_download_uv] - uv not found locally, lets see if we have it cached ..."
+        );
         let home = dirs::home_dir().unwrap();
 
         let uv_install_root = home.join(".pycrucible").join("cache").join("uv");
-        
+
         let uv_bin = uv_exists(&uv_install_root);
         if uv_bin.is_some() {
-            debug_println!("[uv_handler.find_or_download_uv] - uv found cached at {:?}, using it", uv_bin.as_ref().unwrap());
+            debug_println!(
+                "[uv_handler.find_or_download_uv] - uv found cached at {:?}, using it",
+                uv_bin.as_ref().unwrap()
+            );
             return uv_bin;
         }
 
-        debug_println!("[uv_handler.find_or_download_uv] - uv binary not found locally, proceeding to download.");
+        debug_println!(
+            "[uv_handler.find_or_download_uv] - uv binary not found locally, proceeding to download."
+        );
         let sp = create_spinner_with_message("Downloading `uv` ...");
         download_and_install_uv(&uv_install_root);
         stop_and_persist_spinner_with_message(sp, "Downloaded `uv` successfully");
 
-        let uv_bin = uv_exists(&uv_install_root);        if uv_bin.is_some() {
-            debug_println!("[uv_handler.find_or_download_uv] - uv downloaded and found at {:?}, using it", uv_bin.as_ref().unwrap());
+        let uv_bin = uv_exists(&uv_install_root);
+        if uv_bin.is_some() {
+            debug_println!(
+                "[uv_handler.find_or_download_uv] - uv downloaded and found at {:?}, using it",
+                uv_bin.as_ref().unwrap()
+            );
             return uv_bin;
         }
 
@@ -141,14 +162,19 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
                     .permissions();
                 let current_mode = perms.mode() & 0o777;
                 if current_mode == 0o755 {
-                    println!("[uv_handler.find_or_download_uv] - uv permissions already 0o755, skipping chmod for {:?}", path);
+                    println!(
+                        "[uv_handler.find_or_download_uv] - uv permissions already 0o755, skipping chmod for {:?}",
+                        path
+                    );
                     return uv_path.clone();
                 }
 
                 perms.set_mode(0o755);
-                fs::set_permissions(path, perms)
-                    .expect("Could not chmod uv binary");
-                println!("[uv_handler.find_or_download_uv] - Set executable permissions for uv at {:?}", path);
+                fs::set_permissions(path, perms).expect("Could not chmod uv binary");
+                println!(
+                    "[uv_handler.find_or_download_uv] - Set executable permissions for uv at {:?}",
+                    path
+                );
             } else {
                 eprintln!("uv binary not found at {:?}", path);
             }
@@ -156,4 +182,3 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
     }
     uv_path
 }
-    

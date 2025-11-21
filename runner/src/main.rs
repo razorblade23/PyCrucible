@@ -2,8 +2,8 @@ mod extract;
 mod repository;
 mod run;
 
-use std::io;
 use std::env;
+use std::io;
 
 fn main() -> io::Result<()> {
     let runtime_args: Vec<String> = env::args().skip(1).collect();

@@ -1,13 +1,7 @@
-use std::{
-    io, 
-    path::PathBuf, 
-    process::Command,
-    fs::File,
-    path::Path,
-};
-use { tempfile::tempdir, zip::ZipArchive };
-
+use crate::debuging::debug_println;
 use crate::uv_handler::uv_exists;
+use std::{fs::File, io, path::Path, path::PathBuf, process::Command};
+use {tempfile::tempdir, zip::ZipArchive};
 
 fn is_ci() -> bool {
     std::env::var("CI").is_ok() || std::env::var("GITHUB_ACTIONS").is_ok()
@@ -31,7 +25,9 @@ pub fn install_uv_windows(install_path: &PathBuf) -> Result<(), String> {
                 println!("UV installed successfully via script.");
                 return Ok(());
             } else {
-                println!("UV script exited OK but no binary found — falling back to direct download.");
+                println!(
+                    "UV script exited OK but no binary found — falling back to direct download."
+                );
             }
         }
         Err(err) => {
@@ -54,16 +50,20 @@ fn install_uv_via_powershell_script(install_path: &PathBuf) -> Result<(), String
         .args([
             "-NoProfile",
             "-NonInteractive",
-            "-ExecutionPolicy", "Bypass",
+            "-ExecutionPolicy",
+            "Bypass",
             "-Command",
-            "irm https://astral.sh/uv/install.ps1 | iex"
+            "irm https://astral.sh/uv/install.ps1 | iex",
         ])
         .env("UV_UNMANAGED_INSTALL", install_path)
         .status()
         .map_err(|e| format!("Failed to spawn PowerShell: {e}"))?;
 
     if !status.success() {
-        return Err(format!("PowerShell installer returned exit code {}", status));
+        return Err(format!(
+            "PowerShell installer returned exit code {}",
+            status
+        ));
     }
 
     Ok(())
@@ -72,29 +72,36 @@ fn install_uv_via_powershell_script(install_path: &PathBuf) -> Result<(), String
 fn download_uv_binary_for_windows(install_path: &Path) {
     let dir = tempdir();
     match dir {
-        Err(e) => panic!("Failed to create temporary directory for uv download: {}", e),
+        Err(e) => panic!(
+            "Failed to create temporary directory for uv download: {}",
+            e
+        ),
         Ok(d) => {
             let uv_temp = d.path().join("uv-windows.zip");
             let url = "https://github.com/astral-sh/uv/releases/download/0.8.5/uv-x86_64-pc-windows-msvc.zip";
-        
+
             let status = Command::new("powershell")
                 .args([
                     "-NoProfile",
                     "-NonInteractive",
                     "-Command",
-                    &format!("Invoke-WebRequest '{}' -OutFile '{}'", url, uv_temp.display()),
+                    &format!(
+                        "Invoke-WebRequest '{}' -OutFile '{}'",
+                        url,
+                        uv_temp.display()
+                    ),
                 ])
                 .status()
                 .expect("Failed to run PowerShell for binary download");
-        
+
             if !status.success() {
                 panic!("Direct download of uv.exe failed");
             }
             println!("Downloaded uv archive to {:?}", uv_temp);
 
-            extract_uv_from_zip_archive(&uv_temp, install_path).expect("Failed to extract uv from zip archive");
-
-        },
+            extract_uv_from_zip_archive(&uv_temp, install_path)
+                .expect("Failed to extract uv from zip archive");
+        }
     };
 }
 
@@ -109,7 +116,7 @@ fn extract_uv_from_zip_archive(
         std::fs::create_dir_all(install_path)?;
         println!("Created install directory {:?}", install_path);
     }
-    
+
     // Open the archive file
     let file = File::open(archive_path)?;
     let mut archive = ZipArchive::new(file)?;

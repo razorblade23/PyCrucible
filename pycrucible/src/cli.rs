@@ -1,6 +1,6 @@
 use clap::Parser;
-use std::path::PathBuf;
 use std::env;
+use std::path::PathBuf;
 
 const AUTHOR: &str = "razorblade23";
 const ABOUT: &str = "Tool to generate python executable by melding UV and python source code in crucible of one binary";
@@ -18,23 +18,41 @@ fn get_version() -> &'static str {
 #[derive(Parser, Debug)]
 #[command(author = AUTHOR, version = get_version(), about = ABOUT, long_about = None)]
 pub struct Cli {
-    #[arg(short = 'e', long, help = "Directory containing Python project to embed.", value_name = "SOURCE_DIR")]
+    #[arg(
+        short = 'e',
+        long,
+        help = "Directory containing Python project to embed.",
+        value_name = "SOURCE_DIR"
+    )]
     pub embed: PathBuf,
 
-    #[arg(short = 'o', long, help="Output path for the new binary. If not specified, defaults to `./launcher`.")]
+    #[arg(
+        short = 'o',
+        long,
+        help = "Output path for the new binary. If not specified, defaults to `./launcher`."
+    )]
     pub output: Option<PathBuf>,
-    
-    #[arg(long, help="Path to `uv` executable. If not found, it will be downloaded automatically")]
+
+    #[arg(
+        long,
+        help = "Path to `uv` executable. If not found, it will be downloaded automatically"
+    )]
     #[arg(default_value_os_t = get_output_dir().join(UV_BINARY))]
     pub uv_path: PathBuf,
 
-    #[arg(long, help="Disable embedding `uv` binary into the output executable. This will require `uv` to be present alongside (or downloaded) the output binary at runtime.")]
+    #[arg(
+        long,
+        help = "Disable embedding `uv` binary into the output executable. This will require `uv` to be present alongside (or downloaded) the output binary at runtime."
+    )]
     pub no_uv_embed: bool,
 
-    #[arg(long, help="Force re-download of `uv` binary even if it is already present at the specified or default location. Mostly useful for testing purposes.")]
+    #[arg(
+        long,
+        help = "Force re-download of `uv` binary even if it is already present at the specified or default location. Mostly useful for testing purposes."
+    )]
     pub force_uv_download: bool,
 
-    #[arg(long, help="Enable debug output")]
+    #[arg(long, help = "Enable debug output")]
     pub debug: bool,
 }
 
