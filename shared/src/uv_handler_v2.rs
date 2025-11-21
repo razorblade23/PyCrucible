@@ -25,11 +25,11 @@ fn uv_exists(path: &PathBuf) -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "windows")]
-pub fn install_uv_windows(install_path: &Path) -> Result<(), String> {
+pub fn install_uv_windows(install_path: &PathBuf) -> Result<(), String> {
     if is_ci() {
         println!("CI detected — using fallback UV binary download");
         download_uv_binary_for_windows(install_path);
-        return;
+        return Ok(());
     }
 
     println!("Attempting UV install using PowerShell script...");
@@ -39,7 +39,7 @@ pub fn install_uv_windows(install_path: &Path) -> Result<(), String> {
     match script_result {
         Ok(_) => {
             println!("UV installer script completed, checking if binary was created...");
-            if uv_exists(install_path) {
+            if uv_exists(install_path).is_some() {
                 println!("UV installed successfully via script.");
                 return;
             } else {
@@ -54,9 +54,7 @@ pub fn install_uv_windows(install_path: &Path) -> Result<(), String> {
 
     download_uv_binary_for_windows(install_path);
 
-    if !uv_exists(install_path) {
-        use std::f32::consts::E;
-
+    if !uv_exists(install_path).is_some() {
         eprintln!("Failed both installer script AND fallback binary download. Cannot continue.");
         return Err("Failed to install uv via both script and direct download.".to_string());
     }
@@ -64,7 +62,7 @@ pub fn install_uv_windows(install_path: &Path) -> Result<(), String> {
 }
 
 #[cfg(target_os = "windows")]
-fn install_uv_via_powershell_script(install_path: &Path) -> Result<(), String> {
+fn install_uv_via_powershell_script(install_path: &PathBuf) -> Result<(), String> {
     let status = Command::new("powershell")
         .args([
             "-NoProfile",
