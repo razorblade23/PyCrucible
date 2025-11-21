@@ -75,7 +75,7 @@ fn download_uv_binary_for_windows(install_path: &Path) {
         Err(e) => panic!("Failed to create temporary directory for uv download: {}", e),
         Ok(d) => {
             let uv_temp = d.path().join("uv-windows.zip");
-            let url = "https://github.com/astral-sh/uv/releases/download/0.9.11/uv-aarch64-pc-windows-msvc.zip";
+            let url = "https://github.com/astral-sh/uv/releases/download/0.8.5/uv-x86_64-pc-windows-msvc.zip";
         
             let status = Command::new("powershell")
                 .args([
