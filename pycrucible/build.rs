@@ -47,7 +47,7 @@ fn main() {
     let target_env = env::var("TARGET").ok();
     let target = target_env.as_deref().unwrap_or("");
 
-    let runner_bin_path = resolve_runner_path(&manifest_dir, &target, &profile);
+    let runner_bin_path = resolve_runner_path(&manifest_dir, target, &profile);
 
     let runner_path_str = runner_bin_path.to_str().expect("Path not UTF-8");
 

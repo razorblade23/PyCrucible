@@ -1,0 +1,81 @@
+name: Test without uv embedding
+
+on:
+  push:
+    branches: [feature--no-uv-embed]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Run Tests (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build runner
+        run: cargo build -p pycrucible_runner --target x86_64-unknown-linux-gnu
+
+      - name: Run tests
+        run: |
+          cargo test -p pycrucible --target x86_64-unknown-linux-gnu
+          cargo test -p shared --target x86_64-unknown-linux-gnu
+    
+  smoke-test:
+    name: Smoke Test PyCrucible without uv embedding
+    needs: test
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bin_ext: ""
+            simple: linux
+          # Windows
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin_ext: ".exe"
+            simple: windows
+          # macOS
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+            bin_ext: ""
+            simple: macos
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+
+    - name: Build runner
+      run: cargo build -p pycrucible_runner --release --target ${{ matrix.target }}
+
+    - name: Build PyCrucible
+      run: cargo build -p pycrucible --release --target ${{ matrix.target }}
+
+    - name: Clone example project
+      run: git clone https://github.com/razorblade23/test-project-for-PyCrucible
+
+    - name: Extract and copy binary
+      shell: bash
+      run: |
+        ls ./target/${{ matrix.target }}/release
+        cp ./target/${{ matrix.target }}/release/pycrucible${{ matrix.bin_ext }} test-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
+
+    - name: Make binary executable (non-Windows)
+      if: runner.os != 'Windows'
+      run: chmod +x test-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
+
+    - name: Run PyCrucible
+      working-directory: test-project-for-PyCrucible
+      run: ./pycrucible${{ matrix.bin_ext }} -e . -o cowsay${{ matrix.bin_ext }} --no-uv-embed --debug
+
+    - name: Smoke-test generated artifact
+      working-directory: test-project-for-PyCrucible
+      run: |
+        ls
+        ./cowsay${{ matrix.bin_ext }}

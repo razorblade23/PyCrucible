@@ -23,3 +23,4 @@ tempfile = "3"
 flate2 = "1"
 git2 = { version = "0.20", default-features = false }
 which = "8.0.0"
+dirs = "6.0.0"
