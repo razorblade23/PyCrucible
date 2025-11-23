@@ -21,7 +21,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('./Cargo.lock') || 'no-lock' }}
 
       - name: Build runner
         run: cargo build -p pycrucible_runner --target x86_64-unknown-linux-gnu
