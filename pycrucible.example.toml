@@ -1,0 +1,44 @@
+# Required
+entrypoint = "src/main.py"
+
+# # Optional - uncomment if you need it
+# [options]
+# debug = false
+# extract_to_temp = false
+# delete_after_run = false
+
+# # Optional - uncomment if you need it
+# [source]
+# repository = "https://github.com/username/repo"
+# branch = "main"  # Optional: Specify branch to use
+# # tag = "v1.0.0"   # Optional: Use specific tag
+# # commit = "abc123" # Optional: Use specific commit
+# update_strategy = "pull" # Optional: "pull" or "fetch", defaults to "pull"
+
+# # Optional - uncomment if you need it
+# [package.patterns]
+# include = [
+#     "**/*.py",            # Python source files
+#     "**/*.pyi",           # Type stubs
+#     "resources/**/*.json" # Resource files
+# ]
+# exclude = [
+#     "**/__pycache__/**", # Python cache
+#     ".venv/**/*",        # Virtual environment
+#     ".git/**/*",         # Git directory
+#     "**/tests/**",       # Test files
+#     "**/*.pyc",          # Compiled Python files
+#     "**/*.pyo",
+#     "**/*.pyd"
+# ]
+
+# # Optional - uncomment if you need it
+# [env]
+# PYTHONPATH = "src"
+# DEBUG = "1"
+# APP_ENV = "development"
+
+# # Optional - uncomment if you need it
+# [hooks]
+# pre_run = ""
+# post_run = ""
