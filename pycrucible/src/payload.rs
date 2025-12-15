@@ -1,103 +1,156 @@
 #![cfg_attr(test, allow(dead_code, unused_variables, unused_imports))]
 
-use crate::debug_println;
 use crate::{config, runner};
+use crate::{debug_println, project};
 use shared::uv_handler::{download_and_install_uv, find_or_download_uv};
 use std::fs::{self, OpenOptions};
 use std::io::{self, Cursor, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use zip::{ZipWriter, write::FileOptions};
 
-pub fn find_manifest_file(source_dir: &Path) -> PathBuf {
-    
+pub fn find_manifest_file(source_dir: &Path) -> Option<PathBuf> {
     if source_dir.join("pyproject.toml").exists() {
-        source_dir.join("pyproject.toml")
+        Some(source_dir.join("pyproject.toml"))
     } else if source_dir.join("requirements.txt").exists() {
-        source_dir.join("requirements.txt")
+        Some(source_dir.join("requirements.txt"))
     } else if source_dir.join("pylock.toml").exists() {
-        source_dir.join("pylock.toml")
+        Some(source_dir.join("pylock.toml"))
     } else if source_dir.join("setup.py").exists() {
-        source_dir.join("setup.py")
+        Some(source_dir.join("setup.py"))
     } else if source_dir.join("setup.cfg").exists() {
-        source_dir.join("setup.cfg")
+        Some(source_dir.join("setup.cfg"))
     } else {
         eprintln!(
             "No manifest file found in the source directory. \nManifest files can be pyproject.toml, requirements.txt, pylock.toml, setup.py or setup.cfg"
         );
-        source_dir.join("") // Default to empty string if none found;
+        None // Default to empty string if none found;
+    }
+}
+
+fn embed_uv(
+    cli_uv_path: PathBuf,
+    zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>,
+    options: FileOptions<'_, ()>,
+) -> io::Result<Option<()>> {
+    debug_println!("[payload.embed_payload] - Embedding uv binary into payload");
+    let uv_path = find_or_download_uv(Some(cli_uv_path));
+    match uv_path {
+        None => {
+            eprintln!("Could not find or download uv binary. uv will be required at runtime.");
+            Ok(None)
+        }
+        Some(path) => {
+            debug_println!("[payload.embed_payload] - uv binary found at {:?}", path);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let mut perms = fs::metadata(&path)?.permissions();
+                perms.set_mode(0o755);
+                fs::set_permissions(&path, perms)?;
+                debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
+            }
+            zip.start_file("uv", options)?;
+            // let uv_file = fs::File::open(&uv_path)?;
+            let _ = zip.write(&fs::read(path)?);
+            // io::copy(&mut uv_file, zip)?;
+            debug_println!("[payload.embed_payload] - Added uv to zip");
+            Ok(Some(()))
+        }
+    }
+}
+
+fn write_to_zip(
+    name: &str,
+    file: PathBuf,
+    zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>,
+    options: FileOptions<'_, ()>,
+) -> Result<(), io::Error> {
+    zip.start_file(name, options)?;
+    let _ = zip.write(&fs::read(file)?);
+    Ok(())
+}
+
+#[cfg(unix)]
+fn set_permissions_on_unix(file: PathBuf) -> Result<(), io::Error> {
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = fs::metadata(&file)?.permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&file, perms)?;
+        debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
+        Ok(())
     }
 }
 
 pub fn embed_payload(
-    source_files: &[PathBuf],
-    manifest_path: &Path,
+    source_files: &project::CollectedSources,
+    manifest_path: &Option<PathBuf>,
     project_config: config::ProjectConfig,
-    cli_uv_path: PathBuf,
-    output_path: &Path,
-    no_uv_embed: bool,
-    force_uv_download: bool,
+    cli_options: crate::CLIOptions,
 ) -> io::Result<()> {
-    runner::extract_runner(output_path)?;
+    runner::extract_runner(&cli_options.output_path)?;
     debug_println!("[payload.embed_payload] - Runner extracted to output path");
 
     // Create a memory buffer for the ZIP
     let mut cursor = Cursor::new(Vec::new());
-    let mut zip = ZipWriter::new(&mut cursor);
-    let options = FileOptions::<()>::default();
+    let mut zip: ZipWriter<&mut Cursor<Vec<u8>>> = ZipWriter::new(&mut cursor);
+    let options: FileOptions<'_, ()> = FileOptions::<()>::default();
 
-    copy_source_to_zip(source_files, manifest_path, &mut zip, options)?;
+    // Check to see if we have a wheel or source files and handle accordingly
+    match source_files {
+        project::CollectedSources::Wheel(wheel) => {
+            let wheel_path = &wheel.absolute_path;
+            let wheel_file_name =
+                wheel_path
+                    .file_name()
+                    .and_then(|s| s.to_str())-
+                    .ok_or_else(|| {
+                        io::Error::new(io::ErrorKind::InvalidInput, "Invalid wheel file name")
+                    })?;
+            debug_println!(
+                "[payload.embed_payload] - Embedding wheel file: {:?}",
+                wheel_file_name
+            );
+            write_to_zip(wheel_file_name, wheel_path.clone(), &mut zip, options)?;
+            debug_println!("[payload.embed_payload] - Wheel file added to zip");
+        }
+        project::CollectedSources::Files(files) => {
+            if let Some(manifest) = manifest_path {
+                copy_source_to_zip(
+                    &files
+                        .iter()
+                        .map(|sf| sf.absolute_path.clone())
+                        .collect::<Vec<_>>(),
+                    manifest,
+                    &mut zip,
+                    options,
+                )?;
+            } else {
+                return Err(io::Error::new(
+                    io::ErrorKind::NotFound,
+                    "Manifest path not provided for source files",
+                ));
+            }
+        }
+    }
 
     create_pycrucible_config_file(&project_config, &mut zip, options)?;
 
-    if force_uv_download {
-        debug_println!(
-            "[payload.embed_payload] - Force uv download flag is set, re-downloading uv"
-        );
-        download_and_install_uv(&cli_uv_path);
-        let path = cli_uv_path.join("uv");
-        debug_println!("[payload.embed_payload] - uv binary found at {:?}", path);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let mut perms = fs::metadata(&path)?.permissions();
-            perms.set_mode(0o755);
-            fs::set_permissions(&path, perms)?;
-            debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
-        }
-        zip.start_file("uv", options)?;
-        // let uv_file = fs::File::open(&uv_path)?;
-        let _ = zip.write(&fs::read(path)?);
-        // io::copy(&mut uv_file, zip)?;
-        debug_println!("[payload.embed_payload] - Added uv to zip");
-    } else if no_uv_embed {
-        debug_println!(
-            "[payload.embed_payload] - Skipping uv embedding as per no_uv_embed flag"
-        );
+    if cli_options.no_uv_embed {
+        debug_println!("[payload.embed_payload] - Skipping uv embedding as per no_uv_embed flag");
     } else {
-        debug_println!("[payload.embed_payload] - Embedding uv binary into payload");
-        let uv_path = find_or_download_uv(Some(cli_uv_path));
-        match uv_path {
-            None => {
-                eprintln!(
-                    "Could not find or download uv binary. uv will be required at runtime."
-                );
-            }
-            Some(path) => {
-                debug_println!("[payload.embed_payload] - uv binary found at {:?}", path);
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::PermissionsExt;
-                    let mut perms = fs::metadata(&path)?.permissions();
-                    perms.set_mode(0o755);
-                    fs::set_permissions(&path, perms)?;
-                    debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
-                }
-                zip.start_file("uv", options)?;
-                // let uv_file = fs::File::open(&uv_path)?;
-                let _ = zip.write(&fs::read(path)?);
-                // io::copy(&mut uv_file, zip)?;
-                debug_println!("[payload.embed_payload] - Added uv to zip");
-            }
+        if cli_options.force_uv_download {
+            debug_println!(
+                "[payload.embed_payload] - Force uv download flag is set, re-downloading uv"
+            );
+            download_and_install_uv(&cli_options.uv_path);
+        }
+
+        debug_println!("[payload.embed_payload] - Looking for uv binary to embed");
+        if let Some(_path) = embed_uv(cli_options.uv_path, &mut zip, options)? {
+            debug_println!("[payload.embed_payload] - uv binary embedded successfully");
+        } else {
+            eprintln!("Could not find or download uv binary. uv will be required at runtime.");
         }
     }
 
@@ -108,9 +161,8 @@ pub fn embed_payload(
 
     // Open output file in append mode (the copied executable)
     let mut file: fs::File = OpenOptions::new()
-        
         .append(true)
-        .open(output_path)?;
+        .open(cli_options.output_path)?;
 
     // Get offset where payload will start
     let offset = file.seek(SeekFrom::End(0))?;
@@ -130,8 +182,8 @@ fn create_pycrucible_config_file(
     zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>,
     options: FileOptions<'_, ()>,
 ) -> Result<(), io::Error> {
-    let project_config_toml = toml::to_string(&project_config)
-        .map_err(|e| io::Error::other(e.to_string()))?;
+    let project_config_toml =
+        toml::to_string(&project_config).map_err(|e| io::Error::other(e.to_string()))?;
     let mut pycrucible_file = Cursor::new(project_config_toml);
     zip.start_file("pycrucible.toml", options)?;
     io::copy(&mut pycrucible_file, zip)?;
@@ -252,17 +304,31 @@ mod tests {
         let output_path = dir.path().join("output_exe");
         fs::write(&output_path, b"stub-runner").unwrap(); // dummy base exe
 
-        let source_files = vec![file1.clone(), file2.clone()];
+        // Build the collected sources expected by embed_payload (Files variant contains items
+        // with an `absolute_path` field).
+        let collected_files = vec![
+            project::SourceFile {
+                absolute_path: file1.clone(),
+            },
+            project::SourceFile {
+                absolute_path: file2.clone(),
+            },
+        ];
+        let source_files = project::CollectedSources::Files(collected_files);
 
-        let result = embed_payload(
-            &source_files,
-            &manifest,
-            project_config,
-            uv_path.clone(),
-            &output_path,
-            true,
-            false,
-        );
+        // Manifest path as an Option
+        let manifest_option = Some(manifest.clone());
+
+        // Build CLIOptions expected by embed_payload
+        let cli_options = crate::CLIOptions {
+            source_dir: src_dir.clone(),
+            output_path: output_path.clone(),
+            uv_path: uv_path.clone(),
+            no_uv_embed: false,
+            force_uv_download: false,
+        };
+
+        let result = embed_payload(&source_files, &manifest_option, project_config, cli_options);
         assert!(result.is_ok(), "embed_payload should succeed");
         assert!(output_path.exists());
 

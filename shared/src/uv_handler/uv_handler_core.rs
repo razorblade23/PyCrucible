@@ -3,10 +3,12 @@ use crate::spinner::{create_spinner_with_message, stop_and_persist_spinner_with_
 use std::path::PathBuf;
 
 pub fn uv_exists(path: &PathBuf) -> Option<PathBuf> {
-    let candidates = [path.join("uv"),
+    let candidates = [
+        path.join("uv"),
         path.join("uv.exe"),
         path.join("bin").join("uv"),
-        path.join("bin").join("uv.exe")];
+        path.join("bin").join("uv.exe"),
+    ];
 
     let uv_bin = match candidates.iter().find(|p| p.exists()).cloned() {
         Some(p) => p,
@@ -51,8 +53,8 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
         .parent()
         .unwrap()
         .to_path_buf();
-    let local_uv = if cli_uv_path.is_some() {
-        Some(cli_uv_path.unwrap())
+    let local_uv = if let Some(p) = cli_uv_path {
+        Some(p)
     } else if let Ok(path) = which::which("uv") {
         Some(path)
     } else {
