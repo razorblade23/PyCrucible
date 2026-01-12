@@ -1,9 +1,9 @@
-use shared::uv_handler::find_or_download_uv;
+// use shared::uv_handler::find_or_download_uv;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{self, io};
-// use shared::uv_handler_v2::find_or_download_uv;
+use shared::uv_handler_v2::find_or_download_uv;
 use shared::{debug_println, debuging};
 
 use shared::config::{ProjectConfig, load_project_config};
@@ -56,17 +56,13 @@ fn prepare_hooks(config: &ProjectConfig) -> (String, String) {
     (pre_hook, post_hook)
 }
 
-fn run_uv_command(project_dir: &Path, command: &str, args: &[&str]) -> io::Result<()> {
-    let uv_path = find_or_download_uv(None).ok_or(io::Error::new(
-        io::ErrorKind::NotFound,
-        "Could not find or download uv binary",
-    ))?;
+fn run_uv_command(uv_path: &PathBuf, project_dir: &Path, command: &str, args: &[&str]) -> io::Result<()> {
     debug_println!(
         "[main.run_uv_command] - Running `uv {}` in {:?}",
         command,
         project_dir
     );
-    let status = Command::new(&uv_path)
+    let status = Command::new(uv_path)
         .arg(command)
         .arg("-q")
         .args(args)
@@ -81,6 +77,13 @@ fn run_uv_command(project_dir: &Path, command: &str, args: &[&str]) -> io::Resul
 }
 
 pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> io::Result<()> {
+    // Ensure UV is available
+    debug_println!("[main.run_extracted_project] - Ensuring UV is available");
+    let uv_path = find_or_download_uv(None).ok_or(io::Error::new(
+        io::ErrorKind::NotFound,
+        "Could not find or download uv binary",
+    ))?;
+
     // Verify Python files exist
     let config = load_project_config(&project_dir.to_path_buf());
     debug_println!("[main.run_extracted_project] - Loaded project configuration");
@@ -118,11 +121,12 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
 
     // Create virtual environment
     debug_println!("[main.run_extracted_project] - Creating virtual environment");
-    run_uv_command(project_dir, "venv", &[])?;
+    run_uv_command(&uv_path, project_dir, "venv", &[])?;
 
     // Sincronize the virtual environment with the manifest file
     debug_println!("[main.run_extracted_project] - Installing dependencies from manifest file");
     run_uv_command(
+        &uv_path,
         project_dir,
         "pip",
         &["install", "--requirements", manifest_path.to_str().unwrap()],
@@ -137,7 +141,7 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     // Run pre-hook if specified
     debug_println!("[main.run_extracted_project] - Running pre-hook if specified");
     if !pre_hook.is_empty() {
-        run_uv_command(project_dir, "run", &[pre_hook.as_str()])?;
+        run_uv_command(&uv_path, project_dir, "run", &[pre_hook.as_str()])?;
     }
 
     // Run the main application
@@ -147,12 +151,12 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     args_vec.extend(runtime_args);
 
     let args_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
-    run_uv_command(project_dir, "run", &args_refs)?;
+    run_uv_command(&uv_path, project_dir, "run", &args_refs)?;
 
     // Run post-hook if specified
     debug_println!("[main.run_extracted_project] - Running post-hook if specified");
     if !post_hook.is_empty() {
-        run_uv_command(project_dir, "run", &[post_hook.as_str()])?;
+        run_uv_command(&uv_path, project_dir, "run", &[post_hook.as_str()])?;
     }
 
     // Clean up if delete_after_run is set or extract_to_temp is set

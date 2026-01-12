@@ -2,7 +2,7 @@
 
 use crate::{config, runner};
 use crate::{debug_println, project};
-use shared::uv_handler::{download_and_install_uv, find_or_download_uv};
+use shared::uv_handler_v2::{download_and_install_uv_v2, find_or_download_uv};
 use std::fs::{self, OpenOptions};
 use std::io::{self, Cursor, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
@@ -32,7 +32,7 @@ fn embed_uv(
     zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>,
     options: FileOptions<'_, ()>,
 ) -> io::Result<Option<()>> {
-    debug_println!("[payload.embed_payload] - Embedding uv binary into payload");
+    debug_println!("[payload.embed_uv] - Embedding uv binary into payload");
     let uv_path = find_or_download_uv(Some(cli_uv_path));
     match uv_path {
         None => {
@@ -103,7 +103,7 @@ pub fn embed_payload(
             let wheel_file_name =
                 wheel_path
                     .file_name()
-                    .and_then(|s| s.to_str())-
+                    .and_then(|s| s.to_str())
                     .ok_or_else(|| {
                         io::Error::new(io::ErrorKind::InvalidInput, "Invalid wheel file name")
                     })?;
@@ -143,9 +143,8 @@ pub fn embed_payload(
             debug_println!(
                 "[payload.embed_payload] - Force uv download flag is set, re-downloading uv"
             );
-            download_and_install_uv(&cli_options.uv_path);
+            download_and_install_uv_v2(&cli_options.uv_path);
         }
-
         debug_println!("[payload.embed_payload] - Looking for uv binary to embed");
         if let Some(_path) = embed_uv(cli_options.uv_path, &mut zip, options)? {
             debug_println!("[payload.embed_payload] - uv binary embedded successfully");
