@@ -1,42 +1,21 @@
 // use shared::uv_handler::find_or_download_uv;
+use shared::uv_handler::find_or_download_uv;
+use shared::{debug_println, debuging};
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{self, io};
-use shared::uv_handler::find_or_download_uv;
-use shared::{debug_println, debuging};
 
 use shared::config::{ProjectConfig, load_project_config};
 
-fn find_manifest_file(project_dir: &Path) -> io::Result<PathBuf> {
-    let manifest_files = [
-        "pyproject.toml",
-        "requirements.txt",
-        "pylock.toml",
-        "setup.py",
-        "setup.cfg",
-    ];
-
-    for file in &manifest_files {
-        let path = project_dir.join(file);
-        if path.exists() {
-            return Ok(path);
-        }
-    }
-
-    Err(io::Error::new(
-        io::ErrorKind::NotFound,
-        "No manifest file found in the source directory. \nManifest files can be pyproject.toml, requirements.txt, pylock.toml, setup.py or setup.cfg",
-    ))
-}
-
 fn apply_env_from_config(config: &ProjectConfig) {
     if let Some(env_config) = &config.env
-        && let Some(vars) = &env_config.variables {
-            for (k, v) in vars {
-                unsafe { std::env::set_var(k, v) }; // Set env variables - not thread safe
-            }
+        && let Some(vars) = &env_config.variables
+    {
+        for (k, v) in vars {
+            unsafe { std::env::set_var(k, v) }; // Set env variables - not thread safe
         }
+    }
 }
 
 fn prepare_hooks(config: &ProjectConfig) -> (String, String) {
@@ -56,12 +35,7 @@ fn prepare_hooks(config: &ProjectConfig) -> (String, String) {
     (pre_hook, post_hook)
 }
 
-fn run_uv(
-    uv_path: &Path,
-    project_dir: &Path,
-    with: &[&str],
-    args: &[&str],
-) -> io::Result<()> {
+fn run_uv(uv_path: &Path, project_dir: &Path, with: &[&str], args: &[&str]) -> io::Result<()> {
     let mut cmd = Command::new(uv_path);
     cmd.arg("run").arg("-q");
 
@@ -69,8 +43,7 @@ fn run_uv(
         cmd.arg("--with").arg(w);
     }
 
-    cmd.args(args)
-       .current_dir(project_dir);
+    cmd.args(args).current_dir(project_dir);
 
     let status = cmd.status()?;
 
@@ -103,7 +76,6 @@ fn find_single_wheel(project_dir: &Path) -> io::Result<Option<PathBuf>> {
 
     Ok(wheel)
 }
-
 
 pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> io::Result<()> {
     // Load project configuration and determine entrypoint
@@ -178,18 +150,22 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
 
             let args_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
             run_uv(&uv_path, project_dir, &[], &args_refs)?;
-        },
+        }
         "wheel" => {
             debug_println!("[main.run_extracted_project] - Running in wheel mode");
             let wheel_file = wheel.ok_or(io::Error::new(
                 io::ErrorKind::NotFound,
                 "No .whl file found in the project directory",
             ))?;
-            run_uv(&uv_path, project_dir, &[wheel_file.to_str().unwrap()], &[config.package.entrypoint.as_str()])?;
-        },
+            run_uv(
+                &uv_path,
+                project_dir,
+                &[wheel_file.to_str().unwrap()],
+                &[config.package.entrypoint.as_str()],
+            )?;
+        }
         _ => unreachable!(),
     }
-
 
     // Run post-hook if specified
     debug_println!("[main.run_extracted_project] - Running post-hook if specified");
@@ -201,10 +177,9 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     debug_println!(
         "[main.run_extracted_project] - Cleaning up extracted project if configured to do so"
     );
-    if (config.options.delete_after_run || config.options.extract_to_temp)
-        && project_dir.exists() {
-            std::fs::remove_dir_all(project_dir)?;
-        }
+    if (config.options.delete_after_run || config.options.extract_to_temp) && project_dir.exists() {
+        std::fs::remove_dir_all(project_dir)?;
+    }
 
     Ok(())
 }

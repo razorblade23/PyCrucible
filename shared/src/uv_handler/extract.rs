@@ -1,10 +1,10 @@
 use crate::uv_handler::download::Archive;
-use std::fs;
-use std::path::Path;
-use zip::ZipArchive;
 use flate2::read::GzDecoder;
+use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
+use std::path::Path;
+use zip::ZipArchive;
 
 pub fn extract_uv<'a>(
     archive: &mut Archive<'a>,

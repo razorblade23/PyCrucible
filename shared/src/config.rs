@@ -48,21 +48,18 @@ impl Default for PackageConfig {
     }
 }
 
-#[derive(serde::Serialize, Debug, Deserialize)]
-#[derive(Default)]
+#[derive(serde::Serialize, Debug, Deserialize, Default)]
 pub struct UVConfig {
     pub args: Option<Vec<String>>,
 }
 
-#[derive(serde::Serialize, Debug, Deserialize)]
-#[derive(Default)]
+#[derive(serde::Serialize, Debug, Deserialize, Default)]
 pub struct EnvConfig {
     #[serde(flatten)]
     pub variables: Option<HashMap<String, String>>,
 }
 
-#[derive(serde::Serialize, Debug, Deserialize)]
-#[derive(Default)]
+#[derive(serde::Serialize, Debug, Deserialize, Default)]
 pub struct Hooks {
     pub pre_run: Option<String>,
     pub post_run: Option<String>,
@@ -88,8 +85,7 @@ impl Default for SourceConfig {
     }
 }
 
-#[derive(serde::Serialize, Debug, Deserialize, Clone)]
-#[derive(Default)]
+#[derive(serde::Serialize, Debug, Deserialize, Clone, Default)]
 pub struct ToolOptions {
     #[serde(default)]
     pub debug: bool,
@@ -135,7 +131,7 @@ impl ProjectConfig {
         // Re-serialize just that sub-table so we can leverage
         // the existing `ProjectConfig` derive.
         let slice = toml::to_string(tbl).map_err(|e| e.to_string())?;
-        
+
         toml::from_str(&slice).map_err(|e| e.to_string())
     }
 }
@@ -182,27 +178,29 @@ fn load_config(config_path: &PathBuf) -> ProjectConfig {
 pub fn load_project_config(source_dir: &PathBuf) -> ProjectConfig {
     // Is there pycrucible.toml in the source directory?
     if let Ok(path) = source_dir.join("pycrucible.toml").canonicalize()
-        && path.exists() {
-            debug_println!("[config] using pycrucible.toml");
-            return load_config(&path);
-        }
+        && path.exists()
+    {
+        debug_println!("[config] using pycrucible.toml");
+        return load_config(&path);
+    }
 
     let pyproject = source_dir.join("pyproject.toml").canonicalize();
     if let Ok(pyproject) = pyproject
-        && pyproject.exists() {
-            match ProjectConfig::from_pyproject(&pyproject) {
-                Ok(cfg) => {
-                    debug_println!("[config] using [tool.pycrucible] in pyproject.toml");
-                    return cfg;
-                }
-                Err(e) => {
-                    debug_println!(
-                        "[config] pyproject.toml found but no usable [tool.pycrucible] - {}",
-                        e
-                    );
-                }
+        && pyproject.exists()
+    {
+        match ProjectConfig::from_pyproject(&pyproject) {
+            Ok(cfg) => {
+                debug_println!("[config] using [tool.pycrucible] in pyproject.toml");
+                return cfg;
+            }
+            Err(e) => {
+                debug_println!(
+                    "[config] pyproject.toml found but no usable [tool.pycrucible] - {}",
+                    e
+                );
             }
         }
+    }
 
     // No config file found, use built-in defaults
     debug_println!("[config] using built-in defaults");

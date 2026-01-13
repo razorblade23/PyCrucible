@@ -3,13 +3,13 @@
 use crate::{config, runner};
 use crate::{debug_println, project};
 use shared::uv_handler::find_or_download_uv;
+use std::fs::File;
 use std::fs::{self, OpenOptions};
+use std::io::Read;
 use std::io::{self, Cursor, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
-use zip::{ZipWriter, write::FileOptions};
-use std::fs::File;
-use std::io::Read;
 use zip::ZipArchive;
+use zip::{ZipWriter, write::FileOptions};
 
 pub fn find_manifest_file(source_dir: &Path) -> Option<PathBuf> {
     if source_dir.join("pyproject.toml").exists() {
@@ -72,20 +72,6 @@ fn write_to_zip(
     let _ = zip.write(&fs::read(file)?);
     Ok(())
 }
-
-#[cfg(unix)]
-fn set_permissions_on_unix(file: PathBuf) -> Result<(), io::Error> {
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs::metadata(&file)?.permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(&file, perms)?;
-        debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
-        Ok(())
-    }
-}
-
-
 
 fn read_wheel_name(path: &str) -> Result<String, Box<dyn std::error::Error>> {
     let file = File::open(path)?;
@@ -370,7 +356,12 @@ mod tests {
             debug: false,
         };
 
-        let result = embed_payload(&source_files, &manifest_option, &mut project_config, cli_options);
+        let result = embed_payload(
+            &source_files,
+            &manifest_option,
+            &mut project_config,
+            cli_options,
+        );
         assert!(result.is_ok(), "embed_payload should succeed");
         assert!(output_path.exists());
 
