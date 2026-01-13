@@ -104,7 +104,8 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>, uv_version: &str) -> Op
         }
 
         debug_println!(
-            "[uv_handler.find_or_download_uv] - uv binary not found locally, proceeding to download."
+            "[uv_handler.find_or_download_uv] - uv binary not found locally, proceeding to download. uv version: `{}`",
+            uv_version
         );
         let sp = create_spinner_with_message("Downloading `uv` ...");
         install_uv(uv_version, &uv_install_root).expect("uv installation failed");

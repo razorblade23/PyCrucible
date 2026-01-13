@@ -80,6 +80,7 @@ fn find_single_wheel(project_dir: &Path) -> io::Result<Option<PathBuf>> {
 pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> io::Result<()> {
     // Load project configuration and determine entrypoint
     let config = load_project_config(&project_dir.to_path_buf());
+    debug_println!("[main.run_extracted_project] - Loaded project configuration");
 
     // Enable debug mode if specified in config
     if config.options.debug {
@@ -89,10 +90,11 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
 
     // Ensure UV is available
     debug_println!("[main.run_extracted_project] - Ensuring UV is available");
-    let uv_path = find_or_download_uv(None, config.options.uv_version.as_str()).ok_or(io::Error::new(
-        io::ErrorKind::NotFound,
-        "Could not find or download uv binary",
-    ))?;
+    let uv_path =
+        find_or_download_uv(None, config.options.uv_version.as_str()).ok_or(io::Error::new(
+            io::ErrorKind::NotFound,
+            "Could not find or download uv binary",
+        ))?;
 
     // Apply environment variables from config (unsafe but we are single-threaded so it should be fine)
     apply_env_from_config(&config);
@@ -101,7 +103,6 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     );
 
     // Determine entrypoint
-    debug_println!("[main.run_extracted_project] - Loaded project configuration");
     let entrypoint = &config.package.entrypoint;
     let entry_point_path = project_dir.join(entrypoint);
     if entrypoint.ends_with(".py") {
@@ -136,11 +137,12 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     );
 
     // Run pre-hook if specified
-    debug_println!("[main.run_extracted_project] - Running pre-hook if specified");
     if !pre_hook.is_empty() {
+        debug_println!("[main.run_extracted_project] - Running pre-hook");
         run_uv(&uv_path, project_dir, &[], &[pre_hook.as_str()])?;
     }
 
+    debug_println!("[main.run_extracted_project] - Running main project");
     match run_mode {
         "source" => {
             debug_println!("[main.run_extracted_project] - Running in source mode");
@@ -168,16 +170,14 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     }
 
     // Run post-hook if specified
-    debug_println!("[main.run_extracted_project] - Running post-hook if specified");
     if !post_hook.is_empty() {
+        debug_println!("[main.run_extracted_project] - Running post-hook");
         run_uv(&uv_path, project_dir, &[], &[post_hook.as_str()])?;
     }
 
     // Clean up if delete_after_run is set or extract_to_temp is set
-    debug_println!(
-        "[main.run_extracted_project] - Cleaning up extracted project if configured to do so"
-    );
     if (config.options.delete_after_run || config.options.extract_to_temp) && project_dir.exists() {
+        debug_println!("[main.run_extracted_project] - Cleaning up extracted project");
         std::fs::remove_dir_all(project_dir)?;
     }
 
