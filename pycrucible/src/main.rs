@@ -18,11 +18,12 @@ pub struct CLIOptions {
     uv_path: PathBuf,
     no_uv_embed: bool,
     force_uv_download: bool,
+    debug: bool,
 }
 
 fn embed_source(cli_options: CLIOptions) -> io::Result<()> {
     // Create ProjectConfig based on pycrucible-toml or default if there is no such file
-    let project_config = config::load_project_config(&cli_options.source_dir.to_path_buf());
+    let mut project_config = config::load_project_config(&cli_options.source_dir.to_path_buf());
     debug_println!("[main.embed_source] - Project config: {:?}", project_config);
 
     let sp = create_spinner_with_message("Collecting source files ...");
@@ -32,7 +33,7 @@ fn embed_source(cli_options: CLIOptions) -> io::Result<()> {
     payload::embed_payload(
         &collected_sources,
         &payload::find_manifest_file(&cli_options.source_dir),
-        project_config,
+        &mut project_config,
         cli_options,
     )?;
 
@@ -87,6 +88,7 @@ fn main() -> io::Result<()> {
         uv_path: cli.uv_path,
         no_uv_embed: cli.no_uv_embed,
         force_uv_download: cli.force_uv_download,
+        debug: cli.debug,
     };
     // Embed the project and create new binary
     embed_source(cli_options)?;

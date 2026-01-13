@@ -7,6 +7,9 @@ use std::fs::{self, OpenOptions};
 use std::io::{self, Cursor, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use zip::{ZipWriter, write::FileOptions};
+use std::fs::File;
+use std::io::Read;
+use zip::ZipArchive;
 
 pub fn find_manifest_file(source_dir: &Path) -> Option<PathBuf> {
     if source_dir.join("pyproject.toml").exists() {
@@ -82,10 +85,35 @@ fn set_permissions_on_unix(file: PathBuf) -> Result<(), io::Error> {
     }
 }
 
+
+
+fn read_wheel_name(path: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let file = File::open(path)?;
+    let mut zip = ZipArchive::new(file)?;
+
+    for i in 0..zip.len() {
+        let mut entry = zip.by_index(i)?;
+        let name = entry.name();
+
+        if name.ends_with(".dist-info/METADATA") {
+            let mut contents = String::new();
+            entry.read_to_string(&mut contents)?;
+
+            for line in contents.lines() {
+                if let Some(value) = line.strip_prefix("Name: ") {
+                    return Ok(value.trim().to_string());
+                }
+            }
+        }
+    }
+
+    Err("No Name field found in METADATA".into())
+}
+
 pub fn embed_payload(
     source_files: &project::CollectedSources,
     manifest_path: &Option<PathBuf>,
-    project_config: config::ProjectConfig,
+    project_config: &mut config::ProjectConfig,
     cli_options: crate::CLIOptions,
 ) -> io::Result<()> {
     runner::extract_runner(&cli_options.output_path)?;
@@ -95,6 +123,10 @@ pub fn embed_payload(
     let mut cursor = Cursor::new(Vec::new());
     let mut zip: ZipWriter<&mut Cursor<Vec<u8>>> = ZipWriter::new(&mut cursor);
     let options: FileOptions<'_, ()> = FileOptions::<()>::default();
+
+    if cli_options.debug {
+        project_config.options.debug = true;
+    }
 
     // Check to see if we have a wheel or source files and handle accordingly
     match source_files {
@@ -107,6 +139,8 @@ pub fn embed_payload(
                     .ok_or_else(|| {
                         io::Error::new(io::ErrorKind::InvalidInput, "Invalid wheel file name")
                     })?;
+            project_config.package.entrypoint = read_wheel_name(wheel_path.to_str().unwrap())
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
             debug_println!(
                 "[payload.embed_payload] - Embedding wheel file: {:?}",
                 wheel_file_name
@@ -285,7 +319,7 @@ mod tests {
         let manifest = dir.path().join("requirements.txt");
         fs::write(&manifest, b"requests").unwrap();
 
-        let project_config = config::ProjectConfig {
+        let mut project_config = config::ProjectConfig {
             package: config::PackageConfig {
                 entrypoint: "src/main.py".to_string(),
                 ..Default::default()
@@ -325,9 +359,10 @@ mod tests {
             uv_path: uv_path.clone(),
             no_uv_embed: false,
             force_uv_download: false,
+            debug: false,
         };
 
-        let result = embed_payload(&source_files, &manifest_option, project_config, cli_options);
+        let result = embed_payload(&source_files, &manifest_option, &mut project_config, cli_options);
         assert!(result.is_ok(), "embed_payload should succeed");
         assert!(output_path.exists());
 
