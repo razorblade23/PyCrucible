@@ -158,8 +158,8 @@ jobs:
           path: target_artifacts
 
 
-  smoke-test:
-    name: Smoke Test PyCrucible
+  smoke-test-1:
+    name: Smoke Test - normal usage
     if: github.event_name == 'release'
     needs: dist
     runs-on: ${{ matrix.runner }}
@@ -226,6 +226,79 @@ jobs:
       - name: Run PyCrucible
         working-directory: simple-python-project-for-PyCrucible
         run: ./pycrucible${{ matrix.bin_ext }} -e . -o cowsay${{ matrix.bin_ext }} --debug
+
+      - name: Smoke-test generated artifact
+        working-directory: simple-python-project-for-PyCrucible
+        run: ./cowsay${{ matrix.bin_ext }}
+  
+  smoke-test-2:
+    name: Smoke Test - no-uv-embed usage
+    if: github.event_name == 'release'
+    needs: dist
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bin_ext: ""
+            simple: linux
+          # Windows
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin_ext: ".exe"
+            simple: windows
+          # macOS
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+            bin_ext: ""
+            simple: macos
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            bin_ext: ""
+            simple: macos-intel
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: pycrucible-${{ matrix.simple }}
+          path: dist/
+
+      - name: Clone example project
+        run: git clone https://github.com/JamesParrott/simple-python-project-for-PyCrucible
+
+      - name: List contents of dist directory
+        shell: bash
+        run: |
+          cd ./dist
+          ls -l
+
+      - name: Extract and copy binary
+        shell: bash
+        run: |
+          ls -l ./dist
+          cp ./dist/pycrucible-${{ matrix.target }}${{ matrix.bin_ext }} simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
+
+      - name: Make binary executable (non-Windows)
+        if: runner.os != 'Windows'
+        run: chmod +x simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
+      
+      - name: Install uv for faster test (linux and macos)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+      
+      - name: Install uv for faster test (windows)
+        if: runner.os == 'Windows'
+        run: |
+          powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+      - name: Run PyCrucible
+        working-directory: simple-python-project-for-PyCrucible
+        run: ./pycrucible${{ matrix.bin_ext }} -e . -o cowsay${{ matrix.bin_ext }} --no-uv-embed --debug
 
       - name: Smoke-test generated artifact
         working-directory: simple-python-project-for-PyCrucible

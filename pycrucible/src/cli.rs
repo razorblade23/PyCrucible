@@ -48,13 +48,13 @@ pub struct Cli {
 
     #[arg(
         long,
-        help = "Extracts the embedded files to a temporary directory instead of a permanent one at runtime. The temporary directory will be deleted when the program exits."
+        help = "[`wheel` mode only] Extracts the embedded files to a temporary directory instead of a permanent one at runtime. The temporary directory will be deleted when the program exits."
     )]
     pub extract_to_temp: bool,
 
     #[arg(
         long,
-        help = "Deletes the extracted files after the program finishes running. Ignored if `--extract-to-temp` is used."
+        help = "[`wheel` mode only] Deletes the extracted files after the program finishes running. Ignored if `--extract-to-temp` is used."
     )]
     pub delete_after_run: bool,
 

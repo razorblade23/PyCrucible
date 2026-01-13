@@ -1,3 +1,12 @@
+# v0.4.x
+## v0.4.0
+- Added support for .whl embedding
+    - new CLI options are provided for this mode only
+        - `--extract-to-temp` - ["wheel" mode only] - sets configuration option with the same name
+        - `--delete-after-run` - ["wheel" mode only] - sets configuration option with the same name
+- Added `no-uv-embed` mode. This considerably reduces artifact size to ~2MB + payload size. Adds a couple of seconds to first run.
+    - `--no-uv-embed` - disables embedding of `uv` during embedding, forcing for download on first run. 
+
 # v0.3.x
 ## v0.3.5 - v0.3.9
 ### Fix

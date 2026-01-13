@@ -33,7 +33,8 @@ Existing tools like `PyInstaller` bundle the entire Python interpreter, dependen
 #### PyCrucible is diffrent
 - Fast and robust — written in Rust
 - Multi-platform — Windows, Linux, macOS
-- Tiny executables — ~2MB + your project files
+- Tiny executables — ~2MB + your project files (if using `--no-uv-embed` flag [added: *v0.4.0*])
+- Support for `*.whl` embedding [added: *v0.4.0*]
 - Hassle-free dependency resolution — delegated to uv
 - Simple but configurable
 - Supports auto-updates (GitHub public repos)
@@ -340,6 +341,9 @@ hooks = None
 If any of these configuration options is not used, it will be replaced with default value.
 #### NOTE - `entrypoint` directive is required when using any configuration options.
 
+> [!TIP]
+> As of `v0.4.0` *PyCrucible* supports embedding of `.whl` files. Just give PyCrucible your wheel file instead of source directory and it will take care of the rest.
+
 ## More PyCrucible options
 Running `pycrucible --help` reveals more options:
 ```bash
@@ -349,18 +353,16 @@ Tool to generate python executable by melding UV and python source code in cruci
 Usage: pycrucible [OPTIONS]
 
 Options:
-  -e, --embed <EMBED>
-          Directory containing Python project to embed. When specified, creates a new binary with the embedded project
-  -o, --output <OUTPUT>
-          Output path for the new binary when using --embed [default: `./launcher`]
-      --uv-path <UV_PATH>
-          Path to `uv` executable. If not found, it will be downloaded automatically [default: `.`]
-      --debug
-          Enable debug output
-  -h, --help
-          Print help
-  -V, --version
-          Print version
+  -e, --embed <SOURCE_DIR>  Directory containing Python project to embed.
+  -o, --output <OUTPUT>     Output path for the new binary. If not specified, defaults to `./launcher`.
+      --uv-path <UV_PATH>   Path to `uv` executable. If not found, it will be downloaded automatically [default: .]
+      --no-uv-embed         Disable embedding `uv` binary into the output executable. This will require `uv` to be present alongside (or downloaded) the output binary at runtime.
+      --extract-to-temp     [`wheel` mode only] Extracts the embedded files to a temporary directory instead of a permanent one at runtime. The temporary directory will be deleted when the program exits.
+      --delete-after-run    [`wheel` mode only] Deletes the extracted files after the program finishes running. Ignored if `--extract-to-temp` is used.
+      --force-uv-download   Force re-download of `uv` binary even if it is already present at the specified or default location. Mostly useful for testing purposes.
+      --debug               Enable debug output
+  -h, --help                Print help
+  -V, --version             Print version
 ```
 
 ## Github Action
