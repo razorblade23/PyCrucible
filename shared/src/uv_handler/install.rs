@@ -42,7 +42,7 @@ pub fn uv_exists(path: &PathBuf) -> Option<PathBuf> {
     Some(uv_bin)
 }
 
-pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
+pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>, uv_version: &str) -> Option<PathBuf> {
     debug_println!("[uv_handler.find_or_download_uv] - Looking for uv");
 
     let exe_dir = std::env::current_exe()
@@ -54,6 +54,7 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
         "[uv_handler.find_or_download_uv] - Current working directory: {:?}",
         exe_dir
     );
+    // Check CLI supplied path first
     let local_uv = if cli_uv_path.is_some() {
         debug_println!("CLI supplied uv path detected, using it");
         let lc_uv = Some(cli_uv_path.unwrap());
@@ -64,9 +65,11 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
             debug_println!("CLI supplied uv path does not exist");
             None
         }
+    // Check system path next
     } else if let Ok(path) = which::which("uv") {
         debug_println!("`which` returned uv path, using it");
         Some(path)
+    // Check local uv next to binary
     } else {
         let local_uv_path = exe_dir.join("uv");
         if local_uv_path.exists() {
@@ -76,6 +79,7 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
             None
         }
     };
+    // If not found locally, check cache or download
     let uv_path = if local_uv.is_some() {
         debug_println!(
             "[uv_handler.find_or_download_uv] - uv found locally [{:?}], using it",
@@ -103,7 +107,7 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
             "[uv_handler.find_or_download_uv] - uv binary not found locally, proceeding to download."
         );
         let sp = create_spinner_with_message("Downloading `uv` ...");
-        install_uv("0.9.21", &uv_install_root).expect("uv installation failed");
+        install_uv(uv_version, &uv_install_root).expect("uv installation failed");
         stop_and_persist_spinner_with_message(sp, "Downloaded `uv` successfully");
 
         let uv_bin = uv_exists(&uv_install_root);

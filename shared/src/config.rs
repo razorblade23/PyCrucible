@@ -95,6 +95,8 @@ pub struct ToolOptions {
     pub delete_after_run: bool,
     #[serde(default)]
     pub offline_mode: bool,
+    #[serde(default)]
+    pub uv_version: String,
 }
 
 #[derive(serde::Serialize, Debug, Deserialize)]
