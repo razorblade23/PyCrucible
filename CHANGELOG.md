@@ -1,5 +1,7 @@
 # v0.4.x
 ## v0.4.0
+- Downloading only `uv` binary, disregarding the rest of the archive.
+    - `--uv-version` - Select the version of uv to download. [default: `0.9.21`]
 - Added support for .whl embedding
     - new CLI options are provided for this mode only
         - `--extract-to-temp` - ["wheel" mode only] - sets configuration option with the same name

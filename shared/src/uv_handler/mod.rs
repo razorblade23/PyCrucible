@@ -1,8 +1,6 @@
-pub mod uv_handler_core;
+mod download;
+mod extract;
+mod install;
+mod platform;
 
-#[cfg(unix)]
-pub mod uv_handler_unix;
-#[cfg(target_os = "windows")]
-pub mod uv_handler_windows;
-
-pub use uv_handler_core::{download_and_install_uv, find_or_download_uv, uv_exists};
+pub use install::{find_or_download_uv, install_uv};

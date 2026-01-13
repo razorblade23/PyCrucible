@@ -2,14 +2,14 @@
 
 use crate::{config, runner};
 use crate::{debug_println, project};
-use shared::uv_handler_v2::{download_and_install_uv_v2, find_or_download_uv};
+use shared::uv_handler::find_or_download_uv;
+use std::fs::File;
 use std::fs::{self, OpenOptions};
+use std::io::Read;
 use std::io::{self, Cursor, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
-use zip::{ZipWriter, write::FileOptions};
-use std::fs::File;
-use std::io::Read;
 use zip::ZipArchive;
+use zip::{ZipWriter, write::FileOptions};
 
 pub fn find_manifest_file(source_dir: &Path) -> Option<PathBuf> {
     if source_dir.join("pyproject.toml").exists() {
@@ -31,12 +31,12 @@ pub fn find_manifest_file(source_dir: &Path) -> Option<PathBuf> {
 }
 
 fn embed_uv(
-    cli_uv_path: PathBuf,
+    cli_options: &crate::CLIOptions,
     zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>,
     options: FileOptions<'_, ()>,
 ) -> io::Result<Option<()>> {
     debug_println!("[payload.embed_uv] - Embedding uv binary into payload");
-    let uv_path = find_or_download_uv(Some(cli_uv_path));
+    let uv_path = find_or_download_uv(Some(cli_options.uv_path.clone()), &cli_options.uv_version);
     match uv_path {
         None => {
             eprintln!("Could not find or download uv binary. uv will be required at runtime.");
@@ -72,20 +72,6 @@ fn write_to_zip(
     let _ = zip.write(&fs::read(file)?);
     Ok(())
 }
-
-#[cfg(unix)]
-fn set_permissions_on_unix(file: PathBuf) -> Result<(), io::Error> {
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs::metadata(&file)?.permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(&file, perms)?;
-        debug_println!("[payload.embed_payload] - Set permissions for uv on linux");
-        Ok(())
-    }
-}
-
-
 
 fn read_wheel_name(path: &str) -> Result<String, Box<dyn std::error::Error>> {
     let file = File::open(path)?;
@@ -126,12 +112,14 @@ pub fn embed_payload(
 
     // Update project config with CLI options as we do not use any other file to store these in wheel mode
     project_config.options.debug = cli_options.debug;
-    project_config.options.extract_to_temp = cli_options.extract_to_temp;
-    project_config.options.delete_after_run = cli_options.delete_after_run;
+    project_config.options.uv_version = cli_options.uv_version.to_string();
 
     // Check to see if we have a wheel or source files and handle accordingly
     match source_files {
         project::CollectedSources::Wheel(wheel) => {
+            project_config.options.extract_to_temp = cli_options.extract_to_temp;
+            project_config.options.delete_after_run = cli_options.delete_after_run;
+
             let wheel_path = &wheel.absolute_path;
             let wheel_file_name =
                 wheel_path
@@ -178,10 +166,15 @@ pub fn embed_payload(
             debug_println!(
                 "[payload.embed_payload] - Force uv download flag is set, re-downloading uv"
             );
-            download_and_install_uv_v2(&cli_options.uv_path);
+            let uv_path = if cli_options.uv_path.exists() {
+                Some(cli_options.uv_path.clone())
+            } else {
+                None
+            };
+            find_or_download_uv(uv_path, cli_options.uv_version.as_str());
         }
         debug_println!("[payload.embed_payload] - Looking for uv binary to embed");
-        if let Some(_path) = embed_uv(cli_options.uv_path, &mut zip, options)? {
+        if let Some(_path) = embed_uv(&cli_options, &mut zip, options)? {
             debug_println!("[payload.embed_payload] - uv binary embedded successfully");
         } else {
             eprintln!("Could not find or download uv binary. uv will be required at runtime.");
@@ -358,6 +351,7 @@ mod tests {
             source_dir: src_dir.clone(),
             output_path: output_path.clone(),
             uv_path: uv_path.clone(),
+            uv_version: "0.9.21".to_string(),
             no_uv_embed: false,
             extract_to_temp: true,
             delete_after_run: false,
@@ -365,7 +359,12 @@ mod tests {
             debug: false,
         };
 
-        let result = embed_payload(&source_files, &manifest_option, &mut project_config, cli_options);
+        let result = embed_payload(
+            &source_files,
+            &manifest_option,
+            &mut project_config,
+            cli_options,
+        );
         assert!(result.is_ok(), "embed_payload should succeed");
         assert!(output_path.exists());
 

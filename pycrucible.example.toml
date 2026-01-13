@@ -6,6 +6,7 @@ entrypoint = "src/main.py"
 # debug = false
 # extract_to_temp = false
 # delete_after_run = false
+# uv_version = "0.9.21"
 
 # # Optional - uncomment if you need it
 # [source]

@@ -42,6 +42,13 @@ pub struct Cli {
 
     #[arg(
         long,
+        help = "Path to `uv` executable. If not found, it will be downloaded automatically"
+    )]
+    #[arg(default_value_t = String::from("0.9.21"))]
+    pub uv_version: String,
+
+    #[arg(
+        long,
         help = "Disable embedding `uv` binary into the output executable. This will require `uv` to be present alongside (or downloaded) the output binary at runtime."
     )]
     pub no_uv_embed: bool,
