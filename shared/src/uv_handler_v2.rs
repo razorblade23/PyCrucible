@@ -248,20 +248,31 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
     debug_println!("[uv_handler.find_or_download_uv] - Looking for uv");
 
     let exe_dir = std::env::current_exe().expect("Could not find current working directory. Exiting ....").parent().unwrap().to_path_buf();
+    debug_println!("[uv_handler.find_or_download_uv] - Current working directory: {:?}", exe_dir);
     let local_uv = if cli_uv_path.is_some() {
-        Some(cli_uv_path.unwrap())
+        debug_println!("CLI supplied uv path detected, using it");
+        let lc_uv = Some(cli_uv_path.unwrap());
+        if lc_uv.as_ref().unwrap().exists() {
+            debug_println!("CLI supplied uv path exists");
+            lc_uv
+        } else {
+            debug_println!("CLI supplied uv path does not exist");
+            None
+        }
     } else if let Ok(path) = which::which("uv") {
+        debug_println!("`which` returned uv path, using it");
         Some(path)
     } else {
         let local_uv_path = exe_dir.join("uv");
         if local_uv_path.exists() {
+            debug_println!("Found uv next to binary, using it");
             Some(local_uv_path)
         } else {
             None
         }
     };
     let uv_path = if local_uv.is_some() {
-        debug_println!("[uv_handler.find_or_download_uv] - uv found locally, using it");
+        debug_println!("[uv_handler.find_or_download_uv] - uv found locally [{:?}], using it", local_uv.as_ref().unwrap().canonicalize());
         local_uv
     } else {
         debug_println!("[uv_handler.find_or_download_uv] - uv not found locally, lets see if we have it cached ...");
@@ -299,14 +310,14 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>) -> Option<PathBuf> {
                     .permissions();
                 let current_mode = perms.mode() & 0o777;
                 if current_mode == 0o755 {
-                    println!("[uv_handler.find_or_download_uv] - uv permissions already 0o755, skipping chmod for {:?}", path);
+                    debug_println!("[uv_handler.find_or_download_uv] - uv permissions already 0o755, skipping chmod for {:?}", path);
                     return uv_path.clone();
                 }
 
                 perms.set_mode(0o755);
                 fs::set_permissions(path, perms)
                     .expect("Could not chmod uv binary");
-                println!("[uv_handler.find_or_download_uv] - Set executable permissions for uv at {:?}", path);
+                debug_println!("[uv_handler.find_or_download_uv] - Set executable permissions for uv at {:?}", path);
             } else {
                 eprintln!("uv binary not found at {:?}", path);
             }

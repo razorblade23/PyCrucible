@@ -2,7 +2,7 @@
 
 use glob::Pattern;
 use std::collections::HashSet;
-use std::io;
+use std::io::{self, Error};
 use std::path::{Path, PathBuf};
 
 use crate::config::{ProjectConfig, load_project_config};
@@ -11,6 +11,11 @@ use crate::debug_println;
 #[derive(Debug)]
 pub struct SourceFile {
     pub absolute_path: PathBuf,
+}
+
+pub enum CollectedSources {
+    Wheel(SourceFile),
+    Files(Vec<SourceFile>),
 }
 
 fn should_include_file(
@@ -63,28 +68,62 @@ pub fn collect_source_files_with_config(
                 &source_dir,
                 include_patterns,
                 exclude_patterns,
-            ) {
-                let absolute_path = entry.path().to_path_buf();
+            )
+        {
+            let absolute_path = entry.path().to_path_buf();
 
-                if seen_paths.contains(&absolute_path) {
-                    continue;
-                }
-
-                debug_println!(
-                    "[project.collect_source_files] - Collected file at path: {:?}",
-                    absolute_path
-                );
-
-                seen_paths.insert(absolute_path.clone());
-                files.push(SourceFile { absolute_path });
+            if seen_paths.contains(&absolute_path) {
+                continue;
             }
+
+            debug_println!(
+                "[project.collect_source_files] - Collected file at path: {:?}",
+                absolute_path
+            );
+
+            seen_paths.insert(absolute_path.clone());
+            files.push(SourceFile { absolute_path });
+        }
     }
     Ok(files)
 }
 
-pub fn collect_source_files(source_dir: &Path) -> io::Result<Vec<SourceFile>> {
-    let config = load_project_config(&source_dir.to_path_buf());
-    collect_source_files_with_config(source_dir, &config)
+fn collect_wheel(source_wheel: &Path) -> io::Result<SourceFile> {
+    debug_println!(
+        "[project.collect_source_files] - Collecting wheel from: {:?}",
+        source_wheel
+    );
+
+    let mut wheel_package: Option<SourceFile> = None;
+    let source_wheel = source_wheel.canonicalize()?;
+
+    if source_wheel.is_file()
+        && source_wheel
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|ext| ext.eq_ignore_ascii_case("whl"))
+            .unwrap_or(false)
+    {
+        let absolute_path = source_wheel.clone();
+        wheel_package = Some(SourceFile { absolute_path });
+    }
+
+    wheel_package.ok_or(Error::new(io::ErrorKind::NotFound, "No .whl file found"))
+}
+
+pub fn collect_source_files(source_dir: &Path) -> io::Result<CollectedSources> {
+    let is_wheel = source_dir
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|ext| ext.eq_ignore_ascii_case("whl"))
+        .unwrap_or(false);
+
+    if is_wheel {
+        collect_wheel(source_dir).map(CollectedSources::Wheel)
+    } else {
+        let config = load_project_config(&source_dir.to_path_buf());
+        collect_source_files_with_config(source_dir, &config).map(CollectedSources::Files)
+    }
 }
 
 #[cfg(test)]
