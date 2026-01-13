@@ -2,7 +2,7 @@
 
 use crate::{config, runner};
 use crate::{debug_println, project};
-use shared::uv_handler_v2::{download_and_install_uv_v2, find_or_download_uv};
+use shared::uv_handler::find_or_download_uv;
 use std::fs::{self, OpenOptions};
 use std::io::{self, Cursor, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
@@ -178,7 +178,12 @@ pub fn embed_payload(
             debug_println!(
                 "[payload.embed_payload] - Force uv download flag is set, re-downloading uv"
             );
-            download_and_install_uv_v2(&cli_options.uv_path);
+            let uv_path = if cli_options.uv_path.exists() {
+                Some(cli_options.uv_path.clone())
+            } else {
+                None
+            };
+            find_or_download_uv(uv_path);
         }
         debug_println!("[payload.embed_payload] - Looking for uv binary to embed");
         if let Some(_path) = embed_uv(cli_options.uv_path, &mut zip, options)? {
