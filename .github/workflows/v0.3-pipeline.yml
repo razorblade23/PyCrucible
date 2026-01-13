@@ -307,7 +307,7 @@ jobs:
   build-wheels:
     name: Build Wheels for PyPI
     if: github.event_name == 'release'
-    needs: [dist, smoke-test]
+    needs: [dist, smoke-test-1, smoke-test-2]
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -419,7 +419,7 @@ jobs:
   release-to-gh:
     name: Publish to GitHub Releases
     if: github.event_name == 'release'
-    needs: [dist, smoke-test]
+    needs: [dist, smoke-test-1, smoke-test-2]
     runs-on: ubuntu-latest
 
     steps:
