@@ -11,15 +11,15 @@
 - [Quickstart](#quickstart)
 - [Installation](#how-to-install-pycrucible)
 - [Usage](#how-to-use-pycrucible)
-- [Runtime-Configuration](#pycrucible-configuration)
-- [Embedding-Options](#more-pycrucible-options)
-- [Github-Action](#github-action)
+- [Runtime Configuration](#pycrucible-configuration)
+- [Embedding Options](#more-pycrucible-options)
+- [Github Action](#github-action)
 - [Security](#security--code-signing)
-- [How-it-works](#how-pycrucible-works---a-diagram)
+- [How it works](#how-pycrucible-works---a-diagram)
 - [Features](#features)
 - [Community](#community)
 - [Changelog](#changelog)
-- [Thanks-to](#thanks-to)
+- [Thanks to](#thanks-to)
 
 ## What is PyCrucible?
 PyCrucible packages any Python project into a single **cross-platform** executable with **minimal overhead**, powered by *Rust and uv*.

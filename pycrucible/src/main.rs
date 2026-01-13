@@ -17,6 +17,8 @@ pub struct CLIOptions {
     output_path: PathBuf,
     uv_path: PathBuf,
     no_uv_embed: bool,
+    extract_to_temp: bool,
+    delete_after_run: bool,
     force_uv_download: bool,
     debug: bool,
 }
@@ -87,6 +89,8 @@ fn main() -> io::Result<()> {
         output_path: output_path.clone(),
         uv_path: cli.uv_path,
         no_uv_embed: cli.no_uv_embed,
+        extract_to_temp: cli.extract_to_temp,
+        delete_after_run: cli.delete_after_run,
         force_uv_download: cli.force_uv_download,
         debug: cli.debug,
     };

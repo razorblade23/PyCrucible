@@ -56,39 +56,23 @@ fn prepare_hooks(config: &ProjectConfig) -> (String, String) {
     (pre_hook, post_hook)
 }
 
-fn run_uv_command(uv_path: &PathBuf, project_dir: &Path, command: &str, args: &[&str]) -> io::Result<()> {
-    debug_println!(
-        "[main.run_uv_command] - Running `uv {}` in {:?}",
-        command,
-        project_dir
-    );
-    let status = Command::new(uv_path)
-        .arg(command)
-        .arg("-q")
-        .args(args)
-        .current_dir(project_dir)
-        .status()?;
-
-    if !status.success() {
-        return Err(io::Error::other(format!("Command `uv {}` failed", command)));
-    }
-
-    Ok(())
-}
-
-fn run_uv_with(uv_path: &PathBuf, project_dir: &Path, with_args: &[&str], command: &[&str]) -> io::Result<()> {
-    let mut cmd = Command::new(&uv_path);
+fn run_uv(
+    uv_path: &Path,
+    project_dir: &Path,
+    with: &[&str],
+    args: &[&str],
+) -> io::Result<()> {
+    let mut cmd = Command::new(uv_path);
     cmd.arg("run").arg("-q");
 
-    for w in with_args {
+    for w in with {
         cmd.arg("--with").arg(w);
     }
 
-    for c in command {
-        cmd.arg(c);
-    }
+    cmd.args(args)
+       .current_dir(project_dir);
 
-    let status = cmd.current_dir(project_dir).status()?;
+    let status = cmd.status()?;
 
     if !status.success() {
         return Err(io::Error::other("uv run failed"));
@@ -96,6 +80,30 @@ fn run_uv_with(uv_path: &PathBuf, project_dir: &Path, with_args: &[&str], comman
 
     Ok(())
 }
+
+fn find_single_wheel(project_dir: &Path) -> io::Result<Option<PathBuf>> {
+    let mut wheel: Option<PathBuf> = None;
+
+    for entry in std::fs::read_dir(project_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.extension().and_then(|e| e.to_str()) == Some("whl") {
+            match &wheel {
+                None => wheel = Some(path),
+                Some(_) => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "Multiple .whl files found in the project directory",
+                    ));
+                }
+            }
+        }
+    }
+
+    Ok(wheel)
+}
+
 
 pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> io::Result<()> {
     // Load project configuration and determine entrypoint
@@ -143,13 +151,12 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     );
     let (pre_hook, post_hook) = prepare_hooks(&config);
 
+    let wheel = find_single_wheel(project_dir)?;
+
+    let has_wheel = wheel.is_some();
 
     // Check if entrypoint ends in .py and handle accordingly
-    let mut run_mode: &str = "source";
-    if !entrypoint.ends_with(".py") {
-        debug_println!("[main.run_extracted_project] - Entry point is a wheel file");
-        run_mode = "wheel";
-    }
+    let run_mode = if has_wheel { "wheel" } else { "source" };
 
     debug_println!(
         "[main.run_extracted_project] - Determined run mode: {}",
@@ -159,65 +166,26 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     // Run pre-hook if specified
     debug_println!("[main.run_extracted_project] - Running pre-hook if specified");
     if !pre_hook.is_empty() {
-        run_uv_command(&uv_path, project_dir, "run", &[pre_hook.as_str()])?;
+        run_uv(&uv_path, project_dir, &[], &[pre_hook.as_str()])?;
     }
-
-    // // Create virtual environment
-    // debug_println!("[main.run_extracted_project] - Creating virtual environment");
-    // run_uv_command(&uv_path, project_dir, "venv", &[])?;
 
     match run_mode {
         "source" => {
             debug_println!("[main.run_extracted_project] - Running in source mode");
-            // Find manifest file
-            let manifest_path = find_manifest_file(project_dir)?;
-            debug_println!(
-                "[main.run_extracted_project] - Found manifest file at {:?}",
-                manifest_path
-            );
-
-            debug_println!("[main.run_extracted_project] - Running main application");
             let mut args_vec: Vec<String> = Vec::with_capacity(1 + runtime_args.len());
             args_vec.push(entrypoint.clone());
             args_vec.extend(runtime_args);
 
             let args_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
-            run_uv_command(&uv_path, project_dir, "run", &args_refs)?;
-
-            // // Sincronize the virtual environment with the manifest file
-            // debug_println!("[main.run_extracted_project] - Installing dependencies from manifest file");
-            
-            // run_uv_command(
-            //     &uv_path,
-            //     project_dir,
-            //     "pip",
-            //     &["install", "--requirements", manifest_path.to_str().unwrap()],
-            // )?;
-
-
+            run_uv(&uv_path, project_dir, &[], &args_refs)?;
         },
         "wheel" => {
             debug_println!("[main.run_extracted_project] - Running in wheel mode");
-            // Find the .whl file in the project_dir
-            let wheel_file = std::fs::read_dir(project_dir)?
-                .filter_map(|entry| entry.ok())
-                .find_map(|entry| {
-                    let path = entry.path();
-                    if path.extension().map_or(false, |ext| ext == "whl") {
-                        Some(path)
-                    } else {
-                        None
-                    }
-                })
-                .ok_or(io::Error::new(
-                    io::ErrorKind::NotFound,
-                    "No .whl file found in the project directory",
-                ))?;
-            debug_println!(
-                "[main.run_extracted_project] - Found wheel file at {:?}",
-                wheel_file
-            );
-            run_uv_with(&uv_path, project_dir, &[wheel_file.to_str().unwrap()], &[config.package.entrypoint.as_str()])?;
+            let wheel_file = wheel.ok_or(io::Error::new(
+                io::ErrorKind::NotFound,
+                "No .whl file found in the project directory",
+            ))?;
+            run_uv(&uv_path, project_dir, &[wheel_file.to_str().unwrap()], &[config.package.entrypoint.as_str()])?;
         },
         _ => unreachable!(),
     }
@@ -226,7 +194,7 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     // Run post-hook if specified
     debug_println!("[main.run_extracted_project] - Running post-hook if specified");
     if !post_hook.is_empty() {
-        run_uv_command(&uv_path, project_dir, "run", &[post_hook.as_str()])?;
+        run_uv(&uv_path, project_dir, &[], &[post_hook.as_str()])?;
     }
 
     // Clean up if delete_after_run is set or extract_to_temp is set

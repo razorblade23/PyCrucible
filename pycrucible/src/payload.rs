@@ -124,9 +124,10 @@ pub fn embed_payload(
     let mut zip: ZipWriter<&mut Cursor<Vec<u8>>> = ZipWriter::new(&mut cursor);
     let options: FileOptions<'_, ()> = FileOptions::<()>::default();
 
-    if cli_options.debug {
-        project_config.options.debug = true;
-    }
+    // Update project config with CLI options as we do not use any other file to store these in wheel mode
+    project_config.options.debug = cli_options.debug;
+    project_config.options.extract_to_temp = cli_options.extract_to_temp;
+    project_config.options.delete_after_run = cli_options.delete_after_run;
 
     // Check to see if we have a wheel or source files and handle accordingly
     match source_files {
@@ -358,6 +359,8 @@ mod tests {
             output_path: output_path.clone(),
             uv_path: uv_path.clone(),
             no_uv_embed: false,
+            extract_to_temp: true,
+            delete_after_run: false,
             force_uv_download: false,
             debug: false,
         };
