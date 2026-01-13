@@ -41,7 +41,7 @@ jobs:
 
   dist:
     name: Build Distributables (cargo-dist)
-    if: github.event_name == 'release'
+    # if: github.event_name == 'release'
     needs: test
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -160,7 +160,7 @@ jobs:
 
   smoke-test-1:
     name: Smoke Test - normal usage
-    if: github.event_name == 'release'
+    # if: github.event_name == 'release'
     needs: dist
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -212,16 +212,16 @@ jobs:
         if: runner.os != 'Windows'
         run: chmod +x simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
       
-      - name: Install uv for faster test (linux and macos)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
+      # - name: Install uv for faster test (linux and macos)
+      #   if: runner.os != 'Windows'
+      #   shell: bash
+      #   run: |
+      #     curl -LsSf https://astral.sh/uv/install.sh | sh
       
-      - name: Install uv for faster test (windows)
-        if: runner.os == 'Windows'
-        run: |
-          powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+      # - name: Install uv for faster test (windows)
+      #   if: runner.os == 'Windows'
+      #   run: |
+      #     powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
       - name: Run PyCrucible
         working-directory: simple-python-project-for-PyCrucible
@@ -233,7 +233,7 @@ jobs:
   
   smoke-test-2:
     name: Smoke Test - no-uv-embed usage
-    if: github.event_name == 'release'
+    # if: github.event_name == 'release'
     needs: dist
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -285,16 +285,16 @@ jobs:
         if: runner.os != 'Windows'
         run: chmod +x simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
       
-      - name: Install uv for faster test (linux and macos)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
+      # - name: Install uv for faster test (linux and macos)
+      #   if: runner.os != 'Windows'
+      #   shell: bash
+      #   run: |
+      #     curl -LsSf https://astral.sh/uv/install.sh | sh
       
-      - name: Install uv for faster test (windows)
-        if: runner.os == 'Windows'
-        run: |
-          powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+      # - name: Install uv for faster test (windows)
+      #   if: runner.os == 'Windows'
+      #   run: |
+      #     powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
       - name: Run PyCrucible
         working-directory: simple-python-project-for-PyCrucible
