@@ -207,12 +207,14 @@ If setting **options**
 debug = false
 extract_to_temp = false
 delete_after_run = false
+uv_version = 0.9.21
 
 # pyproject.toml
 [tool.pycrucible.options]
 debug = false
 extract_to_temp = false
 delete_after_run = false
+uv_version = 0.9.21
 ```
 
 Full configuration options can be seen here:
@@ -228,6 +230,7 @@ entry = "src/main.py"
 debug = false
 extract_to_temp = false
 delete_after_run = false
+uv_version = 0.9.21
 
 [patterns]
 include = [
@@ -260,6 +263,7 @@ entry = "src/main.py"
 debug = false
 extract_to_temp = false
 delete_after_run = false
+uv_version = 0.9.21
 
 [tool.pycrucible.patterns]
 include = [
@@ -309,9 +313,10 @@ This configuration takes place when no configuration is set by the user.
 entrypoint = "src/main.py"
 
 # Options
-debug = false
-extract_to_temp = false
-delete_after_run = false
+debug = false                # Enable debug output in runner
+extract_to_temp = false      # Extract contents into temporary directory
+delete_after_run = false     # Delete contents after running the program
+uv_version = "0.9.21"        # Select uv version
 
 # Patterns
 patterns.include = [
