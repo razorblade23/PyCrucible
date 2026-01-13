@@ -16,7 +16,7 @@ pub struct CLIOptions {
     source_dir: PathBuf,
     output_path: PathBuf,
     uv_path: PathBuf,
-    uv_version: &'static str,
+    uv_version: String,
     no_uv_embed: bool,
     extract_to_temp: bool,
     delete_after_run: bool,

@@ -57,7 +57,7 @@ pub fn find_or_download_uv(cli_uv_path: Option<PathBuf>, uv_version: &str) -> Op
     // Check CLI supplied path first
     let local_uv = if cli_uv_path.is_some() {
         debug_println!("CLI supplied uv path detected, using it");
-        let lc_uv = Some(cli_uv_path.unwrap());
+        let lc_uv = Some(cli_uv_path.as_ref().unwrap().clone());
         if lc_uv.as_ref().unwrap().exists() {
             debug_println!("CLI supplied uv path exists");
             lc_uv

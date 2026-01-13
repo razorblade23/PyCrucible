@@ -44,8 +44,8 @@ pub struct Cli {
         long,
         help = "Path to `uv` executable. If not found, it will be downloaded automatically"
     )]
-    #[arg(default_value_os_t = "0.9.21")]
-    pub uv_version: &str,
+    #[arg(default_value_t = String::from("0.9.21"))]
+    pub uv_version: String,
 
     #[arg(
         long,

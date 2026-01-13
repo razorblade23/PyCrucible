@@ -89,7 +89,7 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
 
     // Ensure UV is available
     debug_println!("[main.run_extracted_project] - Ensuring UV is available");
-    let uv_path = find_or_download_uv(None, "0.9.21").ok_or(io::Error::new(
+    let uv_path = find_or_download_uv(None, config.options.uv_version.as_str()).ok_or(io::Error::new(
         io::ErrorKind::NotFound,
         "Could not find or download uv binary",
     ))?;

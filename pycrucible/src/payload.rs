@@ -32,12 +32,11 @@ pub fn find_manifest_file(source_dir: &Path) -> Option<PathBuf> {
 
 fn embed_uv(
     cli_options: &crate::CLIOptions,
-    cli_uv_path: PathBuf,
     zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>,
     options: FileOptions<'_, ()>,
 ) -> io::Result<Option<()>> {
     debug_println!("[payload.embed_uv] - Embedding uv binary into payload");
-    let uv_path = find_or_download_uv(Some(cli_uv_path), cli_options.uv_version);
+    let uv_path = find_or_download_uv(Some(cli_options.uv_path.clone()), &cli_options.uv_version);
     match uv_path {
         None => {
             eprintln!("Could not find or download uv binary. uv will be required at runtime.");
@@ -172,10 +171,10 @@ pub fn embed_payload(
             } else {
                 None
             };
-            find_or_download_uv(uv_path, cli_options.uv_version);
+            find_or_download_uv(uv_path, cli_options.uv_version.as_str());
         }
         debug_println!("[payload.embed_payload] - Looking for uv binary to embed");
-        if let Some(_path) = embed_uv(&cli_options, cli_options.uv_path, &mut zip, options)? {
+        if let Some(_path) = embed_uv(&cli_options, &mut zip, options)? {
             debug_println!("[payload.embed_payload] - uv binary embedded successfully");
         } else {
             eprintln!("Could not find or download uv binary. uv will be required at runtime.");
@@ -352,7 +351,7 @@ mod tests {
             source_dir: src_dir.clone(),
             output_path: output_path.clone(),
             uv_path: uv_path.clone(),
-            uv_version: "0.9.21",
+            uv_version: "0.9.21".to_string(),
             no_uv_embed: false,
             extract_to_temp: true,
             delete_after_run: false,
