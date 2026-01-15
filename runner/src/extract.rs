@@ -58,7 +58,11 @@ fn extract_from_archive(
 fn extract_payload(info: &PayloadInfo, target_dir: &Path) -> io::Result<()> {
     let payload_data = extract_from_binary(info);
     if payload_data.is_none() {
-        return Err(io::Error::other("Failed to extract payload from binary"));
+        let exe_path = std::env::current_exe().unwrap_or_else(|_| PathBuf::from("<unknown>"));
+        return Err(io::Error::other(format!(
+            "Failed to extract payload from binary: {} at offset {}",
+            exe_path.display(), info.offset
+        )));
     }
     let payload_data = payload_data.unwrap();
 

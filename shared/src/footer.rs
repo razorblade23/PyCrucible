@@ -29,13 +29,13 @@ pub fn create_footer(extract_to_temp: bool, offset: u64) -> Vec<u8> {
 
 pub fn read_footer() -> io::Result<PayloadInfo> {
     let exe_path = std::env::current_exe()?;
-    let mut file = fs::File::open(exe_path)?;
+    let mut file = fs::File::open(&exe_path)?;
     let file_size = file.metadata()?.len();
 
     if file_size < FOOTER_SIZE as u64 {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "File too small to contain footer",
+            format!("File {} too small to contain footer (size: {})", exe_path.display(), file_size),
         ));
     }
 
@@ -52,7 +52,10 @@ pub fn read_footer() -> io::Result<PayloadInfo> {
     if magic != MAGIC_BYTES {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "Invalid magic bytes in footer",
+            format!(
+                "Invalid magic bytes in footer for file {}. Expected {:?}, found {:?}",
+                exe_path.display(), MAGIC_BYTES, magic
+            ),
         ));
     }
 
