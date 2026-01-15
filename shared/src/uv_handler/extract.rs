@@ -31,7 +31,10 @@ fn extract_zip(
         let mut out = std::fs::File::create(out_path)?;
         std::io::copy(&mut file, &mut out)?;
     } else {
-        return Err("uv.exe not found in zip archive".into());
+        return Err(format!(
+            "uv.exe not found in zip archive for install dir {}",
+            install_dir.display()
+        ).into());
     }
     Ok(())
 }
@@ -61,7 +64,10 @@ fn extract_targz(
         }
     }
     if !found {
-        return Err("uv not found in tar.gz archive".into());
+        return Err(format!(
+            "uv not found in tar.gz archive for install dir {}",
+            install_dir.display()
+        ).into());
     }
     Ok(())
 }

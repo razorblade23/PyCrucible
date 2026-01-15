@@ -26,20 +26,37 @@ fn should_include_file(
 ) -> bool {
     let relative_path = file_path
         .strip_prefix(source_dir)
-        .unwrap()
+        .unwrap_or_else(|_| {
+            eprintln!(
+                "[project.should_include_file] - Failed to strip prefix: file_path={}, source_dir={}",
+                file_path.display(), source_dir.display()
+            );
+            file_path
+        })
         .to_string_lossy()
         .replace("\\", "/");
     // Check exclude patterns first
     for pattern in exclude_patterns {
         if Pattern::new(pattern).unwrap().matches(&relative_path) {
+            debug_println!(
+                "[project.should_include_file] - Excluded by pattern '{}' for file {}",
+                pattern, file_path.display()
+            );
             return false;
         }
     }
 
     // If include patterns are specified, file must match at least one
-    include_patterns
+    let included = include_patterns
         .iter()
-        .any(|pattern| Pattern::new(pattern).unwrap().matches(&relative_path))
+        .any(|pattern| Pattern::new(pattern).unwrap().matches(&relative_path));
+    if !included {
+        debug_println!(
+            "[project.should_include_file] - Not included by any pattern for file {}",
+            file_path.display()
+        );
+    }
+    included
 }
 
 pub fn collect_source_files_with_config(
@@ -52,7 +69,10 @@ pub fn collect_source_files_with_config(
     );
     let mut files = Vec::new();
     let mut seen_paths = HashSet::new();
-    let source_dir = source_dir.canonicalize()?;
+    let source_dir = source_dir.canonicalize().map_err(|e| Error::new(
+        io::ErrorKind::Other,
+        format!("Failed to canonicalize source_dir {}: {}", source_dir.display(), e)
+    ))?;
 
     let include_patterns = &project_config.package.patterns.include;
     let exclude_patterns = &project_config.package.patterns.exclude;
@@ -73,12 +93,16 @@ pub fn collect_source_files_with_config(
             let absolute_path = entry.path().to_path_buf();
 
             if seen_paths.contains(&absolute_path) {
+                debug_println!(
+                    "[project.collect_source_files] - Skipping duplicate file: {}",
+                    absolute_path.display()
+                );
                 continue;
             }
 
             debug_println!(
-                "[project.collect_source_files] - Collected file at path: {:?}",
-                absolute_path
+                "[project.collect_source_files] - Collected file at path: {}",
+                absolute_path.display()
             );
 
             seen_paths.insert(absolute_path.clone());
@@ -95,7 +119,10 @@ fn collect_wheel(source_wheel: &Path) -> io::Result<SourceFile> {
     );
 
     let mut wheel_package: Option<SourceFile> = None;
-    let source_wheel = source_wheel.canonicalize()?;
+    let source_wheel = source_wheel.canonicalize().map_err(|e| Error::new(
+        io::ErrorKind::Other,
+        format!("Failed to canonicalize source_wheel {}: {}", source_wheel.display(), e)
+    ))?;
 
     if source_wheel.is_file()
         && source_wheel
@@ -108,7 +135,10 @@ fn collect_wheel(source_wheel: &Path) -> io::Result<SourceFile> {
         wheel_package = Some(SourceFile { absolute_path });
     }
 
-    wheel_package.ok_or(Error::new(io::ErrorKind::NotFound, "No .whl file found"))
+    wheel_package.ok_or(Error::new(
+        io::ErrorKind::NotFound,
+        format!("No .whl file found at {}", source_wheel.display()),
+    ))
 }
 
 pub fn collect_source_files(source_dir: &Path) -> io::Result<CollectedSources> {

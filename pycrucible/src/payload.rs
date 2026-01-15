@@ -24,9 +24,10 @@ pub fn find_manifest_file(source_dir: &Path) -> Option<PathBuf> {
         Some(source_dir.join("setup.cfg"))
     } else {
         eprintln!(
-            "No manifest file found in the source directory. \nManifest files can be pyproject.toml, requirements.txt, pylock.toml, setup.py or setup.cfg"
+            "No manifest file found in the source directory: {}. Manifest files can be pyproject.toml, requirements.txt, pylock.toml, setup.py or setup.cfg",
+            source_dir.display()
         );
-        None // Default to empty string if none found;
+        None
     }
 }
 
@@ -236,11 +237,17 @@ fn copy_source_to_zip(
             source_file,
             relative_path
         );
-        let mut file = fs::File::open(source_file)?;
+        let file_data = fs::read(source_file).map_err(|e| io::Error::new(
+            io::ErrorKind::Other,
+            format!("Failed to read source file {}: {}", source_file.display(), e)
+        ))?;
         zip.start_file(relative_path, options)?;
-        io::copy(&mut file, zip)?;
+        io::copy(&mut &file_data[..], zip)?;
     }
-    let mut manifest_file = fs::File::open(manifest_path)?;
+    let mut manifest_file = fs::File::open(manifest_path).map_err(|e| io::Error::new(
+        io::ErrorKind::Other,
+        format!("Failed to open manifest file {}: {}", manifest_path.display(), e)
+    ))?;
     let manifest_file_name = manifest_path
         .file_name()
         .and_then(|s| s.to_str())
