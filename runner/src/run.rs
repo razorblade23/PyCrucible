@@ -42,8 +42,10 @@ fn run_uv(uv_path: &Path, project_dir: &Path, with: &[&str], args: &[&str]) -> i
     for w in with {
         cmd.arg("--with").arg(w);
     }
+    cmd.arg("--project");
+    cmd.arg(project_dir);
 
-    cmd.args(args).current_dir(project_dir);
+    cmd.args(args);
 
     let status = cmd.status()?;
 
