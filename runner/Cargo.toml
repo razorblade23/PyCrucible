@@ -3,7 +3,7 @@ name = "pycrucible_runner"
 description = "A small Rust application to run PyCrucible-embedded Python projects"
 repository = "https://github.com/razorblade23/PyCrucible"
 authors = ["razorblade23 <contact@razorblade23.dev>"]
-version = "0.4.1"
+version = "0.4.2"
 edition = "2024"
 
 [package.metadata.dist]
