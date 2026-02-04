@@ -149,7 +149,16 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
         "source" => {
             debug_println!("[main.run_extracted_project] - Running in source mode");
             let mut args_vec: Vec<String> = Vec::with_capacity(1 + runtime_args.len());
-            args_vec.push(entrypoint.clone());
+            // Use entry_point_path rather than entry point to account for indirect project location reference
+            let project_entry_point: String;
+            match entry_point_path.to_str(){
+            None => return Err(io::Error::new(
+                            io::ErrorKind::InvalidInput,
+                            "Could not extract entry point path",
+                        )),
+            Some(s) => project_entry_point = String::from(s)
+}
+            args_vec.push(project_entry_point);
             args_vec.extend(runtime_args);
 
             let args_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
