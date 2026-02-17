@@ -12,6 +12,7 @@ use shared::config::{ProjectConfig, load_project_config};
 enum RunMode {
     Source,
     Wheel,
+    App,
 }
 
 fn apply_env_from_config(config: &ProjectConfig) {
@@ -138,10 +139,7 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     } else if entrypoint.ends_with(".whl") {
         run_mode = RunMode::Wheel;
     } else {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "Entrypoint must end with .py or .whl",
-        ));
+        run_mode = RunMode::App;
     }
 
     debug_println!(
@@ -191,8 +189,16 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
                 &[wheel_file.to_str().unwrap()],
                 &[config.package.entrypoint.as_str()],
             )?;
+        },
+        RunMode::App => {
+            debug_println!("[main.run_extracted_project] - Running in app mode");
+            run_uv(
+                &uv_path,
+                project_dir,
+                &[],
+                &[config.package.entrypoint.as_str()],
+            )?;
         }
-        _ => unreachable!(),
     }
 
     // Run post-hook if specified
