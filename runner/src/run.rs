@@ -38,10 +38,11 @@ fn prepare_hooks(config: &ProjectConfig) -> (String, String) {
             )
         })
         .unwrap_or((String::new(), String::new()));
-    
+
     debug_println!(
         "[main.run_extracted_project] - Prepared hooks - pre_hook: {}, post_hook: {}",
-        pre_hook, post_hook
+        pre_hook,
+        post_hook
     );
     (pre_hook, post_hook)
 }
@@ -143,7 +144,7 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     }
 
     debug_println!(
-    "[main.run_extracted_project] - Determined run mode: {:#?}",
+        "[main.run_extracted_project] - Determined run mode: {:#?}",
         run_mode
     );
 
@@ -163,13 +164,15 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
             let mut args_vec: Vec<String> = Vec::with_capacity(1 + runtime_args.len());
             // Use entry_point_path rather than entry point to account for indirect project location reference
             let project_entry_point: String;
-            match entry_point_path.to_str(){
-            None => return Err(io::Error::new(
-                            io::ErrorKind::InvalidInput,
-                            "Could not extract entry point path",
-                        )),
-            Some(s) => project_entry_point = String::from(s)
-}
+            match entry_point_path.to_str() {
+                None => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "Could not extract entry point path",
+                    ));
+                }
+                Some(s) => project_entry_point = String::from(s),
+            }
             args_vec.push(project_entry_point);
             args_vec.extend(runtime_args);
 
@@ -189,7 +192,7 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
                 &[wheel_file.to_str().unwrap()],
                 &[config.package.entrypoint.as_str()],
             )?;
-        },
+        }
         RunMode::App => {
             debug_println!("[main.run_extracted_project] - Running in app mode");
             run_uv(

@@ -237,17 +237,29 @@ fn copy_source_to_zip(
             source_file,
             relative_path
         );
-        let file_data = fs::read(source_file).map_err(|e| io::Error::new(
-            io::ErrorKind::Other,
-            format!("Failed to read source file {}: {}", source_file.display(), e)
-        ))?;
+        let file_data = fs::read(source_file).map_err(|e| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                format!(
+                    "Failed to read source file {}: {}",
+                    source_file.display(),
+                    e
+                ),
+            )
+        })?;
         zip.start_file(relative_path, options)?;
         io::copy(&mut &file_data[..], zip)?;
     }
-    let mut manifest_file = fs::File::open(manifest_path).map_err(|e| io::Error::new(
-        io::ErrorKind::Other,
-        format!("Failed to open manifest file {}: {}", manifest_path.display(), e)
-    ))?;
+    let mut manifest_file = fs::File::open(manifest_path).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!(
+                "Failed to open manifest file {}: {}",
+                manifest_path.display(),
+                e
+            ),
+        )
+    })?;
     let manifest_file_name = manifest_path
         .file_name()
         .and_then(|s| s.to_str())

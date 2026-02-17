@@ -40,7 +40,8 @@ fn should_include_file(
         if Pattern::new(pattern).unwrap().matches(&relative_path) {
             debug_println!(
                 "[project.should_include_file] - Excluded by pattern '{}' for file {}",
-                pattern, file_path.display()
+                pattern,
+                file_path.display()
             );
             return false;
         }
@@ -69,10 +70,16 @@ pub fn collect_source_files_with_config(
     );
     let mut files = Vec::new();
     let mut seen_paths = HashSet::new();
-    let source_dir = source_dir.canonicalize().map_err(|e| Error::new(
-        io::ErrorKind::Other,
-        format!("Failed to canonicalize source_dir {}: {}", source_dir.display(), e)
-    ))?;
+    let source_dir = source_dir.canonicalize().map_err(|e| {
+        Error::new(
+            io::ErrorKind::Other,
+            format!(
+                "Failed to canonicalize source_dir {}: {}",
+                source_dir.display(),
+                e
+            ),
+        )
+    })?;
 
     let include_patterns = &project_config.package.patterns.include;
     let exclude_patterns = &project_config.package.patterns.exclude;
@@ -119,10 +126,16 @@ fn collect_wheel(source_wheel: &Path) -> io::Result<SourceFile> {
     );
 
     let mut wheel_package: Option<SourceFile> = None;
-    let source_wheel = source_wheel.canonicalize().map_err(|e| Error::new(
-        io::ErrorKind::Other,
-        format!("Failed to canonicalize source_wheel {}: {}", source_wheel.display(), e)
-    ))?;
+    let source_wheel = source_wheel.canonicalize().map_err(|e| {
+        Error::new(
+            io::ErrorKind::Other,
+            format!(
+                "Failed to canonicalize source_wheel {}: {}",
+                source_wheel.display(),
+                e
+            ),
+        )
+    })?;
 
     if source_wheel.is_file()
         && source_wheel

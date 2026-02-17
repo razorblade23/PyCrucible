@@ -34,7 +34,8 @@ fn extract_zip(
         return Err(format!(
             "uv.exe not found in zip archive for install dir {}",
             install_dir.display()
-        ).into());
+        )
+        .into());
     }
     Ok(())
 }
@@ -67,7 +68,8 @@ fn extract_targz(
         return Err(format!(
             "uv not found in tar.gz archive for install dir {}",
             install_dir.display()
-        ).into());
+        )
+        .into());
     }
     Ok(())
 }

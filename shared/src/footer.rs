@@ -35,7 +35,11 @@ pub fn read_footer() -> io::Result<PayloadInfo> {
     if file_size < FOOTER_SIZE as u64 {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("File {} too small to contain footer (size: {})", exe_path.display(), file_size),
+            format!(
+                "File {} too small to contain footer (size: {})",
+                exe_path.display(),
+                file_size
+            ),
         ));
     }
 
@@ -54,7 +58,9 @@ pub fn read_footer() -> io::Result<PayloadInfo> {
             io::ErrorKind::InvalidData,
             format!(
                 "Invalid magic bytes in footer for file {}. Expected {:?}, found {:?}",
-                exe_path.display(), MAGIC_BYTES, magic
+                exe_path.display(),
+                MAGIC_BYTES,
+                magic
             ),
         ));
     }

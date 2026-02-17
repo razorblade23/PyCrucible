@@ -2,7 +2,7 @@ mod extract;
 mod repository;
 mod run;
 
-use std::{ env, io};
+use std::{env, io};
 
 fn main() -> io::Result<()> {
     let runtime_args: Vec<String> = env::args().skip(1).collect();
