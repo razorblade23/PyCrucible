@@ -61,7 +61,8 @@ fn extract_payload(info: &PayloadInfo, target_dir: &Path) -> io::Result<()> {
         let exe_path = std::env::current_exe().unwrap_or_else(|_| PathBuf::from("<unknown>"));
         return Err(io::Error::other(format!(
             "Failed to extract payload from binary: {} at offset {}",
-            exe_path.display(), info.offset
+            exe_path.display(),
+            info.offset
         )));
     }
     let payload_data = payload_data.unwrap();

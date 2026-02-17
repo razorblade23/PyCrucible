@@ -8,6 +8,13 @@ use std::{self, io};
 
 use shared::config::{ProjectConfig, load_project_config};
 
+#[derive(Debug)]
+enum RunMode {
+    Source,
+    Wheel,
+    App,
+}
+
 fn apply_env_from_config(config: &ProjectConfig) {
     if let Some(env_config) = &config.env
         && let Some(vars) = &env_config.variables
@@ -32,6 +39,11 @@ fn prepare_hooks(config: &ProjectConfig) -> (String, String) {
         })
         .unwrap_or((String::new(), String::new()));
 
+    debug_println!(
+        "[main.run_extracted_project] - Prepared hooks - pre_hook: {}, post_hook: {}",
+        pre_hook,
+        post_hook
+    );
     (pre_hook, post_hook)
 }
 
@@ -105,38 +117,39 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     );
 
     // Determine entrypoint
+    let run_mode: RunMode;
     let entrypoint = &config.package.entrypoint;
     let entry_point_path = project_dir.join(entrypoint);
-    if entrypoint.ends_with(".py") {
-        if !entry_point_path.exists() {
-            return Err(io::Error::new(
-                io::ErrorKind::NotFound,
-                format!("Entry point {} not found", entry_point_path.display()),
-            ));
-        }
+
+    // Check if the entrypoint path exists in the project directory
+    if !entry_point_path.exists() {
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!("Entry point {} not found", entry_point_path.display()),
+        ));
     }
+
     debug_println!(
         "[main.run_extracted_project] - Using entry point: {}",
         entrypoint
     );
 
-    // Grab the hooks from config and unwrap them to a tuple
-    debug_println!(
-        "[main.run_extracted_project] - Preparing pre and post hooks from configuration"
-    );
-    let (pre_hook, post_hook) = prepare_hooks(&config);
-
-    let wheel = find_single_wheel(project_dir)?;
-
-    let has_wheel = wheel.is_some();
-
-    // Check if entrypoint ends in .py and handle accordingly
-    let run_mode = if has_wheel { "wheel" } else { "source" };
+    // Determine run mode based on entrypoint extension
+    if entrypoint.ends_with(".py") {
+        run_mode = RunMode::Source;
+    } else if entrypoint.ends_with(".whl") {
+        run_mode = RunMode::Wheel;
+    } else {
+        run_mode = RunMode::App;
+    }
 
     debug_println!(
-        "[main.run_extracted_project] - Determined run mode: {}",
+        "[main.run_extracted_project] - Determined run mode: {:#?}",
         run_mode
     );
+
+    // Grab the hooks from config and unwrap them to a tuple
+    let (pre_hook, post_hook) = prepare_hooks(&config);
 
     // Run pre-hook if specified
     if !pre_hook.is_empty() {
@@ -146,26 +159,29 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
 
     debug_println!("[main.run_extracted_project] - Running main project");
     match run_mode {
-        "source" => {
+        RunMode::Source => {
             debug_println!("[main.run_extracted_project] - Running in source mode");
             let mut args_vec: Vec<String> = Vec::with_capacity(1 + runtime_args.len());
             // Use entry_point_path rather than entry point to account for indirect project location reference
             let project_entry_point: String;
-            match entry_point_path.to_str(){
-            None => return Err(io::Error::new(
-                            io::ErrorKind::InvalidInput,
-                            "Could not extract entry point path",
-                        )),
-            Some(s) => project_entry_point = String::from(s)
-}
+            match entry_point_path.to_str() {
+                None => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "Could not extract entry point path",
+                    ));
+                }
+                Some(s) => project_entry_point = String::from(s),
+            }
             args_vec.push(project_entry_point);
             args_vec.extend(runtime_args);
 
             let args_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
             run_uv(&uv_path, project_dir, &[], &args_refs)?;
         }
-        "wheel" => {
+        RunMode::Wheel => {
             debug_println!("[main.run_extracted_project] - Running in wheel mode");
+            let wheel = find_single_wheel(project_dir)?;
             let wheel_file = wheel.ok_or(io::Error::new(
                 io::ErrorKind::NotFound,
                 "No .whl file found in the project directory",
@@ -177,7 +193,15 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
                 &[config.package.entrypoint.as_str()],
             )?;
         }
-        _ => unreachable!(),
+        RunMode::App => {
+            debug_println!("[main.run_extracted_project] - Running in app mode");
+            run_uv(
+                &uv_path,
+                project_dir,
+                &[],
+                &[config.package.entrypoint.as_str()],
+            )?;
+        }
     }
 
     // Run post-hook if specified
