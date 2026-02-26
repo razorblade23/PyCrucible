@@ -211,17 +211,6 @@ jobs:
       - name: Make binary executable (non-Windows)
         if: runner.os != 'Windows'
         run: chmod +x simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
-      
-      # - name: Install uv for faster test (linux and macos)
-      #   if: runner.os != 'Windows'
-      #   shell: bash
-      #   run: |
-      #     curl -LsSf https://astral.sh/uv/install.sh | sh
-      
-      # - name: Install uv for faster test (windows)
-      #   if: runner.os == 'Windows'
-      #   run: |
-      #     powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
       - name: Run PyCrucible
         working-directory: simple-python-project-for-PyCrucible
@@ -284,17 +273,6 @@ jobs:
       - name: Make binary executable (non-Windows)
         if: runner.os != 'Windows'
         run: chmod +x simple-python-project-for-PyCrucible/pycrucible${{ matrix.bin_ext }}
-      
-      # - name: Install uv for faster test (linux and macos)
-      #   if: runner.os != 'Windows'
-      #   shell: bash
-      #   run: |
-      #     curl -LsSf https://astral.sh/uv/install.sh | sh
-      
-      # - name: Install uv for faster test (windows)
-      #   if: runner.os == 'Windows'
-      #   run: |
-      #     powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
       - name: Run PyCrucible
         working-directory: simple-python-project-for-PyCrucible
