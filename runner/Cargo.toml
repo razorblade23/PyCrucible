@@ -18,7 +18,7 @@ eula = false
 [dependencies]
 shared = { path = "../shared" }
 
-toml = "0.8"
-zip = { version = "3", default-features = false }
+toml = "0.9"
+zip = { version = "8.1", default-features = false }
 tempfile = "3"
 git2 = { version = "0.20", default-features = false }
