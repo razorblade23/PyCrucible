@@ -1154,7 +1154,7 @@ dependencies = [
 
 [[package]]
 name = "pycrucible"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "clap",
  "flate2",
@@ -1177,7 +1177,7 @@ dependencies = [
 
 [[package]]
 name = "pycrucible_runner"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "git2",
  "shared",
@@ -1586,7 +1586,7 @@ dependencies = [
 
 [[package]]
 name = "shared"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "clap",
  "dirs",
