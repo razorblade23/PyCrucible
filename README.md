@@ -6,6 +6,16 @@
 ![PyPI - License](https://img.shields.io/pypi/l/pycrucible?style=for-the-badge&cacheSeconds=864000)
 ![GitHub commit activity (branch)](https://img.shields.io/github/commit-activity/t/razorblade23/pycrucible/main?style=for-the-badge&cacheSeconds=3600)
 
+## Star History
+
+<a href="https://www.star-history.com/?repos=razorblade23%2Fpycrucible&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=razorblade23/pycrucible&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=razorblade23/pycrucible&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=razorblade23/pycrucible&type=date&legend=top-left" />
+ </picture>
+</a>
+
 ## Sections
 - [What is PyCrucible?](#what-is-pycrucible)
 - [Quickstart](#quickstart)
