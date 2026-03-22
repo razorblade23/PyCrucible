@@ -47,6 +47,31 @@ fn prepare_hooks(config: &ProjectConfig) -> (String, String) {
     (pre_hook, post_hook)
 }
 
+fn run_hook(
+    hook_name: &str,
+    hook_cmd: &str,
+    uv_path: &Path,
+    project_dir: &Path,
+) -> io::Result<()> {
+    if hook_cmd.is_empty() {
+        return Ok(());
+    }
+
+    debug_println!("[main.run_extracted_project] - Running {}", hook_name);
+
+    let hook_path = project_dir.join(hook_cmd);
+    
+    let path_str = hook_path.to_str().ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("Invalid {} path", hook_name),
+        )
+    })?;
+
+    run_uv(uv_path, project_dir, &[], &[path_str])
+}
+
+
 fn run_uv(uv_path: &Path, project_dir: &Path, with: &[&str], args: &[&str]) -> io::Result<()> {
     let mut cmd = Command::new(uv_path);
     cmd.arg("run").arg("-q");
@@ -151,11 +176,8 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     // Grab the hooks from config and unwrap them to a tuple
     let (pre_hook, post_hook) = prepare_hooks(&config);
 
-    // Run pre-hook if specified
-    if !pre_hook.is_empty() {
-        debug_println!("[main.run_extracted_project] - Running pre-hook");
-        run_uv(&uv_path, project_dir, &[], &[pre_hook.as_str()])?;
-    }
+    // Run pre-hook
+    run_hook("pre-hook", &pre_hook, &uv_path, project_dir)?;
 
     debug_println!("[main.run_extracted_project] - Running main project");
     match run_mode {
@@ -204,11 +226,8 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
         }
     }
 
-    // Run post-hook if specified
-    if !post_hook.is_empty() {
-        debug_println!("[main.run_extracted_project] - Running post-hook");
-        run_uv(&uv_path, project_dir, &[], &[post_hook.as_str()])?;
-    }
+    // Run post-hook
+    run_hook("post-hook", &post_hook, &uv_path, project_dir)?;
 
     // Clean up if delete_after_run is set or extract_to_temp is set
     if (config.options.delete_after_run || config.options.extract_to_temp) && project_dir.exists() {
