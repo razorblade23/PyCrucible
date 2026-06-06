@@ -180,10 +180,13 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     run_hook("pre-hook", &pre_hook, &uv_path, project_dir)?;
 
     debug_println!("[main.run_extracted_project] - Running main project");
+
+    // Determine runtime arguments
+    let mut args_vec: Vec<String> = Vec::with_capacity(1 + runtime_args.len());
+            
     match run_mode {
         RunMode::Source => {
             debug_println!("[main.run_extracted_project] - Running in source mode");
-            let mut args_vec: Vec<String> = Vec::with_capacity(1 + runtime_args.len());
             // Use entry_point_path rather than entry point to account for indirect project location reference
             let project_entry_point: String;
             match entry_point_path.to_str() {
@@ -202,26 +205,35 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
             run_uv(&uv_path, project_dir, &[], &args_refs)?;
         }
         RunMode::Wheel => {
+            let mut args_vec: Vec<String> = Vec::with_capacity(1 + runtime_args.len());
             debug_println!("[main.run_extracted_project] - Running in wheel mode");
             let wheel = find_single_wheel(project_dir)?;
             let wheel_file = wheel.ok_or(io::Error::new(
                 io::ErrorKind::NotFound,
                 "No .whl file found in the project directory",
             ))?;
+            args_vec.push(config.package.entrypoint.as_str());
+            args_vec.extend(runtime_args);
+
+            let args_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
             run_uv(
                 &uv_path,
                 project_dir,
                 &[wheel_file.to_str().unwrap()],
-                &[config.package.entrypoint.as_str()],
+                &[&args_refs]?,
             )?;
         }
         RunMode::App => {
             debug_println!("[main.run_extracted_project] - Running in app mode");
+            args_vec.push(config.package.entrypoint.as_str());
+            args_vec.extend(runtime_args);
+
+            let args_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
             run_uv(
                 &uv_path,
                 project_dir,
                 &[],
-                &[config.package.entrypoint.as_str()],
+                &[&args_refs]?,
             )?;
         }
     }
