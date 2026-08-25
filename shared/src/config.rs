@@ -94,6 +94,8 @@ pub struct ToolOptions {
     #[serde(default)]
     pub delete_after_run: bool,
     #[serde(default)]
+    pub run_quietly: bool,
+    #[serde(default)]
     pub offline_mode: bool,
     #[serde(default)]
     pub uv_version: String,

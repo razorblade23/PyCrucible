@@ -14,6 +14,6 @@ fn main() -> io::Result<()> {
     }
     let project_dir = path.unwrap();
 
-    run::run_extracted_project(&project_dir, runtime_args)?;
-    Ok(())
+    let exit_code = run::run_extracted_project(&project_dir, runtime_args)?;
+    std::process::exit(exit_code);
 }

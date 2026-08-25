@@ -3,7 +3,7 @@ use shared::uv_handler::find_or_download_uv;
 use shared::{debug_println, debuging};
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, ExitStatus};
 use std::{self, io};
 
 use shared::config::{ProjectConfig, load_project_config};
@@ -71,7 +71,12 @@ fn run_hook(
     run_uv(uv_path, project_dir, &[], &[path_str])
 }
 
-fn run_uv(uv_path: &Path, project_dir: &Path, with: &[&str], args: &[&str]) -> io::Result<()> {
+/// Spawns `uv run ...` and hands back its raw exit status, without deciding
+/// what a nonzero status means. Used directly for the main program run (see
+/// `resolve_run_status`, which is where that decision is made); `run_uv`
+/// below wraps this for callers (hooks) that should always treat a nonzero
+/// exit as a real error.
+fn spawn_uv(uv_path: &Path, project_dir: &Path, with: &[&str], args: &[&str]) -> io::Result<ExitStatus> {
     let mut cmd = Command::new(uv_path);
     cmd.arg("run").arg("-q");
 
@@ -83,7 +88,11 @@ fn run_uv(uv_path: &Path, project_dir: &Path, with: &[&str], args: &[&str]) -> i
 
     cmd.args(args);
 
-    let status = cmd.status()?;
+    cmd.status()
+}
+
+fn run_uv(uv_path: &Path, project_dir: &Path, with: &[&str], args: &[&str]) -> io::Result<()> {
+    let status = spawn_uv(uv_path, project_dir, with, args)?;
 
     if !status.success() {
         return Err(io::Error::other("uv run failed"));
@@ -155,7 +164,38 @@ fn build_run_args(
     Ok(args)
 }
 
-pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> io::Result<()> {
+/// Turns the exit status of the main program's `uv run` invocation into
+/// `run_extracted_project`'s return value.
+///
+/// `uv run` propagates the exit code of the program it launches, so a
+/// nonzero status here almost always means the *target program* exited
+/// nonzero - not that `uv run` (or PyCrucible) actually failed. Historically
+/// this was always turned into an `io::Error`, which - once it bubbles up
+/// through `main()`'s `?` - prints Rust's generic
+/// `Error: Custom { kind: Other, error: "uv run failed" }`, even for a
+/// perfectly ordinary nonzero exit from the user's own program (#60).
+///
+/// When `quiet` is true, the real exit code is returned via `Ok` instead, so
+/// `main()` can exit with it directly and silently - no misleading message.
+/// When `quiet` is false, the historical (noisy) behavior is preserved
+/// unchanged, so this is backward compatible by default.
+///
+/// Note this intentionally only governs the *main* run - `run_hook` (pre/post
+/// hooks) still always errors on a nonzero exit, since a failing hook is
+/// much more likely to be an actual setup problem worth surfacing.
+fn resolve_run_status(status: ExitStatus, quiet: bool) -> io::Result<i32> {
+    if status.success() {
+        return Ok(0);
+    }
+
+    if quiet {
+        Ok(status.code().unwrap_or(1))
+    } else {
+        Err(io::Error::other("uv run failed"))
+    }
+}
+
+pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> io::Result<i32> {
     // Load project configuration and determine entrypoint
     let config = load_project_config(&project_dir.to_path_buf());
     debug_println!("[main.run_extracted_project] - Loaded project configuration");
@@ -223,10 +263,10 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
     let args = build_run_args(&run_mode, entrypoint, &entry_point_path, &runtime_args)?;
     let args_refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
 
-    match run_mode {
+    let status = match run_mode {
         RunMode::Source => {
             debug_println!("[main.run_extracted_project] - Running in source mode");
-            run_uv(&uv_path, project_dir, &[], &args_refs)?;
+            spawn_uv(&uv_path, project_dir, &[], &args_refs)?
         }
         RunMode::Wheel => {
             debug_println!("[main.run_extracted_project] - Running in wheel mode");
@@ -235,18 +275,18 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
                 io::ErrorKind::NotFound,
                 "No .whl file found in the project directory",
             ))?;
-            run_uv(
+            spawn_uv(
                 &uv_path,
                 project_dir,
                 &[wheel_file.to_str().unwrap()],
                 &args_refs,
-            )?;
+            )?
         }
         RunMode::App => {
             debug_println!("[main.run_extracted_project] - Running in app mode");
-            run_uv(&uv_path, project_dir, &[], &args_refs)?;
+            spawn_uv(&uv_path, project_dir, &[], &args_refs)?
         }
-    }
+    };
 
     // Run post-hook
     run_hook("post-hook", &post_hook, &uv_path, project_dir)?;
@@ -258,7 +298,7 @@ pub fn run_extracted_project(project_dir: &Path, runtime_args: Vec<String>) -> i
         std::fs::remove_dir_all(project_dir)?;
     }
 
-    Ok(())
+    resolve_run_status(status, config.options.run_quietly)
 }
 
 #[cfg(test)]
@@ -397,6 +437,65 @@ mod tests {
 
         assert_eq!(wheel_args, vec!["gunicorn".to_string()]);
         assert_eq!(app_args, vec!["gunicorn".to_string()]);
+    }
+
+    // ---- resolve_run_status --------------------------------------------------
+    //
+    // Regression tests for #60: a nonzero exit from the target program must
+    // not always be turned into a misleading "uv run failed" io::Error - only
+    // when `run_quietly` is off (the default, preserving old behavior).
+
+    #[cfg(unix)]
+    use std::os::unix::process::ExitStatusExt;
+
+    /// Builds an ExitStatus representing a normal exit with the given code.
+    /// (On Unix the wait-status encodes the code in the high byte.)
+    #[cfg(unix)]
+    fn exit_status(code: i32) -> ExitStatus {
+        ExitStatus::from_raw(code << 8)
+    }
+
+    #[cfg(windows)]
+    use std::os::windows::process::ExitStatusExt;
+
+    #[cfg(windows)]
+    fn exit_status(code: i32) -> ExitStatus {
+        ExitStatus::from_raw(code as u32)
+    }
+
+    #[test]
+    fn success_returns_ok_zero_regardless_of_quiet() {
+        assert_eq!(resolve_run_status(exit_status(0), false).unwrap(), 0);
+        assert_eq!(resolve_run_status(exit_status(0), true).unwrap(), 0);
+    }
+
+    #[test]
+    fn nonzero_quiet_returns_real_code_with_no_error() {
+        let result = resolve_run_status(exit_status(7), true);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 7);
+    }
+
+    #[test]
+    fn nonzero_not_quiet_returns_err_uv_run_failed() {
+        // This is the historical (default) behavior, preserved unchanged.
+        let result = resolve_run_status(exit_status(7), false);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::Other);
+        assert_eq!(err.to_string(), "uv run failed");
+    }
+
+    #[test]
+    fn nonzero_quiet_preserves_exit_code_one() {
+        // Exit code 1 is easy to conflate with "some generic error" - make
+        // sure it's still passed through faithfully rather than swallowed.
+        assert_eq!(resolve_run_status(exit_status(1), true).unwrap(), 1);
+    }
+
+    #[test]
+    fn nonzero_quiet_preserves_large_exit_code() {
+        assert_eq!(resolve_run_status(exit_status(77), true).unwrap(), 77);
     }
 
     // ---- find_single_wheel --------------------------------------------------
