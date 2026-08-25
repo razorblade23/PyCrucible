@@ -36,12 +36,13 @@ jobs:
 
       - name: Run tests
         run: |
+          cargo test -p pycrucible_runner --target x86_64-unknown-linux-gnu
           cargo test -p pycrucible --target x86_64-unknown-linux-gnu
           cargo test -p shared --target x86_64-unknown-linux-gnu
 
   dist:
     name: Build Distributables (cargo-dist)
-    # if: github.event_name == 'release'
+    if: github.event_name == 'release'
     needs: test
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -160,7 +161,7 @@ jobs:
 
   smoke-test-1:
     name: Smoke Test - normal usage
-    # if: github.event_name == 'release'
+    if: github.event_name == 'release'
     needs: dist
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -222,7 +223,7 @@ jobs:
   
   smoke-test-2:
     name: Smoke Test - no-uv-embed usage
-    # if: github.event_name == 'release'
+    if: github.event_name == 'release'
     needs: dist
     runs-on: ${{ matrix.runner }}
     strategy:
