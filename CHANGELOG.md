@@ -1,4 +1,29 @@
 # v0.4.x
+## v0.4.7
+- Tests: Added regression tests for issue #56
+- Feature: Issue #61 - Option for non-script entrypoints to accept arguments provided at runtime
+- Updated CI workflow to run `pycrucible_runner` tests also
+- Bumped dependancies versions 
+
+## v0.4.6
+- fixes regression introduced in 0.4.0-0.4.2 (issue #56)
+
+## v0.4.5
+- Fix: Premature config overwrite
+
+## v0.4.4
+- Fix: Determine "run mode" based on entrypoint extension by @razorblade23 in #54
+
+## v0.4.3
+- Fix for issues with relative file paths by @blue-shoes in #51
+
+## v0.4.2
+- Fixed relative filepaths in project directory when running binary
+
+## v0.4.1
+- Better error messages from issue #48
+- Fixed a bug with wrong filepath given to executable when using runtime arguments
+
 ## v0.4.0
 - Downloading only `uv` binary, disregarding the rest of the archive.
     - `--uv-version` - Select the version of uv to download. [default: `0.9.21`]
@@ -7,7 +32,7 @@
         - `--extract-to-temp` - ["wheel" mode only] - sets configuration option with the same name
         - `--delete-after-run` - ["wheel" mode only] - sets configuration option with the same name
 - Added `no-uv-embed` mode. This considerably reduces artifact size to ~2MB + payload size. Adds a couple of seconds to first run.
-    - `--no-uv-embed` - disables embedding of `uv` during embedding, forcing for download on first run. 
+    - `--no-uv-embed` - disables embedding of `uv` during embedding, forcing for download on first run.
 
 # v0.3.x
 ## v0.3.5 - v0.3.9
