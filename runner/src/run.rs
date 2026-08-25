@@ -466,4 +466,125 @@ mod tests {
         assert_eq!(pre, "pre.py");
         assert_eq!(post, "");
     }
+
+    // ---- run_hook (regression tests for #56) --------------------------------
+    //
+    // #56: the pre_run hook (and post_run, same code path) stopped being found
+    // in 0.4.2. Before the fix, the hook command from pycrucible.toml (e.g.
+    // "hooks/pre.py") was forwarded to `uv run` as-is:
+    //
+    //     run_uv(&uv_path, project_dir, &[], &[pre_hook.as_str()])
+    //
+    // `uv run` resolves a bare relative path against the *current process's*
+    // working directory, not `--project`. Since PyCrucible's own cwd is
+    // essentially never `project_dir` (it's a temp extraction directory), the
+    // hook was reported as not found. The fix joins the hook command with
+    // `project_dir` first - exactly like `entry_point_path` already is for the
+    // main entrypoint - so the path handed to `uv run` is always absolute and
+    // self-contained.
+    //
+    // These tests exercise `run_hook` itself (not just a path-building helper)
+    // by pointing it at a fake `uv` executable that records the argv it was
+    // called with, so they fail if a future change reintroduces the bare
+    // relative path.
+
+    #[cfg(unix)]
+    fn write_fake_uv(dir: &Path, capture_file: &Path) -> PathBuf {
+        use std::os::unix::fs::PermissionsExt;
+
+        // Minimal `uv` stand-in: dump the arguments it was invoked with (one
+        // per line) to `capture_file` and exit successfully. Good enough to
+        // observe exactly what `run_hook`/`run_uv` passed on the command line,
+        // without needing a real uv binary or network access.
+        let uv_path = dir.join("uv");
+        let script = format!(
+            "#!/bin/sh\nfor a in \"$@\"; do printf '%s\\n' \"$a\"; done > \"{}\"\nexit 0\n",
+            capture_file.display()
+        );
+        fs::write(&uv_path, script).unwrap();
+        let mut perms = fs::metadata(&uv_path).unwrap().permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&uv_path, perms).unwrap();
+        uv_path
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn pre_run_hook_is_invoked_with_absolute_path_joined_to_project_dir() {
+        let project_dir = tempdir().unwrap();
+        let bin_dir = tempdir().unwrap();
+
+        // Hook referenced by a relative path, exactly as written in
+        // pycrucible.toml (`pre_run = "hooks/setup.py"`).
+        fs::create_dir(project_dir.path().join("hooks")).unwrap();
+        fs::write(project_dir.path().join("hooks/setup.py"), b"print('hi')").unwrap();
+
+        let capture_file = bin_dir.path().join("captured_args.txt");
+        let uv_path = write_fake_uv(bin_dir.path(), &capture_file);
+
+        run_hook(
+            "pre-hook",
+            "hooks/setup.py",
+            &uv_path,
+            project_dir.path(),
+        )
+        .unwrap();
+
+        let captured = fs::read_to_string(&capture_file).unwrap();
+        let expected_hook_path = project_dir.path().join("hooks/setup.py");
+        let expected_hook_path = expected_hook_path.to_str().unwrap();
+
+        let lines: Vec<&str> = captured.lines().collect();
+        assert!(
+            lines.contains(&expected_hook_path),
+            "expected uv to be invoked with the absolute hook path {:?}, got args: {:?}",
+            expected_hook_path,
+            lines
+        );
+        // The bug (#56): the bare relative command must NOT be what's passed.
+        assert!(
+            !lines.contains(&"hooks/setup.py"),
+            "hook path was passed to uv as a bare relative path instead of \
+             being resolved against project_dir - this is the #56 regression"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn post_run_hook_is_invoked_with_absolute_path_joined_to_project_dir() {
+        let project_dir = tempdir().unwrap();
+        let bin_dir = tempdir().unwrap();
+
+        fs::write(project_dir.path().join("cleanup.py"), b"print('bye')").unwrap();
+
+        let capture_file = bin_dir.path().join("captured_args.txt");
+        let uv_path = write_fake_uv(bin_dir.path(), &capture_file);
+
+        run_hook("post-hook", "cleanup.py", &uv_path, project_dir.path()).unwrap();
+
+        let captured = fs::read_to_string(&capture_file).unwrap();
+        let expected_hook_path = project_dir.path().join("cleanup.py");
+
+        assert!(
+            captured
+                .lines()
+                .any(|line| line == expected_hook_path.to_str().unwrap()),
+            "expected uv to be invoked with the absolute hook path {:?}, got args: {:?}",
+            expected_hook_path,
+            captured
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn run_hook_with_empty_command_is_a_no_op_and_never_invokes_uv() {
+        let project_dir = tempdir().unwrap();
+        // Point at a uv binary that doesn't exist - if run_hook tried to
+        // invoke it despite an empty hook command, this would error out.
+        let bogus_uv_path = project_dir.path().join("no-such-uv-binary");
+
+        let result = run_hook("pre-hook", "", &bogus_uv_path, project_dir.path());
+
+        assert!(result.is_ok());
+    }
 }
