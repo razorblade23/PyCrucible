@@ -1,4 +1,7 @@
 # v0.4.x
+## v0.4.8
+- Implemented a fix for **zip-slip** (Path Traversal) vurnebility, as reported by @rajnisht7
+
 ## v0.4.7
 - Tests: Added regression tests for issue #56
 - Feature: Issue #61 - Option for non-script entrypoints to accept arguments provided at runtime
