@@ -294,7 +294,16 @@ mod tests {
 
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;
-            let outpath = target_dir.join(file.name());
+
+            // Mirrors the fix in runner/src/extract.rs: reject entries that
+            // would escape target_dir instead of trusting the raw name.
+            let Some(relative_path) = file.enclosed_name() else {
+                return Err(io::Error::other(format!(
+                    "Refusing to extract unsafe zip entry (path traversal attempt): {}",
+                    file.name()
+                )));
+            };
+            let outpath = target_dir.join(&relative_path);
 
             if let Some(parent) = outpath.parent() {
                 fs::create_dir_all(parent)?;
@@ -414,5 +423,45 @@ mod tests {
         assert!(extract_dir.join("src/utils.py").exists());
         assert!(extract_dir.join("requirements.txt").exists());
         assert!(extract_dir.join("pycrucible.toml").exists());
+    }
+
+    #[test]
+    fn test_extract_rejects_path_traversal_entry() {
+        // Craft a malicious archive containing a Zip Slip entry, mirroring
+        // the PoC from the reported vulnerability.
+        let dir = tempdir().unwrap();
+        let malicious_zip_path = dir.path().join("malicious.zip");
+
+        let mut cursor = Cursor::new(Vec::new());
+        {
+            let mut zip: ZipWriter<&mut Cursor<Vec<u8>>> = ZipWriter::new(&mut cursor);
+            let options: FileOptions<'_, ()> = FileOptions::<()>::default();
+            zip.start_file("normal_file.txt", options).unwrap();
+            zip.write_all(b"this is fine").unwrap();
+            zip.start_file("../evil.txt", options).unwrap();
+            zip.write_all(b"pwned").unwrap();
+            zip.finish().unwrap();
+        }
+        fs::write(&malicious_zip_path, cursor.into_inner()).unwrap();
+
+        let extract_dir = dir.path().join("extract_target");
+        fs::create_dir(&extract_dir).unwrap();
+
+        // offset 0: the whole "malicious_zip_path" file *is* the payload here.
+        let info = PayloadInfo {
+            offset: 0,
+            extraction_flag: false,
+        };
+
+        let result = extract_payload_from_file(&info, &extract_dir, &malicious_zip_path);
+
+        assert!(
+            result.is_err(),
+            "extraction of a payload containing a path-traversal entry must fail, not succeed silently"
+        );
+        assert!(
+            !dir.path().join("evil.txt").exists(),
+            "path-traversal entry must not be written outside the target directory"
+        );
     }
 }

@@ -32,7 +32,19 @@ fn extract_from_archive(
 
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
-        let outpath = target_dir.join(file.name());
+
+        // `enclosed_name()` returns `None` for absolute paths and for any
+        // entry whose components (e.g. `..`) would resolve outside of
+        // `target_dir`. Rejecting those entries prevents Zip Slip / path
+        // traversal from a malicious or tampered payload.
+        let Some(relative_path) = file.enclosed_name() else {
+            return Err(format!(
+                "Refusing to extract unsafe zip entry (path traversal attempt): {}",
+                file.name()
+            )
+            .into());
+        };
+        let outpath = target_dir.join(&relative_path);
 
         if let Some(parent) = outpath.parent() {
             fs::create_dir_all(parent)?;
@@ -67,7 +79,7 @@ fn extract_payload(info: &PayloadInfo, target_dir: &Path) -> io::Result<()> {
     }
     let payload_data = payload_data.unwrap();
 
-    let _ = extract_from_archive(target_dir, payload_data);
+    extract_from_archive(target_dir, payload_data).map_err(|e| io::Error::other(e.to_string()))?;
 
     Ok(())
 }
