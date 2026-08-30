@@ -5,6 +5,8 @@ on:
     tags:
       - "v*.*.*"
     branches: [main]
+  pull_requests:
+    types: [created]
   release:
     types: [created]
 
