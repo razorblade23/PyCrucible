@@ -5,6 +5,8 @@ on:
     tags:
       - "v*.*.*"
     branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
   release:
     types: [created]
 
